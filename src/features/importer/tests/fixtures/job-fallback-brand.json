@@ -1,0 +1,226 @@
+{
+  "id": 4208,
+  "status": "done",
+  "import_type": "product",
+  "result_mode": "list",
+  "ready_for_frontend": true,
+  "next_poll_after_seconds": 0,
+  "product": {
+    "id": 466,
+    "slug": "5-digit-led-electronic-digital-golf-finger-hand-held-ring-tally-counter-hand",
+    "title": "High Quality 5 Digit LED Electronic Digital Golf Finger Hand Held Ring Tally Counter Hand  Tool",
+    "short_title": "5 Digit LED Electronic Digital Golf Finger Hand Held Ring Tally Counter Hand",
+    "source": "alibaba",
+    "source_url": "https://www.alibaba.com/product-detail/High-Quality-5-Digit-LED-Electronic_1600088678316.html",
+    "currency": "CNY",
+    "min_price": "0.98",
+    "min_price_display": "0.98 CNY",
+    "colors": [],
+    "brand": {
+      "id": null,
+      "persian_name": "سایر برندها",
+      "original_name": "سایر برندها",
+      "slug": "سایر-برندها",
+      "logo": null,
+      "status": 1,
+      "tags": "scraped,fallback",
+      "is_fallback": true
+    },
+    "images": [
+      {
+        "id": 27331,
+        "image_url": "https://sc04.alicdn.com/kf/H52342a85f66d49c09d4cfc9bc617fc39w.png",
+        "width": 570,
+        "height": 502,
+        "score": 85.92,
+        "is_primary": true
+      },
+      {
+        "id": 27333,
+        "image_url": "https://sc04.alicdn.com/kf/H552f2aef873b40848756b520ce6e2579F.png",
+        "width": 553,
+        "height": 483,
+        "score": 81.62,
+        "is_primary": false
+      },
+      {
+        "id": 27332,
+        "image_url": "https://sc04.alicdn.com/kf/H1819f816c0384b389cf1e65a92fbb2b6m.png",
+        "width": 528,
+        "height": 484,
+        "score": 81.43,
+        "is_primary": false
+      },
+      {
+        "id": 27334,
+        "image_url": "https://sc04.alicdn.com/kf/H140cfe09b18b4943a47f1846a82f1a10w.png",
+        "width": 506,
+        "height": 484,
+        "score": 79.52,
+        "is_primary": false
+      },
+      {
+        "id": 27343,
+        "image_url": "https://sc04.alicdn.com/kf/HTB1kOhJLpXXXXXwaXXXq6xXFXXXu.jpg_120x120.jpg",
+        "width": 100,
+        "height": 100,
+        "score": 0,
+        "is_primary": false
+      }
+    ]
+  },
+  "results": [
+    {
+      "id": 466,
+      "slug": "5-digit-led-electronic-digital-golf-finger-hand-held-ring-tally-counter-hand",
+      "title": "High Quality 5 Digit LED Electronic Digital Golf Finger Hand Held Ring Tally Counter Hand  Tool",
+      "short_title": "5 Digit LED Electronic Digital Golf Finger Hand Held Ring Tally Counter Hand",
+      "source": "alibaba",
+      "source_url": "https://www.alibaba.com/product-detail/High-Quality-5-Digit-LED-Electronic_1600088678316.html",
+      "currency": "CNY",
+      "min_price": "0.98",
+      "min_price_display": "0.98 CNY",
+      "colors": [],
+      "brand": {
+        "id": null,
+        "persian_name": "سایر برندها",
+        "original_name": "سایر برندها",
+        "slug": "سایر-برندها",
+        "logo": null,
+        "status": 1,
+        "tags": "scraped,fallback",
+        "is_fallback": true
+      },
+      "images": [
+        {
+          "id": 27331,
+          "image_url": "https://sc04.alicdn.com/kf/H52342a85f66d49c09d4cfc9bc617fc39w.png",
+          "width": 570,
+          "height": 502,
+          "score": 85.92,
+          "is_primary": true
+        },
+        {
+          "id": 27333,
+          "image_url": "https://sc04.alicdn.com/kf/H552f2aef873b40848756b520ce6e2579F.png",
+          "width": 553,
+          "height": 483,
+          "score": 81.62,
+          "is_primary": false
+        },
+        {
+          "id": 27332,
+          "image_url": "https://sc04.alicdn.com/kf/H1819f816c0384b389cf1e65a92fbb2b6m.png",
+          "width": 528,
+          "height": 484,
+          "score": 81.43,
+          "is_primary": false
+        },
+        {
+          "id": 27334,
+          "image_url": "https://sc04.alicdn.com/kf/H140cfe09b18b4943a47f1846a82f1a10w.png",
+          "width": 506,
+          "height": 484,
+          "score": 79.52,
+          "is_primary": false
+        },
+        {
+          "id": 27343,
+          "image_url": "https://sc04.alicdn.com/kf/HTB1kOhJLpXXXXXwaXXXq6xXFXXXu.jpg_120x120.jpg",
+          "width": 100,
+          "height": 100,
+          "score": 0,
+          "is_primary": false
+        }
+      ]
+    },
+    {
+      "id": 467,
+      "slug": "foryou-pump-2be1103-405m3-h-flüssigkeitsring-vakuumpumpe-für-mineralverarbeitung",
+      "title": "FORYOU PUMP 2BE1103 405m³/h Flüssigkeitsring-Vakuumpumpe für Mineralverarbeitung Vakuumfiltration Explosionsgeschützt",
+      "short_title": "FORYOU PUMP 2BE1103 405m³/h Flüssigkeitsring-Vakuumpumpe für Mineralverarbeitung",
+      "source": "alibaba",
+      "source_url": "https://www.alibaba.com/product-detail/FORYOU-PUMP-2BE1103-405m-h-Liquid_1601806034378.html",
+      "currency": "CNY",
+      "min_price": "241451.17",
+      "min_price_display": "241451.17 CNY",
+      "colors": [],
+      "brand": {
+        "id": null,
+        "persian_name": "Dell",
+        "original_name": "Dell",
+        "slug": "dell",
+        "logo": null,
+        "status": 1,
+        "tags": "scraped,fallback",
+        "is_fallback": true
+      },
+      "images": [
+        {
+          "id": 27346,
+          "image_url": "https://sc04.alicdn.com/kf/Hcc28e44f8a50463aaf7c27e0ca2a8653Z.jpg",
+          "width": 0,
+          "height": 0,
+          "score": 0,
+          "is_primary": true
+        },
+        {
+          "id": 27347,
+          "image_url": "https://sc04.alicdn.com/kf/H305e3c35f2db4a769cb8e6bb39e112bbp.jpg",
+          "width": 0,
+          "height": 0,
+          "score": 0,
+          "is_primary": false
+        },
+        {
+          "id": 27348,
+          "image_url": "https://sc04.alicdn.com/kf/Hdda64330a0994731a25c79914aed8911Z.jpg",
+          "width": 0,
+          "height": 0,
+          "score": 0,
+          "is_primary": false
+        },
+        {
+          "id": 27349,
+          "image_url": "https://sc04.alicdn.com/kf/Hbf253f7a11d342378c210a56a160d68ac.jpg",
+          "width": 0,
+          "height": 0,
+          "score": 0,
+          "is_primary": false
+        },
+        {
+          "id": 27350,
+          "image_url": "https://sc04.alicdn.com/kf/H1b24725dc62a447882a38cb86ce78124O.jpg",
+          "width": 0,
+          "height": 0,
+          "score": 0,
+          "is_primary": false
+        },
+        {
+          "id": 27351,
+          "image_url": "https://sc04.alicdn.com/kf/Hdbbb6a106e8d4515be692063768d8fd4J.png",
+          "width": 0,
+          "height": 0,
+          "score": 0,
+          "is_primary": false
+        },
+        {
+          "id": 27352,
+          "image_url": "https://sc04.alicdn.com/kf/Hd6662f0f4ed844db82b9db7f4ccca28dv.png",
+          "width": 0,
+          "height": 0,
+          "score": 0,
+          "is_primary": false
+        },
+        {
+          "id": 27353,
+          "image_url": "https://sc04.alicdn.com/kf/Hbb01c3ed6b854f919e48d9942029912c7.jpg",
+          "width": 0,
+          "height": 0,
+          "score": 0,
+          "is_primary": false
+        }
+      ]
+    }
+  ]
+}

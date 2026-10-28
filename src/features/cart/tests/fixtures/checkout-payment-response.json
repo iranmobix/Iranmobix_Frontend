@@ -1,0 +1,321 @@
+{
+  "order": {
+    "id": 30,
+    "order_code": "iranmobix-720029",
+    "tracking_code": "iranmobix-720029",
+    "order_kind": "scraped",
+    "payment_method": "pending_review",
+    "payment_type": 0,
+    "payment_status": 0,
+    "payment_status_label": "not_paid",
+    "delivery_status": 0,
+    "order_status": 1,
+    "order_status_label": "در انتظار پرداخت",
+    "current_status": {
+      "id": 2,
+      "code": "awaiting_payment",
+      "title": "در انتظار پرداخت",
+      "description": "",
+      "sequence": 20,
+      "color": "#ffc107",
+      "icon": "",
+      "is_terminal": false,
+      "is_canceled": false,
+      "is_returned": false
+    },
+    "refund": null,
+    "workflow": {
+      "current_status": "awaiting_payment",
+      "available_transitions": [
+        {
+          "code": "price_expired",
+          "title": "مهلت قیمت منقضی شده"
+        },
+        {
+          "code": "canceled",
+          "title": "لغوشده"
+        }
+      ],
+      "can_continue_payment": true,
+      "can_cancel": false,
+      "can_request_refund": false,
+      "refund_status": null,
+      "is_terminal": false,
+      "next_action": "continue_payment"
+    },
+    "expert_pricing_status": "approved",
+    "expert_final_amount": "5367800.000",
+    "expert_note": "",
+    "expert_approved_at": "2026-09-29T10:07:02.354912+03:30",
+    "expert_price_expires_at": "2026-09-29T13:07:02.354912+03:30",
+    "can_continue_payment": true,
+    "expert_payment_message": "قیمت نهایی توسط کارشناس فروش تأیید شده و امکان ادامه پرداخت فعال است.",
+    "expert_payment_window": {
+      "status": "approved",
+      "can_continue_payment": true,
+      "message": "قیمت نهایی توسط کارشناس فروش تأیید شده و امکان ادامه پرداخت فعال است.",
+      "expires_at": "2026-09-29T09:37:02.354912+00:00",
+      "remaining_seconds": 10212,
+      "payment_submit_endpoint": "/api/customer/orders/30/payment/submit/"
+    },
+    "order_final_amount": "5367800.000",
+    "order_discount_amount": "1000000.000",
+    "order_copan_discount_amount": "0.000",
+    "order_common_discount_amount": "0.000",
+    "order_total_products_discount_amount": "1000000.000",
+    "online_payment_expires_at": "2026-09-29T09:37:02.354912Z",
+    "can_cancel_unpaid_online": false,
+    "created_at": "2026-09-29T09:56:00.362176+03:30",
+    "updated_at": "2026-09-29T10:07:02.362822+03:30",
+    "items": [
+      {
+        "id": 26,
+        "product": null,
+        "scraped_product": 442,
+        "catalog_id": "alibaba:462",
+        "product_name": "6K High-definition Digital Video Camera Professional Video Camcorder Wifi Camera",
+        "number": 1,
+        "final_product_price": "3367800.000",
+        "final_total_price": "3367800.000",
+        "color": null,
+        "color_name": null,
+        "guarantee": null,
+        "guarantee_name": null,
+        "attributes": []
+      }
+    ]
+  },
+  "payment_options": {
+    "order_id": 30,
+    "tracking_code": "iranmobix-720029",
+    "payment_submit_endpoint": "http://192.168.100.4:8000/api/customer/orders/30/payment/submit/",
+    "final_amount": 5367800,
+    "current_payment_method": "pending_review",
+    "current_payment_status": 0,
+    "payment_window": {
+      "status": "approved",
+      "can_continue_payment": true,
+      "message": "قیمت نهایی توسط کارشناس فروش تأیید شده و امکان ادامه پرداخت فعال است.",
+      "expires_at": "2026-09-29T09:37:02.354912+00:00",
+      "remaining_seconds": 10212
+    },
+    "available_payment_methods": [
+      {
+        "code": "wallet",
+        "title": "کیف پول ایران موبیکس",
+        "enabled": false,
+        "reason": "موجودی کیف پول کافی نیست؛ برای ادامه باید کیف پول شارژ شود.",
+        "next_action": "charge_wallet",
+        "required_fields": [],
+        "required_after_submit": [],
+        "balance_toman": "0",
+        "required_toman": "536780",
+        "shortage_toman": "536780",
+        "charge_wallet_url": "http://192.168.100.4:8000/api/customer/wallet/charge-requests/",
+        "profile_url": "/profile/wallet/",
+        "redirect_url": "/profile/wallet/",
+        "base_enabled": false
+      },
+      {
+        "code": "offline",
+        "title": "پرداخت آفلاین / شبا به شبا",
+        "enabled": true,
+        "reason": null,
+        "next_action": "upload_payment_receipt",
+        "required_fields": [],
+        "required_after_submit": [
+          "tracking_number",
+          "receipt_image"
+        ],
+        "requires_receipt": true,
+        "receipt_upload_hint": "پس از پرداخت، رسید را در همین جریان با فرمت عکس یا PDF ارسال کنید؛ سفارش بعد از تأیید کارشناس نهایی می‌شود.",
+        "offline_payment_info": {
+          "available": true,
+          "id": 1,
+          "title": "حساب نمونه صرافی",
+          "owner_name": "نمونه",
+          "bank_name": "ملت",
+          "sheba_number": "IR000000000000000000000000",
+          "card_number": "0000-0000-0000-0000",
+          "accepted_file_types": [
+            "jpg",
+            "jpeg",
+            "png",
+            "webp",
+            "pdf"
+          ],
+          "max_file_size_mb": 10
+        },
+        "base_enabled": true,
+        "receipt_upload_endpoint": "http://192.168.100.4:8000/api/customer/orders/30/offline-receipt/"
+      },
+      {
+        "code": "online",
+        "title": "پرداخت آنلاین",
+        "enabled": true,
+        "reason": null,
+        "next_action": "connect_online_gateway",
+        "required_fields": [],
+        "required_after_submit": [],
+        "gateways": [
+          {
+            "code": "mock",
+            "title": "درگاه آزمایشی توسعه",
+            "provider": "mock",
+            "description": "پرداخت شبیه‌سازی‌شده برای محیط توسعه محلی",
+            "logo_url": "",
+            "is_default": true,
+            "sandbox": true,
+            "currency": "IRR",
+            "enabled": true,
+            "selectable": true,
+            "reason": null
+          },
+          {
+            "code": "zarinpal",
+            "title": "زرین‌پال",
+            "provider": "zarinpal",
+            "description": "درگاه پرداخت آنلاین",
+            "logo_url": "",
+            "is_default": false,
+            "sandbox": true,
+            "currency": "IRR",
+            "enabled": true,
+            "selectable": true,
+            "reason": null
+          },
+          {
+            "code": "zibal",
+            "title": "زیبال",
+            "provider": "zibal",
+            "description": "درگاه پرداخت آنلاین",
+            "logo_url": "",
+            "is_default": false,
+            "sandbox": true,
+            "currency": "IRR",
+            "enabled": true,
+            "selectable": true,
+            "reason": null
+          },
+          {
+            "code": "mellat",
+            "title": "به‌پرداخت ملت",
+            "provider": "mellat",
+            "description": "درگاه پرداخت آنلاین",
+            "logo_url": "",
+            "is_default": false,
+            "sandbox": true,
+            "currency": "IRR",
+            "enabled": true,
+            "selectable": true,
+            "reason": null
+          },
+          {
+            "code": "bitpay",
+            "title": "بیت‌پی",
+            "provider": "bitpay",
+            "description": "درگاه پرداخت آنلاین بیت‌پی",
+            "logo_url": "",
+            "is_default": false,
+            "sandbox": true,
+            "currency": "IRR",
+            "enabled": true,
+            "selectable": true,
+            "reason": null
+          }
+        ],
+        "auto_select_gateway": true,
+        "selected_gateway": {
+          "code": "mock",
+          "title": "درگاه آزمایشی توسعه",
+          "provider": "mock",
+          "description": "پرداخت شبیه‌سازی‌شده برای محیط توسعه محلی",
+          "logo_url": "",
+          "is_default": true,
+          "sandbox": true,
+          "currency": "IRR",
+          "enabled": true,
+          "selectable": true,
+          "reason": null
+        },
+        "base_enabled": true
+      },
+      {
+        "code": "hawala",
+        "title": "حواله ارزی",
+        "enabled": false,
+        "reason": "پنجره ثبت حواله در حال حاضر بسته است.",
+        "next_action": "redirect_to_profile",
+        "required_fields": [],
+        "required_after_submit": [],
+        "hawala_settings_endpoint": "http://192.168.100.4:8000/api/customer/hawala/settings/",
+        "hawala_request_endpoint": "http://192.168.100.4:8000/api/customer/hawala/requests/",
+        "profile_url": "/profile/hawala/",
+        "redirect_url": "/profile/hawala/",
+        "is_open": false,
+        "window_start": "11:00",
+        "window_end": "14:00",
+        "base_enabled": false
+      }
+    ]
+  },
+  "wallet": {
+    "id": 9,
+    "balance": "0",
+    "gateway_threshold": 50000000,
+    "created_at": "2026-09-29T09:56:00.351667+03:30",
+    "updated_at": "2026-09-29T09:56:00.351680+03:30",
+    "recent_transactions": []
+  },
+  "addresses": [],
+  "selected_address_id": null,
+  "pricing": {
+    "currency": "IRR",
+    "item_count": 1,
+    "total_quantity": 1,
+    "items_total": "3367800.000",
+    "cart_items_total": "3367800.000",
+    "products_total": "3367800.000",
+    "product_discount_amount": "1000000.000",
+    "common_discount_amount": "0.000",
+    "coupon_discount_amount": "0.000",
+    "shipping_packaging_amount": "2000000.000",
+    "domestic_shipping_amount": "0.000",
+    "delivery_amount": "2000000.000",
+    "price_after_discount": "2367800.000",
+    "final_amount": "5367800.000",
+    "approved_order_amount": "5367800.000",
+    "display": {
+      "items_total": "3,367,800 ریال",
+      "cart_items_total": "3,367,800 ریال",
+      "products_total": "3,367,800 ریال",
+      "product_discount_amount": "1,000,000 ریال",
+      "common_discount_amount": "0 ریال",
+      "coupon_discount_amount": "0 ریال",
+      "shipping_packaging_amount": "2,000,000 ریال",
+      "domestic_shipping_amount": "0 ریال",
+      "delivery_amount": "2,000,000 ریال",
+      "price_after_discount": "2,367,800 ریال",
+      "final_amount": "5,367,800 ریال",
+      "approved_order_amount": "5,367,800 ریال"
+    },
+    "coupon": {
+      "applied": false,
+      "code": "",
+      "coupon": null,
+      "discount_amount": "0.000",
+      "message": ""
+    }
+  },
+  "proforma_invoice": {
+    "available": false,
+    "url": null,
+    "uploaded_at": null,
+    "message": "پیش‌فاکتور سفارش هنوز توسط کارشناس بارگذاری نشده است."
+  },
+  "invoice": null,
+  "invoice_endpoint": "http://192.168.100.4:8000/api/customer/orders/30/invoice/",
+  "invoice_available": false,
+  "payment_page_url": "http://localhost:3000/checkout/payment/iranmobix-720029",
+  "cancel_order_endpoint": "http://192.168.100.4:8000/api/customer/checkout/payment/iranmobix-720029/cancel/"
+}

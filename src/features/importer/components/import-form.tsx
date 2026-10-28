@@ -1,0 +1,3 @@
+export const IMPORT_POLLING_INTERVAL = 3000;
+
+export const IMPORT_POLLING_TIMEOUT = 60000;

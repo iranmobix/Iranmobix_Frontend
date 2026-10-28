@@ -1,0 +1,298 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@font-face {
+  font-family: "IRANYekan";
+  src: url("./fonts/iranyekan/Iranyekan.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "IRANYekan";
+  src: url("./fonts/iranyekan/IRANYekanMedium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "IRANYekan";
+  src: url("./fonts/iranyekan/IRANYekanBold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "IRANYekan";
+  src: url("./fonts/iranyekan/IRANYekanExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+}
+
+/* =========================================
+   Theme Configuration
+========================================= */
+
+@theme inline {
+  --font-sans: "IRANYekan", sans-serif;
+
+  /* =====================
+     Primary Colors
+  ====================== */
+
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-200: var(--primary-200);
+  --color-primary-300: var(--primary-300);
+  --color-primary-400: var(--primary-400);
+  --color-primary-500: var(--primary-500);
+  --color-primary-600: var(--primary-600);
+  --color-primary-700: var(--primary-700);
+  --color-primary-800: var(--primary-800);
+  --color-primary-900: var(--primary-900);
+  --color-primary-1000: var(--primary-1000);
+
+  /* =====================
+     Secondary Colors
+  ====================== */
+
+  --color-secondary-50: var(--secondary-50);
+  --color-secondary-100: var(--secondary-100);
+  --color-secondary-200: var(--secondary-200);
+  --color-secondary-300: var(--secondary-300);
+  --color-secondary-400: var(--secondary-400);
+  --color-secondary-500: var(--secondary-500);
+  --color-secondary-600: var(--secondary-600);
+  --color-secondary-700: var(--secondary-700);
+  --color-secondary-800: var(--secondary-800);
+  --color-secondary-900: var(--secondary-900);
+  --color-secondary-1000: var(--secondary-1000);
+
+  /* =====================
+     Neutral Colors
+  ====================== */
+
+  --color-neutral-50: var(--neutral-50);
+  --color-neutral-100: var(--neutral-100);
+  --color-neutral-200: var(--neutral-200);
+  --color-neutral-300: var(--neutral-300);
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700);
+  --color-neutral-800: var(--neutral-800);
+  --color-neutral-900: var(--neutral-900);
+  --color-neutral-1000: var(--neutral-1000);
+
+  /* =====================
+     Semantic Colors
+  ====================== */
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
+  /* =====================
+   Radius Tokens
+====================== */
+
+  --radius-md: var(--radius-default);
+  --radius-sm: var(--radius-small);
+
+  /* =====================
+     Typography Tokens
+  ====================== */
+
+  --text-display-xl: 60px;
+  --text-display-xl--line-height: 100%;
+  --text-display-xl--font-weight: 800;
+
+  --text-heading-xl: 48px;
+  --text-heading-xl--line-height: 100%;
+  --text-heading-xl--font-weight: 700;
+
+  --text-heading-lg: 40px;
+  --text-heading-lg--line-height: 100%;
+  --text-heading-lg--font-weight: 700;
+
+  --text-heading-md: 36px;
+  --text-heading-md--line-height: 100%;
+  --text-heading-md--font-weight: 700;
+
+  --text-heading-sm: 32px;
+  --text-heading-sm--line-height: 100%;
+  --text-heading-sm--font-weight: 700;
+
+  --text-heading-xs: 24px;
+  --text-heading-xs--line-height: 100%;
+  --text-heading-xs--font-weight: 700;
+
+  --text-heading-2xs: 20px;
+  --text-heading-2xs--line-height: 190%;
+  --text-heading-2xs--font-weight: 700;
+
+  --text-body-lg-medium: 18px;
+  --text-body-lg-medium--line-height: 160%;
+  --text-body-lg-medium--font-weight: 500;
+
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 160%;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 14px;
+  --text-body-md--line-height: 160%;
+  --text-body-md--font-weight: 400;
+
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 170%;
+  --text-body-sm--font-weight: 400;
+
+  --text-label-lg: 16px;
+  --text-label-lg--line-height: 160%;
+  --text-label-lg--font-weight: 500;
+
+  --text-label-md: 14px;
+  --text-label-md--line-height: 100%;
+  --text-label-md--font-weight: 500;
+
+  --text-caption: 12px;
+  --text-caption--line-height: 160%;
+  --text-caption--font-weight: 400;
+}
+
+/* =========================================
+   Design Tokens
+   TODO:
+   - Colors
+   - Typography
+   - Spacing
+   - Radius
+   - Shadows
+========================================= */
+
+:root {
+  --font-primary: "IRANYekan", sans-serif;
+  /* =====================
+     Color Tokens
+  ====================== */
+
+  /* Primary */
+  --primary-50: #dcd9ee;
+  --primary-100: #c5c0e2;
+  --primary-200: #a8a0d4;
+  --primary-300: #8b80c6;
+  --primary-400: #6e61b7;
+  --primary-500: #5141a9;
+  --primary-600: #44368d;
+  --primary-700: #362b71;
+  --primary-800: #292155;
+  --primary-900: #1b1638;
+  --primary-1000: #100d22;
+
+  /* Secondary */
+  --secondary-50: #f6efd7;
+  --secondary-100: #f0e4bc;
+  --secondary-200: #e9d79b;
+  --secondary-300: #e2ca7a;
+  --secondary-400: #dabc58;
+  --secondary-500: #d3af37;
+  --secondary-600: #b0922e;
+  --secondary-700: #8d7525;
+  --secondary-800: #6a581c;
+  --secondary-900: #463a12;
+  --secondary-1000: #2a230b;
+
+  /* Neutral */
+  --neutral-50: #f6f5f3;
+  --neutral-100: #f0efec;
+  --neutral-200: #e9e7e2;
+  --neutral-300: #e2dfd8;
+  --neutral-400: #dad7cf;
+  --neutral-500: #d3cfc5;
+  --neutral-600: #b0ada4;
+  --neutral-700: #8d8a83;
+  --neutral-800: #6a6863;
+  --neutral-900: #464542;
+  --neutral-1000: #2a2927;
+
+  /* Semantic */
+  --success: #028e79;
+  --warning: #ffbb32;
+  --error: #de0105;
+
+  /* =====================
+   Radius Tokens
+====================== */
+
+  --radius-default: 8px;
+  --radius-small: 7px;
+}
+
+/* =========================================
+   Dark Mode
+   TODO:
+   Replace with Figma dark theme tokens
+========================================= */
+
+.dark {
+}
+
+/* =========================================
+   Base Styles
+========================================= */
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply font-sans;
+    margin: 0;
+    height: 100%;
+  }
+}
+
+/* =========================================
+   Custom Utilities
+   TODO:
+   Add Figma based utilities
+========================================= */
+
+/* Shared product discovery/detail loader. Motion is decorative and opt-in. */
+@keyframes product-loading-orbit {
+  to { transform: rotate(360deg); }
+}
+@keyframes product-loading-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes product-loading-scan {
+  0%, 100% { transform: translateY(-20px); opacity: 0; }
+  20%, 75% { opacity: 1; }
+  85% { transform: translateY(60px); opacity: 0; }
+}
+@keyframes product-loading-dot {
+  0%, 70%, 100% { transform: translateY(0); opacity: .4; }
+  35% { transform: translateY(-3px); opacity: 1; }
+}
+@keyframes product-loading-progress {
+  0% { transform: translateX(-105%); }
+  100% { transform: translateX(205%); }
+}
+@keyframes product-loading-glow {
+  0%, 100% { opacity: .35; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .product-loading-orbit { transform-origin: center; animation: product-loading-orbit 3.6s linear infinite; }
+  .product-loading-float { animation: product-loading-float 2.8s ease-in-out infinite; }
+  .product-loading-satellite { animation: product-loading-float 3.2s ease-in-out infinite reverse; }
+  .product-loading-scan { animation: product-loading-scan 2.6s ease-in-out infinite; }
+  .product-loading-dot { animation: product-loading-dot 1.25s ease-in-out infinite; }
+  .product-loading-progress { animation: product-loading-progress 1.8s ease-in-out infinite; }
+  .product-loading-glow { animation: product-loading-glow 2s ease-in-out infinite; }
+}

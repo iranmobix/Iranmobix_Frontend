@@ -1,0 +1,43 @@
+import type { SalesExpertApi } from "../types/sales-experts-api.types";
+
+export const salesExpertsMock: SalesExpertApi[] = [
+  {
+    id: 1,
+    first_name: "محدثه",
+    last_name: "تیموری",
+    full_name: "محدثه تیموری",
+    job_title: "کارشناس فروش",
+    bio: "متخصص در حوزه تأمین و واردات کالا",
+    telegram_url: "#",
+    whatsapp_url: "#",
+    instagram_url: "#",
+    profile_image: "/images/aks.png",
+    display_order: 1,
+  },
+  {
+    id: 2,
+    first_name: "محدثه",
+    last_name: "امینی",
+    full_name: "محدثه امینی",
+    job_title: "کارشناس فروش",
+    bio: "همراه شما در فرآیند خرید و واردات",
+    telegram_url: "#",
+    whatsapp_url: "#",
+    instagram_url: "#",
+    profile_image: "/images/aks.png",
+    display_order: 2,
+  },
+  {
+    id: 3,
+    first_name: "فرنوش",
+    last_name: "شفیعی",
+    full_name: "فرنوش شفیعی",
+    job_title: "کارشناس فروش",
+    bio: "مشاوره تخصصی خرید و حمل‌ونقل",
+    telegram_url: "#",
+    whatsapp_url: "#",
+    instagram_url: "#",
+    profile_image: "/images/aks.png",
+    display_order: 3,
+  },
+];
