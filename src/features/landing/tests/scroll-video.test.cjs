@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- Run the scroll controller against deterministic browser/media boundaries. */
 const {test}=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),ts=require("typescript");
-function setup({readyState=2,reduced=false,sources=[]}={}) {
+function setup({readyState=2,reduced=false,sources=[],touch=false,play,initialSrc}={}) {
   const target=()=>{const listeners=new Map();return {
     addEventListener:(name,callback)=>listeners.set(name,callback),
     removeEventListener:(name,callback)=>{if(listeners.get(name)===callback)listeners.delete(name);},
@@ -13,12 +13,13 @@ function setup({readyState=2,reduced=false,sources=[]}={}) {
     cancelAnimationFrame:id=>frames.delete(id),
   };
   const motion={...target(),matches:reduced};const mediaQueries=new Map(sources.filter(source=>source.media).map(source=>[source.media,{...target(),matches:source.matches??false}]));
+  mediaQueries.set("(pointer: coarse)",{...target(),matches:touch});
   window.matchMedia=query=>mediaQueries.get(query)??motion;
   const section={offsetHeight:2000,dataset:{},style:{setProperty:(name,value)=>{styleWrites++;properties.set(name,value);}},getBoundingClientRect:()=>{rectReads++;return {top:200-window.scrollY};}};
   const stage={offsetHeight:600};
   const header={getBoundingClientRect:()=>{rectReads++;return {height:100};}};
-  let currentTime=0,loadCount=0;
-  const video={...target(),poster:"/videos/hero-poster.jpg",getAttribute:name=>name==="poster"?video.poster:null,querySelectorAll:()=>sources,currentSrc:sources.find(source=>!source.media||source.matches)?.src??"",load:()=>{loadCount++;currentTime=0;video.seeking=false;video.readyState=0;video.currentSrc=sources.find(source=>!source.media||mediaQueries.get(source.media)?.matches)?.src??"";},readyState,duration:8,seeking:false,pause:()=>{},get currentTime(){return currentTime;},set currentTime(value){currentTime=value;seeks.push(value);video.seeking=true;}};
+  let currentTime=0,loadCount=0,playCount=0,pauseCount=0;
+  const video={...target(),setAttribute:()=>{},play:()=>{playCount++;return play?play():Promise.resolve();},poster:"/videos/hero-poster.jpg",getAttribute:name=>name==="poster"?video.poster:null,querySelectorAll:()=>sources,currentSrc:initialSrc??sources.find(source=>!source.media||source.matches)?.src??"",load:()=>{loadCount++;currentTime=0;video.seeking=false;video.readyState=0;video.currentSrc=sources.find(source=>!source.media||mediaQueries.get(source.media)?.matches)?.src??"";},readyState,duration:8,seeking:false,pause:()=>{pauseCount++;},get currentTime(){return currentTime;},set currentTime(value){currentTime=value;seeks.push(value);video.seeking=true;}};
   const refs=[section,stage,video];
   const source=ts.transpileModule(fs.readFileSync(path.join(__dirname,"../components/hero/use-scroll-video.ts"),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
   const mod={exports:{}};
@@ -29,7 +30,7 @@ function setup({readyState=2,reduced=false,sources=[]}={}) {
   );
   mod.exports.useScrollVideo();cleanup=effects[0]();
   const flush=()=>{const pending=[...frames.values()];frames.clear();clock+=16;pending.forEach(callback=>callback(clock));};
-  return {window,video,motion,section,seeks,frames,flush,cleanup,observer,properties,mediaQueries,loads:()=>loadCount,
+  return {window,video,motion,section,seeks,frames,flush,cleanup,observer,properties,mediaQueries,loads:()=>loadCount,plays:()=>playCount,pauses:()=>pauseCount,
     decoded:()=>{video.seeking=false;video.emit("seeked");},
     reads:()=>rectReads,writes:()=>styleWrites};
 }
@@ -113,4 +114,68 @@ test("mobile-only video selection preserves desktop source and scroll position a
   assert.equal(s.video.poster,"/videos/hero-poster.jpg");
   s.cleanup();
   assert.equal(mobile.listeners.size,0);
+});
+
+test("metadata-only media can seek without waiting for loadeddata",()=>{
+  const s=setup({readyState:1});s.window.scrollY=900;s.flush();
+  assert.equal(s.seeks.length,1);
+  s.cleanup();
+});
+test("touch gestures initialize muted inline decoding once, then pause",async()=>{
+  const s=setup({touch:true,readyState:1});s.flush();
+  s.window.emit("touchstart");s.window.emit("pointerdown");
+  assert.equal(s.plays(),1);
+  await Promise.resolve();
+  assert.equal(s.video.muted,true);assert.equal(s.video.defaultMuted,true);assert.equal(s.video.playsInline,true);
+  assert.ok(s.pauses()>=2);
+  s.window.emit("touchend");assert.equal(s.plays(),1);
+  s.cleanup();
+});
+test("blocked mobile play is handled and a later allowed gesture can retry",async()=>{
+  let blocked=true;
+  const s=setup({touch:true,play:()=>blocked?Promise.reject(new Error("NotAllowedError")):Promise.resolve()});
+  s.flush();s.window.emit("touchstart");await Promise.resolve();
+  assert.equal(s.plays(),1);
+  blocked=false;s.window.emit("touchend");await Promise.resolve();
+  assert.equal(s.plays(),2);
+  s.cleanup();
+});
+test("touch seeks are frame-aligned, bounded and follow the newest scroll target",()=>{
+  const s=setup({touch:true});s.flush();
+  s.window.scrollY=900;s.window.emit("scroll");s.flush();
+  assert.equal(s.seeks.length,1);
+  assert.ok(Math.abs(s.video.currentTime*24-Math.round(s.video.currentTime*24))<1e-8);
+  s.decoded();s.flush();
+  s.window.scrollY=1000;s.window.emit("scroll");s.flush();
+  assert.equal(s.seeks.length,1);
+  s.window.scrollY=1200;s.window.emit("scroll");s.flush();
+  assert.equal(s.seeks.length,2);
+  const target=Math.round((1100/1400*(8-1/24))*24)/24;
+  assert.ok(Math.abs(s.video.currentTime-target)<1e-8);
+  s.decoded();s.flush();assert.equal(s.frames.size,0);
+  s.cleanup();
+});
+test("mobile decoder initialization respects reduced motion and never runs on desktop",()=>{
+  for(const settings of [{touch:true,reduced:true},{touch:false}]) {
+    const s=setup(settings);s.flush();s.window.emit("touchstart");s.window.emit("click");
+    assert.equal(s.plays(),0);s.cleanup();
+  }
+});
+test("a delayed play promise cannot resume work after the component unmounts",async()=>{
+  let complete;
+  const s=setup({touch:true,play:()=>new Promise(resolve=>{complete=resolve;})});
+  s.window.emit("touchstart");s.cleanup();complete();await Promise.resolve();
+  assert.equal(s.frames.size,0);
+  assert.equal(s.window.listeners.size,0);
+});
+test("explicit source choice corrects browsers that initially select the wrong video",()=>{
+  const sources=[
+    {src:"https://front.test/mobile.mp4",media:"mobile",matches:true},
+    {src:"https://front.test/desktop.mp4",media:""},
+  ];
+  const s=setup({sources,initialSrc:sources[1].src});
+  assert.equal(s.video.src,sources[0].src);
+  assert.equal(s.video.currentSrc,sources[0].src);
+  assert.equal(s.loads(),1);
+  s.cleanup();
 });

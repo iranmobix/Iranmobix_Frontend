@@ -26,7 +26,7 @@ export function ScrollVideoHero() {
           >
             <source
               media="(max-width: 767px)"
-              src="/videos/hero-scroll-mobile.mp4"
+              src="/videos/hero-scroll-mobile-lite.mp4"
               data-poster="/videos/hero-poster-mobile.jpg"
               type="video/mp4"
             />
