@@ -1,4 +1,9 @@
 import "server-only";
+import {
+  productNavigationCategoriesSchema,
+  buildProductCategoryTree,
+  flattenProductCategoryTree,
+} from "./product-navigation-categories";
 import type { ProductService } from "./product.service";
 import { productServerApi } from "../api/product-server.api";
 import { mapProductListResult } from "../mappers/product-list-result.mapper";
@@ -20,3 +25,13 @@ export const productServerService: ProductService = {
     return mapProductDetail(response);
   },
 };
+
+export async function getServerProductCategories(signal?: AbortSignal) {
+  return flattenProductCategoryTree(
+    buildProductCategoryTree(
+      productNavigationCategoriesSchema.parse(
+        await productServerApi.getCategories(signal),
+      ),
+    ),
+  );
+}

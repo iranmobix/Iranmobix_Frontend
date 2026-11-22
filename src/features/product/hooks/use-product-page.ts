@@ -8,6 +8,7 @@ import type {
 import type { ProductMobileCurrency } from "../components/product-card/product-mobile-card";
 import { getProductPageData } from "../utils/product-page-data";
 import { useProductQuery } from "./use-product-query";
+import { useProductNavigationCategories } from "./use-product-navigation-categories";
 import { useProducts } from "./use-products";
 import { useInfiniteProductScroll } from "./use-infinite-product-scroll";
 
@@ -19,15 +20,25 @@ export function useProductPage(options: ProductPageProps) {
     queryState.query,
     importedProducts === undefined && discoveryProducts === undefined,
   );
+  const categoriesQuery = useProductNavigationCategories(
+    importedProducts === undefined && discoveryProducts === undefined,
+  );
   const data = useMemo(
     () =>
       getProductPageData({
         pages: catalog.data?.pages ?? [],
+        categories: categoriesQuery.data,
         query: queryState.query,
         importedProducts,
         discoveryProducts,
       }),
-    [catalog.data, queryState.query, importedProducts, discoveryProducts],
+    [
+      catalog.data,
+      categoriesQuery.data,
+      queryState.query,
+      importedProducts,
+      discoveryProducts,
+    ],
   );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileCurrency, setMobileCurrency] =
@@ -56,6 +67,9 @@ export function useProductPage(options: ProductPageProps) {
   return {
     ...data,
     ...queryState,
+    categoriesLoading: categoriesQuery.isLoading,
+    categoriesError: categoriesQuery.isError,
+    retryCategories: () => void categoriesQuery.refetch(),
     isLoading: catalog.isLoading,
     isError: catalog.isError && !catalog.data?.pages.length,
     isMock: catalog.isMock,

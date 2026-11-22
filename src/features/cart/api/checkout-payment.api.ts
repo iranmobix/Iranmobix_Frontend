@@ -4,6 +4,14 @@ import type {
   CustomerAddressPayload,
 } from "../types/api/customer-address-api.types";
 export const checkoutPaymentApi = {
+  cancelOrder: (trackingCode: string) =>
+    httpPost<unknown>(
+      "/api/customer/checkout/payment/" +
+        encodeURIComponent(trackingCode) +
+        "/cancel/",
+      {},
+      { withCredentials: true },
+    ),
   getCities: (provinceName: string, signal?: AbortSignal) =>
     httpGet<unknown>("/api/customer/cities/", {
       params: { province: provinceName },

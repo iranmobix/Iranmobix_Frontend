@@ -210,7 +210,9 @@ test("API receives encoded slug, string option IDs and optional attributes uncha
   };
   await cartService.addItem({ slug: "camera/a b", payload });
   assert.equal(h.requests.at(-1).url, "/api/add-to-cart/camera%2Fa%20b");
-  assert.deepEqual(h.requests.at(-1).body, payload);
+  const expected = { ...payload };
+  delete expected.number;
+  assert.deepEqual(h.requests.at(-1).body, expected);
 });
 test("invalid quantity fails before any network mutation", async () => {
   const h = harness(),
@@ -396,7 +398,7 @@ test("explicit mock reads use the domain pipeline without HTTP or a guest sessio
 
 test("customer cart with empty metadata and missing priced_at still renders its actual product", async () => {
   let raw;
-  const h = harness({render:true,get:()=>raw});
+  const h = harness({render:true,get:()=>raw,post:async()=>orderAcceptedResponse()});
   h.values.set("access_token","test-access");
   raw = structuredClone(h.fixture);
   raw.currency = "CNY";
@@ -440,15 +442,12 @@ test("customer cart with empty metadata and missing priced_at still renders its 
   assert.equal(html.includes("pricing.priced_at"),false);
   assert.equal(html.includes("product.source.url"),false);
   const mapper = h.load("mappers/cart-submit-order.mapper");
-  assert.equal(mapper.getCartSubmissionIssue(cart,"ground_china_iran"),null,JSON.stringify(item.dataIssues));
-  const payload = mapper.mapCartToSubmitOrderPayload(cart,"test-key","ground_china_iran");
-  assert.equal(payload.items[0].color,"مشکی");
-  assert.equal(payload.items[0].guarantee,"گارانتی تست");
-  await h.load("services/cart-order.service").cartOrderService.submit(cart,"api","ground_china_iran");
+  assert.equal(mapper.getCartSubmissionIssue(cart),null);
+  assert.deepEqual(mapper.mapCartToSubmitOrderPayload(cart),{item_ids:[Number(item.id)]});
+  await h.load("services/cart-order.service").cartOrderService.submit(cart,"api");
   const request = h.requests.find(request=>request.url==="/api/cart/submit-order");
-  assert.equal(request.body.items[0].color,"مشکی");
-  assert.equal(request.body.items[0].guarantee,"گارانتی تست");
-  assert.equal(request.body.items[0].price.final_total_price_irr,"1350000");
+  assert.deepEqual(request.body,{item_ids:[Number(item.id)]});
+  assert.equal(request.config.headers,undefined);
 });
 
 test("missing, null and malformed cart amounts render distinct diagnostics and never become zero", () => {
@@ -460,7 +459,7 @@ test("missing, null and malformed cart amounts render distinct diagnostics and n
     const cart = map(raw);
     assert.equal(cart.finalTotal,"");
     assert.ok(cart.dataIssues.some(issue=>issue.path==="final_total"&&issue.status===status));
-    assert.ok(h.load("mappers/cart-submit-order.mapper").getCartSubmissionIssue(cart,"ground_china_iran"));
+    assert.equal(h.load("mappers/cart-submit-order.mapper").getCartSubmissionIssue(cart),null);
   }
 });
 
@@ -504,7 +503,7 @@ test("a malformed row and a missing items collection retain their own field diag
   assert.ok(fieldNote(cart.items[0].dataIssues,"product.title"));
   const missing = map({});
   assert.ok(fieldNote(missing.dataIssues,"items"));
-  assert.ok(h.load("mappers/cart-submit-order.mapper").getCartSubmissionIssue(missing,"ground_china_iran"));
+  assert.ok(h.load("mappers/cart-submit-order.mapper").getCartSubmissionIssue(missing));
 });
 
 test("incomplete mock responses render diagnostics without inventing a valid total", async () => {
@@ -767,13 +766,8 @@ test("live row renders actual values, field diagnostics and disabled controls", 
     assert.ok(html.includes(item.product.title));
     assert.ok(html.includes(item.product.image));
     assert.ok(html.includes(encodeURIComponent(item.product.slug)));
-    assert.ok(
-      html.includes(
-        h
-          .load("utils/cart.utils")
-          .formatCartMoney(item.pricing.finalTotalPrice, "IRR"),
-      ),
-    );
+    const toman = h.load("utils/cart-item-presentation").cartTomanFromRial(item.pricing.finalUnitPriceIrr ?? item.product.price.amountIrr);
+    assert.ok(html.includes(h.load("utils/cart.utils").formatCartMoney(toman, "").trim()));
     if (item.selectedColor) assert.ok(html.includes(item.selectedColor.name));
     assert.ok(!html.includes("جزئیات محصول از بک مشخص نشده"));
     assert.ok(!html.includes("نام کالا: —"));
@@ -835,13 +829,13 @@ test("discount UI never combines catalog currency with cart row currency", () =>
   const html = renderToStaticMarkup(
     React.createElement(h.load("components/cart-item").default, { item }),
   );
-  assert.ok(html.includes("1,000 IRR"));
+  assert.ok(!html.includes("1,000 IRR"));
   assert.ok(!html.includes("درصد تخفیف و قیمت کل قبل از تخفیف"));
   assert.ok(!html.includes("<del"));
   assert.ok(!html.includes("CNY"));
 });
 
-test("summary keeps zero savings visible and explains unavailable checkout", () => {
+test("summary hides zero savings and explains unavailable checkout", () => {
   const h = harness({ render: true });
   const React = require("react"),
     { renderToStaticMarkup } = require("react-dom/server");
@@ -859,8 +853,8 @@ test("summary keeps zero savings visible and explains unavailable checkout", () 
       unavailableReason: "API ثبت اولیهٔ سفارش هنوز مشخص نشده",
     }),
   );
-  assert.ok(html.includes("سود شما از خرید"));
-  assert.ok(html.includes("0 IRR"));
+  assert.ok(!html.includes("سود شما از خرید"));
+  assert.ok(!html.includes(">0 IRR<"));
   assert.ok(html.includes("ثبت اولیه"));
   assert.ok(html.includes("API ثبت اولیهٔ سفارش هنوز مشخص نشده"));
   assert.ok(!html.includes("هزینه حمل"));
@@ -1004,171 +998,6 @@ function latestCart(h) {
     .mapCart(h.load("schemas/cart.schema").cartResponseSchema.parse(raw));
 }
 
-test("submit snapshot preserves exact rial amounts instead of relabelling CNY prices", () => {
-  const h = harness(),
-    cart = latestCart(h);
-  const payload = h
-    .load("mappers/cart-submit-order.mapper")
-    .mapCartToSubmitOrderPayload(cart, "test-id", "ground_china_iran");
-  assert.equal(cart.items[0].pricing.unitPrice, "89.701");
-  assert.deepEqual(payload.items[0], {
-    slug: cart.items[0].product.slug,
-    quantity: 1,
-    color: null,
-    guarantee: null,
-    price: {
-      unit_price_irr: "3236400",
-      total_discount_amount_irr: "0",
-      final_total_price_irr: "3236400",
-    },
-  });
-  assert.equal(payload.items[4].price.final_total_price_irr, "119004930");
-  assert.equal(payload.items[4].quantity, 3);
-  assert.equal(cart.currency, "CNY");
-});
-
-test("invalid or incomplete cart snapshots block submission without transport", async () => {
-  const h = harness();
-  h.values.set("access_token", "test-access");
-  const service = h.load("services/cart-order.service").cartOrderService;
-  const cart = latestCart(h);
-  await assert.rejects(service.submit(cart, "mock", "ground_china_iran"));
-  for (const invalid of [
-    { ...cart, checkoutReady: false },
-    { ...cart, items: [] },
-    { ...cart, issues: ["blocked"] },
-    {
-      ...cart,
-      items: [
-        {
-          ...cart.items[0],
-          pricing: { ...cart.items[0].pricing, unitPriceIrr: null },
-        },
-      ],
-    },
-    {
-      ...cart,
-      items: [
-        {
-          ...cart.items[0],
-          selectedOptions: {
-            ...cart.items[0].selectedOptions,
-            guarantee: { id: 1 },
-          },
-        },
-      ],
-    },
-    { ...cart, items: [{ ...cart.items[0], quantity: 0 }] },
-  ])
-    await assert.rejects(service.submit(invalid, "api", "ground_china_iran"));
-  h.values.delete("access_token");
-  await assert.rejects(service.submit(cart, "api", "ground_china_iran"));
-  assert.equal(h.requests.length, 0);
-});
-
-test("submit retries retain the same idempotency key, send guest identity and accept empty success responses", async () => {
-  let failing = true;
-  const h = harness({
-    post: async () => {
-      if (failing) throw Error("timeout");
-    },
-  });
-  h.values.set("access_token", "test-access");
-  h.storage.write({
-    token: "test-guest",
-    header: "X-Guest-Cart-Token",
-    expiresAt: Date.now() + 60000,
-  });
-  const service = h.load("services/cart-order.service").cartOrderService,
-    cart = latestCart(h);
-  await assert.rejects(service.submit(cart, "api", "ground_china_iran"));
-  failing = false;
-  await service.submit(cart, "api", "ground_china_iran");
-  assert.equal(h.requests.length, 2);
-  assert.equal(
-    h.requests[0].body.idempotency_key,
-    h.requests[1].body.idempotency_key,
-  );
-  assert.equal(h.requests[1].url, "/api/cart/submit-order");
-  assert.equal(
-    h.requests[1].config.headers["X-Guest-Cart-Token"],
-    "test-guest",
-  );
-  assert.equal(h.requests[1].config.withCredentials, true);
-  await service.submit(cart, "api", "ground_china_iran");
-  assert.equal(h.requests.length, 2); // known accepted snapshot cannot be submitted again
-  assert.ok(!JSON.stringify([...h.sessionValues]).includes("test-access"));
-  assert.ok(!JSON.stringify([...h.sessionValues]).includes("test-guest"));
-});
-
-test("same snapshot keeps its key across reload while changed snapshots get distinct keys", async () => {
-  const first = harness({
-    post: async () => {
-      throw Error("timeout");
-    },
-  });
-  first.values.set("access_token", "test-access");
-  await assert.rejects(
-    first
-      .load("services/cart-order.service")
-      .cartOrderService.submit(latestCart(first), "api", "ground_china_iran"),
-  );
-  const key = first.requests[0].body.idempotency_key;
-  const second = harness({
-    sessionValues: first.sessionValues,
-    values: first.values,
-  });
-  second.values.set("access_token", "test-access");
-  const service = second.load("services/cart-order.service").cartOrderService;
-  const cart = latestCart(second);
-  await service.submit(cart, "api", "ground_china_iran");
-  assert.equal(second.requests[0].body.idempotency_key, key);
-  const changed = structuredClone(cart);
-  changed.items[0].quantity = 2;
-  await service.submit(changed, "api", "ground_china_iran");
-  assert.notEqual(second.requests[1].body.idempotency_key, key);
-});
-
-test("parallel submissions share a pending request and explicit error envelopes are not accepted", async () => {
-  let release, entered;
-  const started = new Promise((resolve) => {
-    entered = resolve;
-  });
-  const blocked = new Promise((resolve) => {
-    release = resolve;
-  });
-  const h = harness({
-    post: async () => {
-      entered();
-      await blocked;
-    },
-  });
-  h.values.set("access_token", "test-access");
-  const service = h.load("services/cart-order.service").cartOrderService,
-    cart = latestCart(h);
-  const a = service.submit(cart, "api", "ground_china_iran");
-  await started;
-  const b = service.submit(cart, "api", "ground_china_iran");
-  release();
-  await Promise.all([a, b]);
-  assert.equal(h.requests.length, 1);
-  const rejected = harness({
-    post: async () => ({ error: { message: "failed" } }),
-  });
-  rejected.values.set("access_token", "test-access");
-  const failure = rejected.load("services/cart-order.service").cartOrderService;
-  await assert.rejects(
-    failure.submit(latestCart(rejected), "api", "ground_china_iran"),
-  );
-  await assert.rejects(
-    failure.submit(latestCart(rejected), "api", "ground_china_iran"),
-  );
-  assert.equal(
-    rejected.requests[0].body.idempotency_key,
-    rejected.requests[1].body.idempotency_key,
-  );
-});
-
 test("shared HTTP installs bearer interception once and reads current token for each request", async () => {
   const h = harness();
   const client = h.load("../../shared/api/client").default;
@@ -1189,31 +1018,6 @@ test("shared HTTP installs bearer interception once and reads current token for 
   assert.equal(seen[0].headers.Authorization, "Bearer first-test-token");
   assert.equal(seen[1].headers.Authorization, "Bearer second-test-token");
   assert.equal(seen[2].headers.Authorization, undefined);
-});
-
-test("submit preserves independent color including null without replacing SKU display color", () => {
-  const h = harness(),
-    cart = latestCart(h);
-  const map = h.load(
-    "mappers/cart-submit-order.mapper",
-  ).mapCartToSubmitOrderPayload;
-  assert.equal(cart.items[0].selectedColor.name, "Black");
-  assert.equal(
-    map(cart, "color-test", "ground_china_iran").items[0].color,
-    null,
-  );
-  cart.items[0].selectedOptions.color = "1";
-  assert.equal(
-    map(cart, "color-test", "ground_china_iran").items[0].color,
-    "1",
-  );
-  cart.items[0].selectedOptions.color = { id: 1 };
-  assert.throws(() => map(cart, "color-test", "ground_china_iran"));
-  cart.items[0].selectedOptions.color = { id: 22, name: "مشکی", value: "#000000" };
-  cart.items[0].selectedOptions.guarantee = { id: 22, name: "گارانتی تست" };
-  const item = map(cart, "color-test", "ground_china_iran").items[0];
-  assert.equal(item.color,"مشکی");
-  assert.equal(item.guarantee,"گارانتی تست");
 });
 
 test("cart progress renders every stage with exactly one active step and the ship asset", () => {
@@ -1275,7 +1079,7 @@ test("concurrent 401s share refresh, rotate tokens and preserve submit payload a
     }
     return okResponse(config);
   };
-  const body = { idempotency_key: "same-order-key", items: [] };
+  const body = { item_ids: [101, 102] };
   await Promise.all([
     h.client.post("/api/cart/submit-order", body, {
       adapter,
@@ -1460,30 +1264,6 @@ test("cancelling a waiting request prevents its replay without cancelling shared
   assert.equal(h.values.get("access_token"), "new-access");
 });
 
-test("guest-owner submission retains idempotency through access and refresh rotation", async () => {
-  const h = harness({
-    post: async () => {
-      throw Error("timeout");
-    },
-  });
-  const storage = h.load("../auth/utils/token-storage").tokenStorage;
-  storage.setAccessToken("first-access");
-  storage.setRefreshToken("first-refresh");
-  const cart = latestCart(h);
-  cart.owner.userId = null;
-  const service = h.load("services/cart-order.service").cartOrderService;
-  await assert.rejects(service.submit(cart, "api", "ground_china_iran"));
-  const key = h.requests[0].body.idempotency_key;
-  storage.setRefreshToken("rotated-refresh");
-  storage.setAccessToken("rotated-access", { preserveSession: true });
-  await assert.rejects(service.submit(cart, "api", "ground_china_iran"));
-  assert.equal(h.requests[1].body.idempotency_key, key);
-  storage.clearTokens();
-  storage.setAccessToken("other-login");
-  await assert.rejects(service.submit(cart, "api", "ground_china_iran"));
-  assert.notEqual(h.requests[2].body.idempotency_key, key);
-});
-
 test("first guest cart reads share session creation and reuse its header", async () => {
   const h = harness();
   const service = h.load("services/cart.service").cartService;
@@ -1657,49 +1437,6 @@ test("checkout respects backend method availability, displays wallet balance and
   }
   assert.ok(summary.includes("disabled"));
   assert.ok(summary.includes("جمع ردیف‌های هزینه"));
-});
-test("submit response exposes its tracking code and reuses it after an idempotent local replay", async () => {
-  const response = {
-    order_id: 30,
-    tracking_code: "test-order",
-    initial_amount_irr: "3367800",
-    expert_pricing_status: "pending_review",
-    assigned_sales_expert: { id: 41, name: "کارشناس نمونه" },
-    idempotent_replay: false,
-    next_action: {
-      type: "wait_for_sales_expert_approval",
-      message: "ثبت شد",
-      tracking_code: "test-order",
-      public_tracking_endpoint: "/api/order-tracking/test-order/",
-    },
-  };
-  const h = harness({ post: async () => response });
-  h.values.set("access_token", "test-access");
-  const service = h.load("services/cart-order.service").cartOrderService;
-  assert.equal(
-    await service.submit(latestCart(h), "api", "ground_china_iran"),
-    "test-order",
-  );
-  assert.equal(
-    await service.submit(latestCart(h), "api", "ground_china_iran"),
-    "test-order",
-  );
-  assert.equal(h.requests.length, 1);
-  const restored = harness({
-    values: h.values,
-    sessionValues: h.sessionValues,
-  });
-  assert.equal(
-    await restored
-      .load("services/cart-order.service")
-      .cartOrderService.submit(
-        latestCart(restored),
-        "api",
-        "ground_china_iran",
-      ),
-    "test-order",
-  );
-  assert.equal(restored.requests.length, 0);
 });
 
 test("create address validates input and sends the exact supplied backend keys", async () => {
@@ -1981,72 +1718,6 @@ test("addresses with a null recipient still map to visible address cards", async
   assert.equal(schema.safeParse({ ...raw[0], fullname: 123 }).success, false);
 });
 
-test("shipping method is required, validated and included in submission identity", async () => {
-  const h = harness();
-  h.values.set("access_token", "test-access");
-  const cart = latestCart(h);
-  const service = h.load("services/cart-order.service").cartOrderService;
-  await assert.rejects(service.submit(cart, "api", undefined));
-  await assert.rejects(service.submit(cart, "api", "invalid"));
-  for (const obsolete of ["air", "ground", "commercial_air", "sea"])
-    await assert.rejects(service.submit(cart, "api", obsolete));
-  assert.equal(h.requests.length, 0);
-  for (const shipping of [
-    "ground_china_iran",
-    "air_express",
-    "commercial_air_iran",
-    "sea_china_iran",
-    "commercial_air_dubai",
-    "sea_china_dubai",
-  ]) {
-    await service.submit(cart, "api", shipping);
-    await service.submit(cart, "api", shipping);
-  }
-  assert.equal(h.requests.length, 6);
-  assert.deepEqual(
-    h.requests.map((r) => r.body.shipping_method),
-    [
-      "ground_china_iran",
-      "air_express",
-      "commercial_air_iran",
-      "sea_china_iran",
-      "commercial_air_dubai",
-      "sea_china_dubai",
-    ],
-  );
-  assert.equal(new Set(h.requests.map((r) => r.body.idempotency_key)).size, 6);
-});
-test("shipping selector renders all six methods and locks controls while busy", () => {
-  const h = harness({ render: true });
-  const React = require("react");
-  const { renderToStaticMarkup } = require("react-dom/server");
-  const Component = h.load("components/cart-shipping-methods").default;
-  const html = renderToStaticMarkup(
-    React.createElement(Component, {
-      value: "ground_china_iran",
-      onChange: () => {},
-      disabled: true,
-    }),
-  );
-  assert.equal((html.match(/type="radio"/g) || []).length, 6);
-  assert.ok(html.includes('value="ground_china_iran"'));
-  assert.ok(html.includes('<fieldset disabled=""'));
-  assert.equal((html.match(/checked=""/g) || []).length, 1);
-});
-
-test("shipping selector allows an explicit choice without preselecting a method", () => {
-  const h = harness({render:true});
-  const React = require("react");
-  const {renderToStaticMarkup} = require("react-dom/server");
-  const Component = h.load("components/cart-shipping-methods").default;
-  const html = renderToStaticMarkup(React.createElement(Component,{
-    value:null,onChange:()=>{},disabled:false,
-  }));
-  assert.equal((html.match(/type="radio"/g)||[]).length,6);
-  assert.equal(html.includes('checked=""'),false);
-  assert.equal(html.includes('<fieldset disabled=""'),false);
-});
-
 test("approved compact payment maps window, exact large balances and every bank destination", () => {
   const h = harness();
   const raw = {
@@ -2283,7 +1954,7 @@ test("payment action stays disabled without acceptance and an action handler", (
       React.createElement(Summary, { data, method: "wallet", ...props }),
     );
   const button = (html) =>
-    (html.match(/<button[^>]*>.*?پرداخت<\/button>/s) || [])[0] || "";
+    (html.match(/<button[^>]*>پرداخت<\/button>/) || [])[0] || "";
   assert.ok(
     button(render({ canPay: false, onPay: () => {} })).includes('disabled=""'),
   );
@@ -2732,13 +2403,8 @@ test("online checkout creates a normalized session when checkout only supplies t
   assert.deepEqual(h.requests[1].body, { gateway_code: "mellat" });
 });
 
-test("online checkout rejects missing gateways and unsafe or mismatched redirects", async () => {
+test("online checkout rejects unsafe or mismatched redirects", async () => {
   const h = harness();
-  const start = h.load("services/online-payment.service").startOnlinePayment;
-  await assert.rejects(
-    start({ ...onlineCheckoutInput(), gateway_code: undefined }),
-  );
-  assert.equal(h.requests.length, 0);
   const wrong = harness({
     post: (url) =>
       url.includes("/session/")
@@ -2769,56 +2435,6 @@ test("online checkout rejects missing gateways and unsafe or mismatched redirect
     }).success,
     false,
   );
-});
-
-test("gateway selection respects enabled/selectable and shows server reasons", async () => {
-  const gateways = [
-    {
-      code: "mellat",
-      title: "Mellat",
-      enabled: true,
-      selectable: true,
-      reason: null,
-      sandbox: false,
-      is_default: true,
-    },
-    {
-      code: "blocked",
-      title: "Blocked",
-      enabled: true,
-      selectable: false,
-      reason: "Unavailable",
-      sandbox: true,
-      is_default: false,
-    },
-  ];
-  const h = harness({
-    render: true,
-    get: () => ({ default_gateway_code: "mellat", gateways }),
-  });
-  const result = await h
-    .load("services/online-payment.service")
-    .getOnlineGateways();
-  assert.equal(h.requests[0].url, "/api/customer/payment-gateways/");
-  const React = require("react");
-  const html = require("react-dom/server").renderToStaticMarkup(
-    React.createElement(
-      h.load("components/checkout/checkout-online-gateways").default,
-      {
-        items: result.items,
-        value: "blocked",
-        onChange: () => {},
-        pending: false,
-        error: false,
-        disabled: false,
-        onRetry: () => {},
-      },
-    ),
-  );
-  assert.ok(html.includes("Unavailable"));
-  const inputs = html.match(/<input[^>]*>/g);
-  assert.ok(inputs[1].includes('disabled=""'));
-  assert.ok(!html.includes('checked=""'));
 });
 
 test("finalization uses the server verified payment and preserves failure instead of claiming success", async () => {
@@ -2941,4 +2557,619 @@ test("desktop and mobile product cards open details in a new tab without interce
     for(const tag of detailLinks) { assert.match(tag,/target="_blank"/);assert.match(tag,/rel="noopener noreferrer"/); }
     assert.doesNotMatch(html,/href="#"/);
   }
+});
+
+test("add-to-cart supports all shipping methods, quantity defaults and the legacy alias", async () => {
+  const h = harness();
+  const service = h.load("services/cart.service").cartService;
+  for (const shipping_method of ["ground","sea","air_express","commercial_air"]) {
+    await service.addItem({slug:"camera",payload:{shipping_method}});
+    assert.deepEqual(h.requests.at(-1).body,{quantity:1,shipping_method});
+  }
+  await service.addItem({slug:"camera",payload:{number:4,shipping_method:"sea"}});
+  assert.deepEqual(h.requests.at(-1).body,{quantity:4,shipping_method:"sea"});
+  const before=h.requests.length;
+  await assert.rejects(service.addItem({slug:"camera",payload:{quantity:1,shipping_method:"air"}}));
+  assert.equal(h.requests.length,before);
+});
+
+test("authenticated add-to-cart uses bearer ownership without creating a guest cart", async () => {
+  const h = harness();
+  h.values.set("access_token","test-access");
+  await h.load("services/cart.service").cartService.addItem({slug:"camera",payload:{quantity:2,shipping_method:"commercial_air"}});
+  assert.equal(h.requests.length,1);
+  assert.equal(h.requests[0].url,"/api/add-to-cart/camera");
+  assert.equal(h.requests[0].config.headers,undefined);
+});
+
+test("storefront cart renders China and delivered prices without inventing missing row identities", () => {
+  const h=harness({render:true});
+  const raw={items:[{en_title:"Portable watch",fa_title:"ساعت هوشمند",seller_name:"Actual seller",alibaba_verified:true,iranmobix_verified:true,price_in_iran:"3488388",price_in_china:"117.06",image:"https://iranmobix.com/product-images/watch.jpg",source_url:"https://www.alibaba.com/product-detail/watch.html",discount_price:"0"}],pay_detail:{total_price_china:"117.06",total_price_iran:"3000000",international_transit:"100",insurance:"200",discharge:"300",iranmobix_services:"400",total_discount_amount:"0"}};
+  const cart=h.load("mappers/cart-display.mapper").mapCartForDisplay(raw);
+  assert.equal(cart.storefront,true);
+  assert.equal(cart.finalTotal,"3000000");
+  assert.deepEqual(cart.paymentDetails, {
+    chinaTotalCny:"117.06", chinaTotalToman:null, iranTotalToman:"3000000",
+    internationalTransitToman:"100", insuranceToman:"200",
+    clearanceToman:"300", servicesToman:"400", discountToman:"0",
+  });
+  assert.equal(cart.items[0].discountPriceToman,"0");
+  assert.equal(cart.items[0].deliveryPriceToman,"3488388");
+  assert.equal(cart.items[0].chinaPriceCny,"117.06");
+  assert.equal(Number.isNaN(cart.items[0].quantity),true);
+  assert.ok(cart.items[0].dataIssues.some(issue=>issue.path==="id"));
+  const React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+  const html=renderToStaticMarkup(React.createElement(h.load("components/cart-item").default,{item:cart.items[0],onQuantityChange:()=>{},onRemove:()=>{}}));
+  assert.ok(html.includes("ساعت هوشمند"));
+  assert.ok(html.includes("Actual seller"));
+  assert.ok(html.includes("3,488,388"));
+  assert.ok(html.includes("¥117.06"));
+  const summary=renderToStaticMarkup(React.createElement(h.load("components/cart-summary").default,{
+    paymentDetails:cart.paymentDetails, currency:cart.currency,
+    totals:{quantity:cart.totalQuantity,originalSubtotal:cart.subtotal,discount:cart.discountTotal,shipping:null,total:cart.finalTotal},
+    onContinue:()=>{},
+  }));
+  for (const value of ["¥117.06","3,000,000 تومان","100 تومان","200 تومان","300 تومان","400 تومان"]) assert.ok(summary.includes(value),value);
+  assert.ok(!summary.includes("از بک نمی‌آید"));
+  const missing=h.load("mappers/cart-display.mapper").mapCartForDisplay({...raw,pay_detail:{total_price_china:"0"}});
+  assert.equal(missing.paymentDetails.chinaTotalCny,"0");
+  assert.equal(missing.paymentDetails.insuranceToman,null);
+  assert.ok(!html.includes("روش حمل:"));
+  assert.equal((html.match(/<button[^>]*disabled=""/g)||[]).length,3);
+  const enriched=h.load("mappers/cart-display.mapper").mapCartForDisplay({...raw,items:[{...raw.items[0],id:27,quantity:2,shipping_method:"sea"}]});
+  const editable=renderToStaticMarkup(React.createElement(h.load("components/cart-item").default,{item:enriched.items[0],onQuantityChange:()=>{},onRemove:()=>{}}));
+  assert.ok(editable.includes("روش حمل: دریایی"));
+  assert.equal((editable.match(/<button[^>]*disabled=""/g)||[]).length,0);
+});
+
+
+test("cart discount shows an exact previous Toman price and percentage only for discounted items", () => {
+  const h=harness({render:true});
+  const map=h.load("mappers/cart-display.mapper").mapCartForDisplay;
+  const make=discount=>map({items:[{
+    fa_title:"Watch",price_in_china:"90",price_in_china_toman:"900.09",
+    price_in_iran:"1500",discount_price:discount,quantity:1,id:1,
+  }],pay_detail:{}}).items[0];
+  const {getCartDiscountPresentation}=h.load("utils/cart-item-presentation");
+  assert.equal(make("100.01").chinaPriceToman,"900.09");
+  assert.deepEqual(getCartDiscountPresentation(make("100.01"),"900.09"),{
+    originalToman:"1000.10",originalCny:null,percentage:10,
+  });
+  assert.equal(getCartDiscountPresentation(make("0"),"900.09"),null);
+  assert.equal(getCartDiscountPresentation(make(null),"900.09"),null);
+  assert.equal(getCartDiscountPresentation(make("100.01"),null),null);
+  const React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+  const Card=h.load("components/cart-item").default;
+  const render=item=>renderToStaticMarkup(React.createElement(Card,{item}));
+  const html=render(make("100.01"));
+  assert.ok(html.includes("<del"));
+  assert.ok(html.includes("1,000.10"));
+  assert.ok(html.includes("10%"));
+  assert.ok(html.includes("900.09"));
+  assert.ok(!render(make("0")).includes("<del"));
+  assert.ok(!render(make(null)).includes("<del"));
+});
+
+
+test("payment summary shows savings only for positive valid amounts",()=>{
+  const h=harness({render:true});
+  const React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+  const Summary=h.load("components/cart-summary").default;
+  const render=discount=>renderToStaticMarkup(React.createElement(Summary,{
+    totals:{quantity:5,originalSubtotal:"100",discount:"0",shipping:null,total:"200"},
+    currency:"TOMAN",onContinue:()=>{},
+    paymentDetails:{chinaTotalCny:"10",chinaTotalToman:"100",iranTotalToman:"100",internationalTransitToman:"20",insuranceToman:"30",clearanceToman:"40",servicesToman:"0",discountToman:discount},
+  }));
+  for(const value of ["0","0.00",null,"", "invalid"]) assert.ok(!render(value).includes("سود شما از خرید"));
+  const positive=render("12.5");
+  assert.ok(positive.includes("سود شما از خرید"));
+  assert.ok(positive.includes("12.5 تومان"));
+  assert.ok(positive.includes("۵ کالا"));
+  assert.ok(positive.includes("200 تومان"));
+  assert.ok(!positive.includes("خدمات ایران‌موبیکس"));
+});
+
+
+test("payment summary distinguishes express-only, mixed shipping and carts without express",()=>{
+  const h=harness({render:true});
+  const React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+  const Summary=h.load("components/cart-summary").default;
+  const render=(methods,discount="10")=>renderToStaticMarkup(React.createElement(Summary,{
+    items:methods.map(shippingMethod=>({shippingMethod})),
+    totals:{quantity:methods.length,originalSubtotal:"100",discount:"0",shipping:null,total:"200"},
+    currency:"TOMAN",onContinue:()=>{},
+    paymentDetails:{chinaTotalCny:"10",chinaTotalToman:"100",iranTotalToman:"200",internationalTransitToman:"20",insuranceToman:"30",clearanceToman:"40",servicesToman:"50",discountToman:discount},
+  }));
+  for (const methods of [["air_express"],["air_express","air_express"]]) {
+    const html=render(methods);
+    assert.ok(html.includes("جداگانه استعلام می‌شود"));
+    assert.ok(html.includes("مجموع قیمت کالاها"));
+    assert.ok(html.includes("سود شما از خرید"));
+    assert.ok(html.includes("ثبت اولیه"));
+    assert.ok(!html.includes("مجموع سبد خرید"));
+    assert.ok(!html.includes("20 تومان"));
+    assert.ok(!html.includes("30 تومان"));
+    assert.ok(!html.includes("40 تومان"));
+    assert.ok(!html.includes("50 تومان"));
+    assert.ok(!/<button[^>]*disabled=""/.test(html));
+  }
+  assert.ok(!render(["air_express"],"0").includes("سود شما از خرید"));
+  for (const methods of [["ground","air_express"],["air_express","sea"],["commercial_air","air_express"],["ground","air_express","sea"]]) {
+    const html=render(methods);
+    assert.ok(html.includes("جداگانه استعلام می‌شود"));
+    assert.ok(html.includes("مجموع سبد خرید"));
+    for (const cost of ["20 تومان","30 تومان","40 تومان","50 تومان"]) assert.ok(html.includes(cost));
+    assert.ok(html.includes("ثبت اولیه"));
+    assert.ok(!/<button[^>]*disabled=""/.test(html));
+    assert.ok(!render(methods,"0").includes("سود شما از خرید"));
+  }
+
+  for (const methods of [["ground"],["sea"],["commercial_air"],["sea","ground"],[null]]) {
+    const html=render(methods);
+    assert.ok(!html.includes("جداگانه استعلام می‌شود"));
+    assert.ok(html.includes("مجموع سبد خرید"));
+    assert.ok(html.includes("20 تومان"));
+  }
+});
+
+const staleStorefrontCart = () => ({
+  items:[{id:252,fa_title:"Motor",en_title:"Motor",seller_name:"Seller",alibaba_verified:true,iranmobix_verified:false,
+    price_in_iran:"52329088",price_in_china:"41.557",price_in_china_toman:"1652709",image:null,
+    source_url:"https://www.alibaba.com/product-detail/Motor_123.html",discount_price:"0",quantity:3,shipping_method:"ground"}],
+  pay_detail:{total_price_china:"124.67",total_price_in_china_toman:"4958126",total_price_iran:"156987264",
+    international_transit:"151335000",insurance:"297488",discharge:"247906",iranmobix_services:"148744",total_discount_amount:"0"},
+});
+
+test("a stale-cart rejection replaces displayed cache and requests a fresh GET without resubmitting the order",async()=>{
+  const h=harness();const events=[];let options;
+  const service=h.load("services/cart-order.service");
+  const constants=h.load("constants/cart-query-keys");
+  const reactQuery={
+    useQueryClient:()=>({
+      cancelQueries:async()=>events.push(["cancel"]),
+      setQueryData:(key,cart)=>events.push(["replace",key,cart]),
+      invalidateQueries:async()=>events.push(["refresh"]),
+    }),
+    useIsMutating:()=>0,
+    useMutation:value=>{options=value;return {isPending:false,isSuccess:false,isError:false}},
+  };
+  const mocks={
+    react:{useRef:value=>({current:value})},
+    "next/navigation":{useRouter:()=>({})},
+    "@tanstack/react-query":reactQuery,
+    "@/features/auth/utils/token-storage":{tokenStorage:{getAccessToken:()=>null}},
+    "../services/cart-order.service":service,
+    "../mappers/cart-submit-order.mapper":{getCartSubmissionIssue:()=>null},
+    "../constants/cart-query-keys":constants,
+  };
+  const code=ts.transpileModule(fs.readFileSync(path.join(__dirname,"../hooks/use-cart-submit-order.ts"),"utf8"),{
+    compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020},
+  }).outputText;
+  const mod={exports:{}};
+  new Function("require","module","exports",code)(name=>{assert.ok(name in mocks,name);return mocks[name]},mod,mod.exports);
+  mod.exports.useCartSubmitOrder(undefined,false,false);
+  await options.onError({response:{status:409,data:{field:"cart",cart:staleStorefrontCart()}}});
+  assert.deepEqual(events.map(e=>e[0]),["cancel","replace","refresh"]);
+  assert.deepEqual(events[1][1],constants.CART_QUERY_KEY);
+  assert.equal(events[1][2].finalTotal,"156987264");
+  assert.equal(h.requests.length,0);
+  events.length=0;
+  await options.onError({response:{status:503,data:{}}});
+  assert.deepEqual(events,[]);
+});
+
+function orderAcceptedResponse() {
+  return {
+    order_id:30,tracking_code:"test-order",initial_amount_irr:"3367800",
+    expert_pricing_status:"pending_review",assigned_sales_expert:{id:41,name:"Expert"},idempotent_replay:false,
+    next_action:{type:"wait_for_sales_expert_approval",message:"Registered",tracking_code:"test-order",public_tracking_endpoint:"/api/order-tracking/test-order/"},
+  };
+}
+
+test("submit maps exactly the selected cart row IDs, without price, quantity or shipping fields",()=>{
+  const h=harness(),map=h.load("mappers/cart-submit-order.mapper").mapCartToSubmitOrderPayload;
+  const raw=staleStorefrontCart();raw.items.push({...raw.items[0],id:254});
+  const cart=h.load("mappers/cart-display.mapper").mapCartForDisplay(raw);
+  assert.deepEqual(map(cart),{item_ids:[252,254]});
+  assert.deepEqual(map({...cart,items:[cart.items[1]]}),{item_ids:[254]});
+  assert.deepEqual(map(latestCart(h)),{item_ids:latestCart(h).items.map(item=>Number(item.id))});
+});
+
+test("missing, malformed, duplicated or unsafe row IDs block submitting before HTTP",async()=>{
+  const h=harness();h.values.set("access_token","test-access");
+  const {getCartSubmissionIssue}=h.load("mappers/cart-submit-order.mapper");
+  const service=h.load("services/cart-order.service").cartOrderService;
+  const cart=h.load("mappers/cart-display.mapper").mapCartForDisplay(staleStorefrontCart());
+  const invalid=[{...cart,items:[]},...[undefined,"","NaN","0","-1","2.5","001","9007199254740992"].map(id=>({...cart,items:[{...cart.items[0],id}]})),
+    {...cart,items:[cart.items[0],cart.items[0]]},
+    {...cart,items:[{...cart.items[0],dataIssues:[{path:"id",status:"missing"}]}]},
+  ];
+  for(const value of invalid){
+    assert.ok(getCartSubmissionIssue(value));
+    await assert.rejects(service.submit(value,"api"));
+  }
+  assert.equal(h.requests.length,0);
+});
+
+test("the new submit schema accepts only a nonempty unique array of positive integer item IDs",()=>{
+  const h=harness();const schema=h.load("schemas/cart.schema").submitOrderSchema;
+  assert.deepEqual(schema.parse({item_ids:[101,102]}),{item_ids:[101,102]});
+  for(const payload of [{},{item_ids:[]},{item_ids:[1,1]},{item_ids:["1"]},{item_ids:[0]},{item_ids:[1.5]},
+    {item_ids:[1],items:[]},{item_ids:[1],shipping_method:"ground"},{item_ids:[1],idempotency_key:"old-key"}]){
+    assert.equal(schema.safeParse(payload).success,false);
+  }
+});
+
+test("authenticated submission sends only item_ids with no guest header or persisted submit receipt",async()=>{
+  const h=harness({post:async()=>orderAcceptedResponse()});h.values.set("access_token","test-access");
+  h.storage.write({token:"retained-guest",header:"X-Guest-Cart-Token",expiresAt:Date.now()+60000});
+  const cart=h.load("mappers/cart-display.mapper").mapCartForDisplay(staleStorefrontCart());
+  const tracking=await h.load("services/cart-order.service").cartOrderService.submit(cart,"api");
+  assert.equal(tracking,"test-order");
+  assert.equal(h.requests.length,1);
+  assert.deepEqual(h.requests[0].body,{item_ids:[252]});
+  assert.equal(h.requests[0].url,"/api/cart/submit-order");
+  assert.equal(h.requests[0].config.headers,undefined);
+  assert.equal(h.requests[0].config.withCredentials,true);
+  assert.ok([...h.sessionValues.keys()].every(key=>key.startsWith("iranmobix.order-review.v1:")));
+  assert.ok(!JSON.stringify([...h.sessionValues]).includes("cart-submit-"));
+});
+
+test("submit requires a real authenticated cart, without blocking on obsolete client price metadata",async()=>{
+  const h=harness({post:async()=>orderAcceptedResponse()});
+  const cart=latestCart(h),service=h.load("services/cart-order.service").cartOrderService;
+  await assert.rejects(service.submit(cart,"api"));
+  h.values.set("access_token","test-access");
+  await assert.rejects(service.submit(cart,"mock"));
+  assert.equal(h.requests.length,0);
+  cart.checkoutReady=false;cart.finalTotal="";
+  cart.items[0].pricing.unitPriceIrr=null;
+  cart.items[0].product.slug="";
+  cart.items[0].selectedOptions.color={id:22};
+  assert.equal(await service.submit(cart,"api"),"test-order");
+  assert.deepEqual(h.requests[0].body,{item_ids:cart.items.map(item=>Number(item.id))});
+});
+
+test("simultaneous submit calls share an in-flight request without retaining an accepted-order cache",async()=>{
+  let entered,release;const started=new Promise(r=>entered=r),blocked=new Promise(r=>release=r);
+  const h=harness({post:async()=>{entered();await blocked;return orderAcceptedResponse()}});
+  h.values.set("access_token","test-access");
+  const service=h.load("services/cart-order.service").cartOrderService,cart=latestCart(h);
+  const a=service.submit(cart,"api");await started;
+  const b=service.submit({...cart,items:[...cart.items].reverse()},"api");
+  release();assert.deepEqual(await Promise.all([a,b]),["test-order","test-order"]);
+  assert.equal(h.requests.length,1);
+  await service.submit(cart,"api");
+  assert.equal(h.requests.length,2);
+  assert.ok([...h.sessionValues.keys()].every(key=>key.startsWith("iranmobix.order-review.v1:")));
+  assert.ok(!JSON.stringify([...h.sessionValues]).includes("cart-submit-"));
+});
+
+test("failed or malformed submit responses do not trigger another POST or fabricate acceptance",async()=>{
+  for(const outcome of ["timeout","invalid","empty"]){
+    const h=harness({post:async()=>{if(outcome==="timeout")throw Error("timeout");return outcome==="invalid"?{error:{message:"failed"}}:undefined}});
+    h.values.set("access_token","test-access");
+    const service=h.load("services/cart-order.service").cartOrderService,cart=latestCart(h);
+    await assert.rejects(service.submit(cart,"api"));
+    assert.equal(h.requests.length,1);
+    assert.equal(h.sessionValues.size,0);
+    await assert.rejects(service.submit(cart,"api"));
+    assert.equal(h.requests.length,2);
+    assert.deepEqual(h.requests[1].body,h.requests[0].body);
+  }
+});
+
+test("cart-conflict reconciliation remains available with the item-id submit contract",()=>{
+  const h=harness();const {getCartSubmitConflictCart}=h.load("services/cart-order.service");
+  const conflict={response:{status:409,data:{field:"cart",cart:staleStorefrontCart()}}};
+  const updated=getCartSubmitConflictCart(conflict);
+  assert.equal(updated.items[0].id,"252");
+  assert.equal(updated.items[0].quantity,3);
+  assert.deepEqual(h.load("mappers/cart-submit-order.mapper").mapCartToSubmitOrderPayload(updated),{item_ids:[252]});
+  assert.equal(getCartSubmitConflictCart({response:{status:503,data:{}}}),null);
+});
+
+test("the assigned expert from submit-order is retained for the matching order and login session, including after reload",async()=>{
+  const response=orderAcceptedResponse();
+  response.assigned_sales_expert={id:41,name:"Review expert",mobile:"09120000000",email:"expert@example.com",
+    image:"https://example.com/expert.jpg",whatsapp_url:"https://wa.me/989120000000",telegram_url:"https://t.me/expert",
+    department:"Order review",extension:"123"};
+  const h=harness({post:async()=>response});h.values.set("access_token","test-access");
+  const sessionId=h.load("../auth/utils/token-storage").tokenStorage.getSessionId();
+  const code=await h.load("services/cart-order.service").cartOrderService.submit(latestCart(h),"api");
+  const store=h.load("utils/order-review.storage").orderReviewStorage;
+  assert.equal(store.read(code,sessionId).name,"Review expert");
+  assert.equal(store.read(code,sessionId).department,"Order review");
+  assert.equal(store.read("other-order",sessionId),null);
+  assert.equal(store.read(code,"other-login"),null);
+  const restored=harness({values:h.values,sessionValues:h.sessionValues});
+  const restoredStore=restored.load("utils/order-review.storage").orderReviewStorage;
+  assert.equal(restoredStore.read(code,sessionId).mobile,"09120000000");
+  assert.equal(restoredStore.read(code,sessionId).telegram_url,"https://t.me/expert");
+  assert.ok(!JSON.stringify([...h.sessionValues]).includes("test-access"));
+  restoredStore.save(code,sessionId,null);
+  assert.equal(restoredStore.read(code,sessionId),null);
+});
+
+test("waiting-for-review graphic shows only provided expert information and safe contact links",()=>{
+  const h=harness({render:true}),React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+  const Pending=h.load("components/checkout/checkout-review-pending").default;
+  const render=expert=>renderToStaticMarkup(React.createElement(Pending,{expert}));
+  const html=render({id:41,name:"Actual expert",mobile:"09120000000",email:"expert@example.com",
+    department:"Sales",extension:"12",empty:"",image:"https://example.com/photo.jpg",telegram_url:"https://t.me/expert",whatsapp_url:"https://wa.me/989120000000"});
+  for(const value of ["منتظر تأیید کارشناس باشید","Actual expert","09120000000","expert@example.com","Sales","https://example.com/photo.jpg"])assert.ok(html.includes(value),value);
+  assert.ok(html.includes('href="tel:09120000000"'));
+  assert.ok(html.includes('href="https://t.me/expert"'));
+  assert.ok(html.includes('href="https://wa.me/989120000000"'));
+  assert.ok(!html.includes(">empty<"));
+  const missing=render(null);
+  assert.ok(missing.includes("اطلاعات کارشناس هنوز اعلام نشده است."));
+  assert.ok(!missing.includes('href="tel:'));
+  const unsafe=render({name:"Expert",telegram_url:"javascript:alert(1)",whatsapp_url:"https://outside.invalid/"});
+  assert.ok(!unsafe.includes("javascript:"));
+  assert.ok(!unsafe.includes("outside.invalid"));
+});
+
+test("checkout mapping uses a supplied live expert and preserves explicit unassignment",()=>{
+  const h=harness(),schema=h.load("schemas/checkout-payment.schema").checkoutPaymentSchema,map=h.load("mappers/checkout-payment.mapper").mapCheckoutPayment;
+  const raw=paymentFixture();
+  raw.order.assigned_sales_expert={id:41,name:"Order expert",mobile:"09120000000"};
+  assert.equal(map(schema.parse(raw)).assignedExpert.name,"Order expert");
+  raw.assigned_sales_expert={id:42,name:"Updated expert"};
+  assert.equal(map(schema.parse(raw)).assignedExpert.name,"Updated expert");
+  raw.assigned_sales_expert=null;
+  assert.equal(map(schema.parse(raw)).assignedExpert,null);
+});
+
+test("pending checkout renders the review card instead of the payment form",()=>{
+  const raw=paymentFixture();
+  const h=harness({render:true,modules:{
+    "@tanstack/react-query":{useMutation:()=>({})},
+    "../../hooks/use-checkout-payment":{useCheckoutPayment:()=>({
+      data:{...h.load("mappers/checkout-payment.mapper").mapCheckoutPayment(raw),status:"pending_review"},
+      assignedExpert:{id:41,name:"Responsible expert"},sessionId:"test-session",isLoggedIn:true,
+      addressQuery:{data:{items:[]}},canContinue:false,isError:false,isPending:false,
+    })},
+    "../../hooks/use-online-payment":{useOnlinePayment:()=>({mutation:{},gateways:{data:{items:[]}}})},
+    "../../hooks/use-offline-receipt":{useOfflineReceipt:()=>({})},
+  }});
+  const React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+  const Page=h.load("components/checkout/checkout-payment-page").default;
+  const html=renderToStaticMarkup(React.createElement(Page,{trackingCode:"test-order"}));
+  assert.ok(html.includes("منتظر تأیید کارشناس باشید"));
+  assert.ok(html.includes("Responsible expert"));
+  assert.ok(!html.includes("مشاهده پیش‌فاکتور"));
+  assert.ok(!html.includes("با تمامی موارد"));
+  assert.equal(h.requests.length,0);
+});
+
+test("checkout uses the submit-assigned expert as fallback and polls pending review until approval",()=>{
+  const raw=paymentFixture();let liveExpert;
+  const h=harness({modules:{
+    react:{useEffect:()=>{},useRef:()=>({current:false}),useState:()=>[Date.now(),()=>{}]},
+    "@/features/auth/hooks/use-access-token":{useAccessToken:()=>"test-token"},
+    "@/features/auth/utils/token-storage":{tokenStorage:{getSessionId:()=>"session"}},
+    "./use-customer-addresses":{useCustomerAddresses:()=>({})},
+    "@tanstack/react-query":{
+      useQueryClient:()=>({}),
+      useMutation:()=>({}),
+      useQuery:options=>{
+        assert.equal(options.refetchInterval({state:{status:"success",data:{status:"pending_review"}}}),15000);
+        assert.equal(options.refetchInterval({state:{status:"success",data:{status:"approved"}}}),false);
+        assert.equal(options.refetchInterval({state:{status:"error"}}),false);
+        return {data:{...h.load("mappers/checkout-payment.mapper").mapCheckoutPayment(raw),assignedExpert:liveExpert},isError:false,isFetching:false};
+      },
+    },
+  }});
+  h.load("utils/order-review.storage").orderReviewStorage.save("test-order","session",{id:41,name:"Submitted expert"});
+  const hook=h.load("hooks/use-checkout-payment").useCheckoutPayment;
+  assert.equal(hook("test-order").assignedExpert.name,"Submitted expert");
+  liveExpert={id:42,name:"Reassigned expert"};
+  assert.equal(hook("test-order").assignedExpert.name,"Reassigned expert");
+  liveExpert=null;
+  assert.equal(hook("test-order").assignedExpert,null);
+});
+
+
+test("submitted pending status survives reload and remains scoped to its order and login", () => {
+  const sessionValues = new Map();
+  const h = harness({sessionValues});
+  const store = h.load("utils/order-review.storage").orderReviewStatusStorage;
+  store.save("waiting-order","session","pending_review");
+  const restored = harness({sessionValues}).load("utils/order-review.storage").orderReviewStatusStorage;
+  assert.equal(restored.read("waiting-order","session"),"pending_review");
+  assert.equal(restored.read("other-order","session"),null);
+  assert.equal(restored.read("waiting-order","other-session"),null);
+  restored.save("waiting-order","session","approved");
+  assert.equal(restored.read("waiting-order","session"),"approved");
+});
+
+test("submit-confirmed waiting screen does not depend on a valid payment response", () => {
+  const h=harness({render:true,modules:{
+    "@tanstack/react-query":{useMutation:()=>({})},
+    "../../hooks/use-checkout-payment":{useCheckoutPayment:()=>({
+      data:undefined,isAwaitingReview:true,
+      assignedExpert:{name:"Assigned from submit",mobile:"09120000000"},
+      sessionId:"test-session",isLoggedIn:true,addressQuery:{data:{items:[]}},
+      canContinue:false,isError:true,error:new Error("invalid payment schema"),isPending:false,
+    })},
+    "../../hooks/use-online-payment":{useOnlinePayment:()=>({mutation:{},gateways:{data:{items:[]}}})},
+    "../../hooks/use-offline-receipt":{useOfflineReceipt:()=>({})},
+  }});
+  const React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+  const Page=h.load("components/checkout/checkout-payment-page").default;
+  const html=renderToStaticMarkup(React.createElement(Page,{trackingCode:"waiting-order"}));
+  assert.ok(html.includes("Assigned from submit"));
+  assert.ok(html.includes("tel:09120000000"));
+  assert.ok(html.includes("منتظر تأیید کارشناس باشید"));
+  assert.ok(!html.includes("پاسخ اطلاعات پرداخت نامعتبر بود"));
+  assert.ok(!html.includes("مشاهده پیش‌فاکتور"));
+});
+
+test("pending submit keeps polling through schema errors but never hides access errors or approval", () => {
+  let live={data:undefined,isError:true,error:new Error("invalid schema")}, options;
+  const h=harness({modules:{
+    react:{useEffect:()=>{},useRef:()=>({current:false}),useState:()=>[Date.now(),()=>{}]},
+    "@/features/auth/hooks/use-access-token":{useAccessToken:()=>"token"},
+    "@/features/auth/utils/token-storage":{tokenStorage:{getSessionId:()=>"session"}},
+    "./use-customer-addresses":{useCustomerAddresses:()=>({})},
+    "@tanstack/react-query":{
+      useQueryClient:()=>({}),useMutation:()=>({}),
+      useQuery:value=>{options=value;return live;},
+    },
+  }});
+  h.load("utils/order-review.storage").orderReviewStatusStorage.save("waiting-order","session","pending_review");
+  const hook=h.load("hooks/use-checkout-payment").useCheckoutPayment;
+  assert.equal(hook("waiting-order").isAwaitingReview,true);
+  assert.equal(options.refetchInterval({state:{status:"error",error:new Error("schema")}}),15000);
+  const denied={isAxiosError:true,response:{status:403}};
+  live={data:undefined,isError:true,error:denied};
+  assert.equal(hook("waiting-order").isAwaitingReview,false);
+  assert.equal(options.refetchInterval({state:{status:"error",error:denied}}),false);
+  live={data:{status:"approved"},isError:false};
+  assert.equal(hook("waiting-order").isAwaitingReview,false);
+  assert.equal(options.refetchInterval({state:{status:"success",data:{status:"approved"}}}),false);
+});
+
+
+function approvedShippingPaymentFixture() {
+  return {
+    wallet:{balance:"0",shortage:"44440",currency:"IRR",balance_toman:"0",shortage_toman:"4444",status:"insufficient"},
+    proforma_invoice:{pdf_url:null,pdf_status:"missing"},
+    pricing:{quantity:1,price_before_discount_cny:"44",price_before_discount_toman:"55",
+      price_after_discount_cny:"44",price_after_discount_toman:"4555",
+      discount_amount_cny:"44",discount_amount_toman:"44",international_transit:"444",
+      insurance:"55",discharge:"454",iranmobix_services:"444",total_amount_iran:"4444"},
+    contract:{required:true,accepted:false,template_id:3,title:"Contract",pdf_url:"https://iranmobix.com/api/customer/orders/33/pre-contract/"},
+    payment_window:{status:"approved",can_continue_payment:true,expires_at:"2026-11-29T06:52:02.251470+00:00",remaining_seconds:604782,message:"Approved"},
+    payment_methods:["online","wallet","hawala"].map(code=>({code,title:code,enabled:true,reason:null})),
+    offline_payment_destinations:[],
+  };
+}
+test("approved shipping breakdown is accepted without legacy pricing keys or a proforma PDF",async()=>{
+  const raw=approvedShippingPaymentFixture();
+  const h=harness({get:async()=>raw});
+  const result=await h.load("services/checkout-payment.service").checkoutPaymentService.get("approved-order");
+  assert.equal(result.status,"approved");
+  assert.equal(result.canContinue,true);
+  assert.equal(result.total,"4444");
+  assert.equal(result.currency,"TOMAN");
+  assert.equal(result.quantity,1);
+  assert.equal(result.pricingIssue,null);
+  assert.equal(result.proforma.available,false);
+  assert.equal(result.contract.templateId,3);
+  assert.equal(result.wallet.shortageToman,"4444");
+  assert.deepEqual(result.rows.map(r=>r.amount),["55","444","55","454","444"]);
+  assert.deepEqual(result.options.map(o=>o.method),["online","wallet","foreign-transfer"]);
+  const schema=h.load("schemas/checkout-payment.schema").checkoutPaymentSchema;
+  for(const key of ["quantity","total_amount_iran","international_transit"]) {
+    const invalid=structuredClone(raw);delete invalid.pricing[key];
+    assert.equal(schema.safeParse(invalid).success,false);
+  }
+  const invalid=structuredClone(raw);invalid.pricing.total_amount_iran="-1";
+  assert.equal(schema.safeParse(invalid).success,false);
+});
+
+test("a successful approval poll replaces stored pending status and stops waiting",async()=>{
+  let queryOptions, live;
+  const h=harness({get:async()=>approvedShippingPaymentFixture(),modules:{
+    react:{useEffect:()=>{},useRef:()=>({current:false}),useState:()=>[Date.parse("2026-11-22T00:00:00Z"),()=>{}]},
+    "@/features/auth/hooks/use-access-token":{useAccessToken:()=>"token"},
+    "@/features/auth/utils/token-storage":{tokenStorage:{getSessionId:()=>"session"}},
+    "./use-customer-addresses":{useCustomerAddresses:()=>({})},
+    "@tanstack/react-query":{
+      useQueryClient:()=>({getQueryData:()=>undefined}),useMutation:()=>({}),
+      useQuery:options=>{queryOptions=options;return live??{isPending:true};},
+    },
+  }});
+  const status=h.load("utils/order-review.storage").orderReviewStatusStorage;
+  status.save("approved-order","session","pending_review");
+  const hook=h.load("hooks/use-checkout-payment").useCheckoutPayment;
+  assert.equal(hook("approved-order").isAwaitingReview,true);
+  const data=await queryOptions.queryFn({signal:undefined});
+  assert.equal(status.read("approved-order","session"),"approved");
+  live={data,isError:false,isFetching:false};
+  const result=hook("approved-order");
+  assert.equal(result.isAwaitingReview,false);
+  assert.equal(result.canContinue,true);
+  assert.equal(queryOptions.refetchInterval({state:{status:"success",data}}),false);
+});
+
+
+test("payment summary uses the savings band and keeps the authoritative final total", () => {
+  const h=harness({render:true});
+  const raw=approvedShippingPaymentFixture();
+  raw.pricing.price_before_discount_toman="5000";raw.pricing.price_before_discount_cny="125";
+  const schema=h.load("schemas/checkout-payment.schema").checkoutPaymentSchema;
+  const data=h.load("mappers/checkout-payment.mapper").mapCheckoutPayment(schema.parse(raw),"order");
+  const Summary=h.load("components/checkout/checkout-payment-summary").default;
+  const React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+  const render=value=>renderToStaticMarkup(React.createElement(Summary,{data:value,method:null,onCancel:()=>{}}));
+  const html=render(data);
+  assert.ok(html.includes("سود شما از خرید"));
+  assert.ok(html.includes("لغو سفارش"));
+  assert.ok(html.includes("قیمت نهایی"));
+  assert.ok(html.includes("¥125"));
+  assert.ok(html.includes("4,444 تومان"));
+  assert.ok(html.indexOf("سود شما از خرید")<html.indexOf("قیمت نهایی"));
+  assert.ok(!render({...data,savings:{amount:"0.00",cny:"0"}}).includes("سود شما از خرید"));
+  assert.equal(h.requests.length,0);
+});
+
+test("cancel order targets the authenticated tracking route and propagates backend rejection",async()=>{
+  const h=harness({post:()=>({order_status:"cancelled"})});
+  await h.load("api/checkout-payment.api").checkoutPaymentApi.cancelOrder("order/code");
+  assert.equal(h.requests[0].url,"/api/customer/checkout/payment/order%2Fcode/cancel/");
+  assert.deepEqual(h.requests[0].body,{});
+  assert.equal(h.requests[0].config.withCredentials,true);
+  const error={response:{status:400,data:{detail:"Already paid"}}};
+  const rejected=harness({post:()=>{throw error;}});
+  await assert.rejects(()=>rejected.load("api/checkout-payment.api").checkoutPaymentApi.cancelOrder("paid-order"),e=>e===error);
+});
+
+
+test("online payment delegates gateway selection to backend for direct redirects",async()=>{
+  const session={...onlineSessionFixture(),gateway_code:"backend-selected"};
+  const h=harness({post:()=>({
+    order:{id:30,tracking_code:"test-order"},payment:{id:42},payment_type:"online",
+    idempotent_replay:false,next_action:{type:"connect_online_gateway"},online_payment:session,
+  })});
+  const {gateway_code,...input}=onlineCheckoutInput();
+  const result=await h.load("services/online-payment.service").startOnlinePayment(input);
+  assert.equal(result.paymentId,42);
+  assert.equal(h.requests.length,1);
+  assert.equal(h.requests[0].body.gateway_code,undefined);
+  assert.ok(!JSON.stringify(h.requests[0].body).includes("gateway_code"));
+});
+test("online fallback session also lets backend choose without fetching gateway list",async()=>{
+  const h=harness({post:url=>url.includes("/session/") ? {...onlineSessionFixture(),gateway_code:"backend-default"} : {
+    order:{id:30},payment_type:"online",idempotent_replay:false,next_action:{type:"connect_online_gateway"},
+  }});
+  const {gateway_code,...input}=onlineCheckoutInput();
+  const result=await h.load("services/online-payment.service").startOnlinePayment(input);
+  assert.equal(result.paymentId,42);
+  assert.equal(h.requests.length,2);
+  assert.deepEqual(h.requests[1].body,{});
+  assert.ok(h.requests.every(request=>request.method==="POST"));
+});
+test("online hook requires no gateway discovery and preserves redirect and session protections",async()=>{
+  let options,saved,redirect;
+  const h=harness({modules:{
+    react:{useRef:()=>({current:false}),useSyncExternalStore:()=>null},
+    "@tanstack/react-query":{useMutation:value=>{options=value;return {};}},
+    "@/features/auth/utils/token-storage":{tokenStorage:{getSessionId:()=>"session"}},
+    "../services/online-payment.service":{startOnlinePayment:async()=>({paymentId:42,alreadyPaid:false,redirect:{method:"GET",url:"https://gateway.example/pay",fields:{}}})},
+    "../utils/online-payment.utils":{
+      onlinePaymentStorage:{subscribe:()=>{},read:()=>null,parse:()=>null,save:(...args)=>{saved=args;}},
+      redirectToOnlineGateway:value=>{redirect=value;},onlineReturnUrl:()=>"/return",
+    },
+  }});
+  const hook=h.load("hooks/use-online-payment").useOnlinePayment;
+  hook("test-order","session");
+  const {gateway_code,...input}=onlineCheckoutInput();
+  await options.mutationFn(input);
+  assert.deepEqual(saved,[42,"test-order","session"]);
+  assert.equal(redirect.url,"https://gateway.example/pay");
+  assert.equal(h.requests.length,0);
+  await assert.rejects(()=>options.mutationFn({...input,tracking_code:"other-order"}));
 });

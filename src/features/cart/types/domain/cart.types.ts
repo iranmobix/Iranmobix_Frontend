@@ -1,10 +1,3 @@
-export type CartShippingMethod =
-  | "sea_china_iran"
-  | "sea_china_dubai"
-  | "ground_china_iran"
-  | "air_express"
-  | "commercial_air_iran"
-  | "commercial_air_dubai";
 import type { ProductSource } from "../../../product/types/domain/product.types";
 
 export type CartDataIssue = { path: string; status: "missing" | "empty" | "invalid" };
@@ -69,7 +62,23 @@ export interface CartPricing {
   attributesPriceIncrease: string;
   inventoryTrackingEnabled: boolean;
 }
+export type CartPaymentDetails = {
+  chinaTotalCny: string | null;
+  chinaTotalToman?: string | null;
+  iranTotalToman: string | null;
+  internationalTransitToman: string | null;
+  insuranceToman: string | null;
+  clearanceToman: string | null;
+  servicesToman: string | null;
+  discountToman: string | null;
+};
+
 export interface ServerCartItem {
+  discountPriceToman?: string | null;
+  chinaPriceCny?: string | null;
+  chinaPriceToman?: string | null;
+  deliveryPriceToman?: string | null;
+  shippingMethod?: string | null;
   dataIssues?: CartDataIssue[];
   displayId?: string;
   id: string;
@@ -86,6 +95,8 @@ export interface ServerCartItem {
   updatedAt: string;
 }
 export interface ServerCart {
+  storefront?: boolean;
+  paymentDetails?: CartPaymentDetails;
   dataIssues?: CartDataIssue[];
   owner: { type: string; userId: number | null };
   currency: string;

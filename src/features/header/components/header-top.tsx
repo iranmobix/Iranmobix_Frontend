@@ -4,11 +4,15 @@ import { HeaderTopActions } from "./header-top-actions";
 
 export function HeaderTop() {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex gap-5">
+    <div className="flex min-w-0 items-center justify-between gap-4 xl:gap-0">
+      <div className="flex shrink-0 items-center gap-3 whitespace-nowrap xl:gap-5">
         <HeaderLogo />
-        <p className="text-label-lg text-neutral-900">ثبت حواله ارزی</p>
-        <p className="text-label-lg text-neutral-900">نمونه واردات</p>
+        <p className="xl:text-label-lg text-xs text-neutral-900">
+          ثبت حواله ارزی
+        </p>
+        <p className="xl:text-label-lg text-xs text-neutral-900">
+          نمونه واردات
+        </p>
       </div>
       <ImportHeaderInput />
       <HeaderTopActions />

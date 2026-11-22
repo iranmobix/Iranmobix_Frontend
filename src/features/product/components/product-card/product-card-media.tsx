@@ -10,6 +10,7 @@ type ProductCardMediaProps = {
   showColors?: boolean;
   sizes?: string;
   compactMobile?: boolean;
+  compactDesktop?: boolean;
 };
 
 // استایل مشترک شیشه‌ای برای هر دو باکس (Source و Colors)
@@ -48,6 +49,7 @@ const ProductCardMedia = ({
   product,
   showColors = true,
   compactMobile = false,
+  compactDesktop = false,
   sizes = "(max-width: 640px) 80vw, 260px",
 }: ProductCardMediaProps) => {
   const colors = "colors" in product ? product.colors : undefined;
@@ -56,7 +58,9 @@ const ProductCardMedia = ({
   const extraColorsCount = (colors?.length ?? 0) - 3;
 
   return (
-    <div className="relative aspect-square w-full overflow-hidden rounded-md">
+    <div
+      className={`relative aspect-square w-full overflow-hidden rounded-md ${compactDesktop ? "lg:rounded-lg" : ""}`}
+    >
       {product.image && (
         <Image
           src={product.image}
@@ -75,9 +79,13 @@ const ProductCardMedia = ({
       {showColors && colors === undefined && (
         <span
           className={
-            compactMobile
-              ? "absolute right-2 bottom-2 hidden rounded bg-white/80 px-2 text-xs text-neutral-500 lg:inline"
-              : "absolute right-2 bottom-2 rounded bg-white/80 px-2 text-xs text-neutral-500"
+            compactDesktop
+              ? compactMobile
+                ? "absolute right-2 bottom-2 hidden rounded bg-white/80 px-2 text-xs text-neutral-500"
+                : "absolute right-2 bottom-2 rounded bg-white/80 px-2 text-xs text-neutral-500 lg:hidden"
+              : compactMobile
+                ? "absolute right-2 bottom-2 hidden rounded bg-white/80 px-2 text-xs text-neutral-500 lg:inline"
+                : "absolute right-2 bottom-2 rounded bg-white/80 px-2 text-xs text-neutral-500"
           }
         >
           رنگ: —
@@ -86,21 +94,33 @@ const ProductCardMedia = ({
       {/* Source */}
       <div
         className={
-          compactMobile
-            ? "absolute top-1 left-1 z-10 lg:top-3 lg:left-3"
-            : "absolute top-3 left-3 z-10"
+          compactDesktop
+            ? compactMobile
+              ? "absolute top-1 left-1 z-10"
+              : "absolute top-3 left-3 z-10 lg:top-1 lg:left-1"
+            : compactMobile
+              ? "absolute top-1 left-1 z-10 lg:top-3 lg:left-3"
+              : "absolute top-3 left-3 z-10"
         }
       >
-        <ProductSource source={product.source} compactMobile={compactMobile} />
+        <ProductSource
+          source={product.source}
+          compactMobile={compactMobile}
+          compactDesktop={compactDesktop}
+        />
       </div>
 
       {/* Colors */}
       {hasMultipleColors && (
         <div
           className={
-            compactMobile
-              ? "absolute top-1 right-1 z-10 lg:top-3 lg:right-3"
-              : "absolute top-3 right-3 z-10"
+            compactDesktop
+              ? compactMobile
+                ? "absolute top-1 right-1 z-10 lg:hidden"
+                : "absolute top-3 right-3 z-10 lg:hidden"
+              : compactMobile
+                ? "absolute top-1 right-1 z-10 lg:top-3 lg:right-3"
+                : "absolute top-3 right-3 z-10"
           }
         >
           <div

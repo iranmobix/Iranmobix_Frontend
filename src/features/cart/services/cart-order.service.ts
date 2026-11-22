@@ -1,16 +1,45 @@
-import { submitOrderResponseSchema } from "../schemas/cart.schema";
+import {
+  orderReviewStorage,
+  orderReviewStatusStorage,
+} from "../utils/order-review.storage";
+import { z } from "zod";
+import {
+  cartResponseSchema,
+  submitOrderResponseSchema,
+} from "../schemas/cart.schema";
+import { mapCartForDisplay } from "../mappers/cart-display.mapper";
 import { tokenStorage } from "@/features/auth/utils/token-storage";
 import { cartApi } from "../api/cart.api";
 import { mapCartToSubmitOrderPayload } from "../mappers/cart-submit-order.mapper";
-import { cartOrderStorage } from "../utils/cart-order.storage";
-import { cartSessionStorage } from "../utils/cart-session.storage";
-import type {
-  CartDataSource,
-  CartShippingMethod,
-  ServerCart,
-} from "../types/domain/cart.types";
 
-const pending = new Map<string, Promise<string | null>>();
+import type { CartDataSource, ServerCart } from "../types/domain/cart.types";
+
+const conflictSchema = z.object({
+  response: z.object({
+    status: z.literal(409),
+    data: z.object({
+      field: z.literal("cart"),
+      cart: z.union([
+        z
+          .object({
+            items: z.array(z.record(z.string(), z.unknown())),
+            pay_detail: z.record(z.string(), z.unknown()),
+          })
+          .passthrough(),
+        cartResponseSchema,
+      ]),
+    }),
+  }),
+});
+
+export function getCartSubmitConflictCart(error: unknown): ServerCart | null {
+  const result = conflictSchema.safeParse(error);
+  return result.success
+    ? mapCartForDisplay(result.data.response.data.cart)
+    : null;
+}
+
+const pending = new Map<string, Promise<string>>();
 export function getCartSubmitError(error: unknown): string {
   if (error && typeof error === "object" && "response" in error) {
     const response = error.response;
@@ -37,67 +66,40 @@ export function getCartSubmitError(error: unknown): string {
       }
     }
   }
-  return "ثبت اولیه تأیید نشد. تلاش مجدد برای همین سبد با همان شناسه انجام می‌شود.";
+  return "ثبت اولیه تأیید نشد. وضعیت سبد را بررسی کنید و دوباره اقدام کنید.";
 }
 export const cartOrderService = {
-  async submit(
-    cart: ServerCart,
-    source: CartDataSource,
-    shippingMethod: CartShippingMethod,
-  ): Promise<string | null> {
+  async submit(cart: ServerCart, source: CartDataSource): Promise<string> {
     if (source !== "api") throw new Error("سبد نمونه قابل ثبت واقعی نیست.");
-    const token = tokenStorage.getAccessToken();
-    if (!token) throw new Error("برای ثبت اولیه وارد حساب شوید.");
-    const payload = mapCartToSubmitOrderPayload(
-      cart,
-      "pending-key",
-      shippingMethod,
-    );
-    const session = cartSessionStorage.read();
-    // No token or payload is persisted: only a hash, random key and acknowledgement.
-    const identity =
-      cart.owner.userId !== null
-        ? `user:${cart.owner.userId}`
-        : tokenStorage.getSessionId();
-    const canonical = JSON.stringify({
-      identity,
-      guest: session?.token ?? null,
-      items: payload.items,
-      shipping_method: payload.shipping_method,
-    });
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(canonical),
-    );
-    const fingerprint = Array.from(new Uint8Array(digest), (byte) =>
-      byte.toString(16).padStart(2, "0"),
-    ).join("");
-    if (tokenStorage.getAccessToken() !== token)
-      throw new Error("نشست ورود تغییر کرده است؛ سبد را دوباره دریافت کنید.");
-    const active = pending.get(fingerprint);
+    if (!tokenStorage.getAccessToken())
+      throw new Error("برای ثبت اولیه وارد حساب شوید.");
+    const payload = mapCartToSubmitOrderPayload(cart);
+    // Share only a request still in flight, not an accepted order or a failed attempt.
+    const sessionId = tokenStorage.getSessionId();
+    const key = JSON.stringify([
+      sessionId,
+      [...payload.item_ids].sort((a, b) => a - b),
+    ]);
+    const active = pending.get(key);
     if (active) return active;
-    const attempt = cartOrderStorage.getOrCreate(fingerprint);
-    if (attempt.accepted) return attempt.trackingCode ?? null;
-    const request = (async () => {
-      const response = await cartApi.submitOrder(
-        { ...payload, idempotency_key: attempt.key },
-        session,
-      );
-      // Do not treat an explicit error envelope as a successful submission.
-      if (
-        response &&
-        typeof response === "object" &&
-        "error" in response &&
-        response.error
-      )
-        throw new Error("سرور ثبت اولیه را تأیید نکرد.");
-      const result =
-        response == null ? null : submitOrderResponseSchema.parse(response);
-      const trackingCode = result?.tracking_code;
-      cartOrderStorage.markAccepted(fingerprint, attempt.key, trackingCode);
-      return trackingCode ?? null;
-    })().finally(() => pending.delete(fingerprint));
-    pending.set(fingerprint, request);
+    const request = cartApi
+      .submitOrder(payload)
+      .then((response) => {
+        const result = submitOrderResponseSchema.parse(response);
+        orderReviewStorage.save(
+          result.tracking_code,
+          sessionId,
+          result.assigned_sales_expert,
+        );
+        orderReviewStatusStorage.save(
+          result.tracking_code,
+          sessionId,
+          result.expert_pricing_status,
+        );
+        return result.tracking_code;
+      })
+      .finally(() => pending.delete(key));
+    pending.set(key, request);
     return request;
   },
 };

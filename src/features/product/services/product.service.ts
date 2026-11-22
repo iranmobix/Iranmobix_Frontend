@@ -4,7 +4,6 @@ import { mapProductDetail } from "../mappers/product-detail.mapper";
 import { mapProductListResult } from "../mappers/product-list-result.mapper";
 import type { ProductListQuery } from "../types/api/product-list-query.types";
 import type { ProductListResult } from "../types/domain";
-import type { ProductDetail } from "../types/domain/product-detail.types";
 
 export type ProductDataSource = "api" | "mock";
 
@@ -18,7 +17,7 @@ export interface ProductService {
     slug: string,
     source?: ProductDataSource,
     signal?: AbortSignal,
-  ): Promise<ProductDetail>;
+  ): Promise<ReturnType<typeof mapProductDetail>>;
 }
 
 export const productService: ProductService = {

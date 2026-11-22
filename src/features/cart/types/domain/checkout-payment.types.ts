@@ -1,3 +1,4 @@
+import type { CartAssignedExpert } from "../../schemas/cart-expert.schema";
 import type {
   CheckoutAddress,
   CheckoutBankAccount,
@@ -20,6 +21,7 @@ export interface PaymentOption {
   }>;
 }
 export interface CheckoutPayment {
+  assignedExpert?: CartAssignedExpert | null;
   orderId: number | null;
   trackingCode: string;
   status: string | null;
@@ -40,6 +42,8 @@ export interface CheckoutPayment {
   currency: string | null;
   total: string;
   quantity: number;
+  goodsPriceCny?: string;
+  savings?: { amount: string; cny: string };
   rows: Array<{ key: string; label: string; amount: string | null }>;
   pricingIssue: string | null;
   wallet?: {

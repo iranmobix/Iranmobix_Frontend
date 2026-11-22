@@ -1,4 +1,9 @@
 "use client";
+import axios from "axios";
+import {
+  orderReviewStorage,
+  orderReviewStatusStorage,
+} from "../utils/order-review.storage";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tokenStorage } from "@/features/auth/utils/token-storage";
@@ -11,6 +16,10 @@ type PaymentSnapshot = CheckoutPayment & { appliedCouponCode: string };
 export function useCheckoutPayment(trackingCode: string) {
   const token = useAccessToken();
   const sessionId = token ? tokenStorage.getSessionId() : null;
+  const submittedStatus = orderReviewStatusStorage.read(
+    trackingCode,
+    sessionId,
+  );
   const client = useQueryClient();
   const couponLock = useRef(false);
   const queryKey = ["cart", "payment", trackingCode, sessionId] as const;
@@ -32,14 +41,16 @@ export function useCheckoutPayment(trackingCode: string) {
         signal,
         couponCode,
       );
+      if (data.status)
+        orderReviewStatusStorage.save(trackingCode, sessionId, data.status);
       return { ...data, appliedCouponCode: couponCode };
     },
     enabled: Boolean(token && trackingCode),
     retry: false,
     // Poll only a confirmed pending state; authentication/schema errors remain visible.
     refetchInterval: (query) =>
-      query.state.status === "success" &&
-      query.state.data?.status === "pending_review"
+      !axios.isAxiosError(query.state.error) &&
+      (query.state.data?.status ?? submittedStatus) === "pending_review"
         ? 15000
         : false,
     refetchIntervalInBackground: false,
@@ -85,11 +96,22 @@ export function useCheckoutPayment(trackingCode: string) {
   const addressQuery = useCustomerAddresses();
   const expiresAt = query.data?.expiresAt;
   const expires = expiresAt ? Date.parse(expiresAt) : NaN;
+  const remainingSeconds =
+    now !== null && Number.isFinite(expires)
+      ? Math.max(0, Math.ceil((expires - now) / 1000))
+      : null;
   const expired = Boolean(
     expiresAt && (now === null || !Number.isFinite(expires) || expires <= now),
   );
   return {
     ...query,
+    isAwaitingReview:
+      !axios.isAxiosError(query.error) &&
+      (query.data?.status ?? submittedStatus) === "pending_review",
+    assignedExpert:
+      query.data?.assignedExpert !== undefined
+        ? query.data.assignedExpert
+        : orderReviewStorage.read(trackingCode, sessionId),
     addressQuery,
     applyCoupon,
     couponPending,
@@ -99,6 +121,7 @@ export function useCheckoutPayment(trackingCode: string) {
     sessionId,
     isLoggedIn: Boolean(token),
     expired,
+    remainingSeconds,
     canContinue: Boolean(
       query.data?.canContinue &&
       !expired &&

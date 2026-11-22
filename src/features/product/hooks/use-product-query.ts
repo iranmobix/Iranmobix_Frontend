@@ -113,6 +113,8 @@ export const useProductQuery = () => {
     (sort: ProductListQuery["sort"]) => {
       const params = new URLSearchParams(searchParams.toString());
 
+      params.delete("colors");
+      params.delete("guarantees");
       setQueryParam(params, "sort", sort);
 
       router.replace(

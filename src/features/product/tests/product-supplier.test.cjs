@@ -20,7 +20,8 @@ function load(file) {
     compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true},
   }).outputText;
   vm.runInNewContext(code, {module, exports: module.exports, structuredClone, require: (name) => {
-    if (name === "next/image") return {__esModule: true, default: ({src,alt}) => React.createElement("img", {src,alt})};
+    if (name.endsWith(".svg")) return {__esModule:true,default:{src:"/test-icon.svg",width:20,height:20}};
+    if (name === "next/image") return {__esModule: true, default: ({src,alt}) => React.createElement("img", {src:typeof src === "string" ? src : src.src,alt})};
     return name.startsWith(".") ? load(path.relative(base, path.resolve(path.dirname(absolute), name))) : require(name);
   }});
   cache.set(absolute, module.exports);

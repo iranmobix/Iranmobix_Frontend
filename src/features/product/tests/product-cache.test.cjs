@@ -481,3 +481,16 @@ test("expired catalog snapshots refetch and different filters remain isolated", 
   await queryClient.fetchInfiniteQuery(options);
   assert.equal(requests,3);
 });
+
+
+test("removed color and guarantee filters are excluded from cache identity and API requests",async(t)=>{
+  let sent;
+  const h=harness({getProducts:async(query)=>{sent=query;return page();}});
+  const {productListQueryOptions,productQueryKeys}=h.options();
+  const obsolete={category:[84],colors:[1],guarantees:["iranmobix"]};
+  assert.equal(hashKey(productQueryKeys.list(obsolete)),hashKey(productQueryKeys.list({category:[84]})));
+  const c=client(t);
+  await c.fetchInfiniteQuery(productListQueryOptions(obsolete));
+  assert.equal("colors" in sent,false);
+  assert.equal("guarantees" in sent,false);
+});

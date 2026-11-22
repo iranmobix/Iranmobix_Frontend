@@ -1,6 +1,7 @@
 import type { ProductDetail } from "../../types/domain/product-detail.types";
 
 import ProductDetailSource from "./product-detail-source";
+import SellerBadges from "../seller-badges";
 
 type ProductSummaryProps = {
   product: ProductDetail;
@@ -15,7 +16,7 @@ const ProductSummary = ({
     <div className="flex min-w-0 flex-col gap-3">
       <h1
         dir="auto"
-        className="text-start text-sm font-medium leading-6 sm:text-base sm:leading-7 text-neutral-900"
+        className="text-start text-sm leading-6 font-medium text-neutral-900 sm:text-base sm:leading-7"
       >
         {product.title || "—"}
       </h1>
@@ -48,33 +49,15 @@ const ProductSummary = ({
 
           <span
             dir="auto"
-            className="min-w-0 break-words text-xs leading-5 sm:text-sm"
+            className="min-w-0 text-xs leading-5 break-words sm:text-sm"
           >
             {product.seller?.name || "—"}
           </span>
 
-          {product.seller?.trust.verified && (
-            <span
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#009681] text-white"
-              aria-label="فروشنده تأییدشده"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="m6 12 4 4 8-9"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          )}
+          <SellerBadges
+            verified={product.seller?.trust.verified}
+            selected={product.seller?.trust.trusted}
+          />
         </div>
 
         <div dir="rtl" className="shrink-0">

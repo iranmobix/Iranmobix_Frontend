@@ -41,6 +41,7 @@ function harness(fetchResponse, renderClient = false) {
     }).outputText;
     const localRequire = (name) => {
       if (name === "server-only") return {};
+      if (name.endsWith(".module.css")) return {__esModule:true,default:new Proxy({}, {get:(_,key)=>String(key)})};
       if (name.endsWith(".svg"))
         return {
           __esModule: true,
@@ -49,6 +50,8 @@ function harness(fetchResponse, renderClient = false) {
       if (name === "next/navigation")
         return {
           useRouter: () => ({ replace() {}, push() {}, back() {} }),
+          redirect: (url) => { throw new Error("redirect:" + url); },
+          notFound: () => { throw new Error("not-found"); },
           usePathname: () => "/products",
           useSearchParams: () => new URLSearchParams(),
         };
@@ -387,6 +390,45 @@ test("initial detail HTML includes the real title and purchase form without brow
   assert.equal(h.browserCalls(), 0);
 });
 
+test("a flat marketplace detail renders through the catalog route with the shared marketplace layout", async (t) => {
+  const React = require("react");
+  const { renderToStaticMarkup } = require("react-dom/server");
+  const { QueryClientProvider } = require("@tanstack/react-query");
+  const raw = {
+    slug: "portable-game-console",
+    product_code: "IRM-134174",
+    title_fa: "کنسول دستی",
+    title_en: "Portable Game Console",
+    category: "Gaming",
+    seller: { name: "Marketplace Supplier", rating: 4.7 },
+    price_cny: 106.11,
+    gallery: ["https://iranmobix.com/product-images/products/728/65481.jpg"],
+    key_attributes: { Model: "X9" },
+    specifications: { Screen: "5.5 inches" },
+    other_sellers: [{ slug: "", source_url: "https://www.alibaba.com/product-detail/alternate.html", fa_title: "Another seller" }],
+    related_products: [{ slug: "similar-console", fa_title: "Similar console" }],
+    comments: [{ author_name: "Buyer", text: "Great console" }],
+  };
+  const h = harness(() => ok(raw), true);
+  const client = new QueryClient();
+  t.after(() => client.clear());
+  const route = h.load("../../app/(main)/products/[slug]/page").default;
+  const page = await route({ params: Promise.resolve({ slug: raw.slug }) });
+  assert.equal(h.requests.length, 1);
+  assert.equal(h.requests[0].url.pathname, "/api/product/portable-game-console/");
+  assert.equal(page.props.state.queries[0].state.data.kind, "marketplace");
+  const html = renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, page));
+  for (const content of [raw.title_fa, raw.title_en, raw.product_code, raw.category, raw.gallery[0],
+    raw.seller.name, "106.11", "X9", "5.5 inches", "Another seller", raw.other_sellers[0].source_url, "Similar console", "Great console"]) {
+    assert.ok(html.includes(content), content);
+  }
+  const cardLinks = html.match(/<a[^>]*target="_blank"[^>]*>/g) ?? [];
+  assert.ok(cardLinks.some((link) => link.includes('href="/products/similar-console"')));
+  const importHref = "/imports/single?" + new URLSearchParams({ url: raw.other_sellers[0].source_url });
+  assert.ok(cardLinks.some((link) => link.includes('href="' + importHref + '"')));
+  assert.equal(h.browserCalls(), 0);
+});
+
 test("mock comments render six entries, source tabs and the expert reply without a comments API", () => {
   const React = require("react");
   const { renderToStaticMarkup } = require("react-dom/server");
@@ -405,4 +447,41 @@ test("mock comments render six entries, source tabs and the expert reply without
   const mock = h.load("mock/product-comments.mock").productCommentsMock;
   const ids = [...mock.iranmobix, ...mock.source].map((comment) => comment.id);
   assert.equal(new Set(ids).size, ids.length);
+});
+
+test("category breadcrumbs open the catalog with the exact category filter", async () => {
+  const raw = listFixture();
+  const category = raw.filters.categories[0];
+  assert.ok(category);
+  const h = harness(() => ok(raw.filters.categories.map(category => ({...category, parent_id: null}))));
+  const getHref = h.load("utils/product-category-path").getProductCategoryHref;
+  assert.equal(getHref(category.name, category.id), "/products?category=" + category.id + "&sort=newest");
+  const namedUrl = new URL(getHref(category.name), "https://front.test");
+  assert.equal(namedUrl.searchParams.get("category_name"), category.name);
+  const route = h.load("../../app/(main)/products/page").default;
+  await assert.rejects(
+    route({ searchParams: Promise.resolve({ category_name: category.name }) }),
+    (error) => error.message === "redirect:/products?category=" + category.id + "&sort=newest",
+  );
+  assert.equal(h.requests.length, 1);
+  const detail = detailFixture();
+  detail.product.category = { id: category.id, name: category.name, slug: category.slug };
+  const mapped = h.load("mappers/product-detail.mapper").mapProductDetail(detail);
+  const crumbs = h.load("utils/build-product-detail-breadcrumb").buildProductDetailBreadcrumb(mapped);
+  assert.equal(crumbs[2].href, getHref(mapped.category.name, mapped.category.id));
+});
+
+test("category name differences and missing categories do not produce a 404", async () => {
+  const raw = listFixture();
+  raw.filters.categories = [{id:1925,name:"\u0622\u0628 \u0645\u0639\u062f\u0646\u06cc \u0628\u0633\u062a\u0647\u200c\u0628\u0646\u062f\u06cc\u200c\u0634\u062f\u0647",slug:"water"}];
+  const h = harness((url) => ok(new URL(url).pathname === "/api/product/categories/" ? raw.filters.categories.map(category => ({...category, parent_id: null})) : raw));
+  const route = h.load("../../app/(main)/products/page").default;
+  await assert.rejects(route({searchParams:Promise.resolve({category_name:"\u0622\u0628  \u0645\u0639\u062f\u0646\u064a \u0628\u0633\u062a\u0647 \u0628\u0646\u062f\u064a \u0634\u062f\u0647"})}),
+    (error) => error.message === "redirect:/products?category=1925&sort=newest");
+  const missing = await route({searchParams:Promise.resolve({category_name:"unknown category"})});
+  assert.equal(missing.props.state.queries.length, 1);
+  assert.equal(missing.props.children[0].props.role, "status");
+  const direct = await route({searchParams:Promise.resolve({category:"1925",sort:"newest",category_name:"outdated name"})});
+  assert.equal(direct.props.children[0], undefined);
+  assert.equal(direct.props.state.queries[0].queryKey.at(-1).category[0], 1925);
 });

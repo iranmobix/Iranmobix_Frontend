@@ -33,7 +33,7 @@ export function normalizeProductListQuery(
   for (const key of ["search", "min_price", "max_price"] as const) {
     if (query[key] !== undefined && query[key] !== "") result[key] = query[key];
   }
-  for (const key of ["category", "brands", "colors"] as const) {
+  for (const key of ["category", "brands"] as const) {
     if (query[key]?.length)
       result[key] = [...new Set(query[key])].sort((a, b) => a - b);
   }
@@ -41,8 +41,6 @@ export function normalizeProductListQuery(
     result.sources = [...new Set(query.sources)].sort();
   if (query.seller_types?.length)
     result.seller_types = [...new Set(query.seller_types)].sort();
-  if (query.guarantees?.length)
-    result.guarantees = [...new Set(query.guarantees)].sort();
   if (query.in_iranmobix_inventory !== undefined)
     result.in_iranmobix_inventory = query.in_iranmobix_inventory;
   if (query.limit !== undefined) result.limit = query.limit;
@@ -98,7 +96,8 @@ export function productDetailQueryOptions(
   const productSlug = normalizeProductSlug(slug);
   return queryOptions({
     queryKey: productQueryKeys.detail(productSlug, source),
-    queryFn: ({ signal }) => service.getProductDetail(productSlug, source, signal),
+    queryFn: ({ signal }) =>
+      service.getProductDetail(productSlug, source, signal),
     ...PRODUCT_CACHE_POLICY,
     retry: retryProductDetail,
     retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 2000),

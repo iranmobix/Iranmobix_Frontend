@@ -4,15 +4,12 @@ export function HeaderSupportButton() {
   return (
     <button
       type="button"
-      className="
-        flex
-        items-center
-        justify-center
-        rounded-md py-2.5 gap-2
-      "
+      className="flex items-center justify-center gap-2 rounded-md py-2.5"
     >
       <Image src={support} alt="IranMobix" priority />
-      <span className="text-primary-900 text-label-lg">پشتیبانی</span>
+      <span className="text-primary-900 xl:text-label-lg text-xs whitespace-nowrap">
+        پشتیبانی
+      </span>
     </button>
   );
 }

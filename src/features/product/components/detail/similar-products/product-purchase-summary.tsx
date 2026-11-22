@@ -1,19 +1,26 @@
+import type { ProductTomanPricing } from "../../../services/product-toman-pricing";
 import Image from "next/image";
 import ProductPurchaseForm from "../product-purchase-form";
 import ProductPricing from "../product-pricing";
 import { ProductDetail } from "@/features/product/types/domain/product-detail.types";
 
+import type { AddToCartShippingMethod } from "@/features/cart/types/api/cart-payload.types";
+
 type ProductPurchaseSummaryProps = {
+  shippingMethod?: AddToCartShippingMethod;
   product: ProductDetail;
+  tomanPricing?: ProductTomanPricing;
   isMock?: boolean;
 };
 
 const ProductPurchaseSummary = ({
   product,
   isMock = false,
+  shippingMethod,
+  tomanPricing,
 }: ProductPurchaseSummaryProps) => {
   return (
-    <section className="flex w-full flex-col gap-6 p-6 bg-white">
+    <section className="flex w-full flex-col gap-6 bg-white p-6">
       {/* Product Header */}
       <div className="grid grid-cols-[1fr_110px] items-start gap-4">
         {/* Product Info */}
@@ -38,9 +45,14 @@ const ProductPurchaseSummary = ({
         </div>
       </div>
 
-      <ProductPurchaseForm product={product} isMock={isMock} compact>
+      <ProductPurchaseForm
+        product={product}
+        isMock={isMock}
+        shippingMethod={shippingMethod}
+        compact
+      >
         <div className="mb-4">
-          <ProductPricing product={product} />
+          <ProductPricing product={product} tomanPricing={tomanPricing} />
         </div>
       </ProductPurchaseForm>
     </section>

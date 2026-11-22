@@ -2,15 +2,12 @@ import { z } from "zod";
 import { importerApi } from "../api/importer.api";
 import {
   discoverAcceptedSchema,
-  importAcceptedSchema,
   importJobSchema,
   importUrlSchema,
   importCandidateRequestSchema,
   candidateImportStatusSchema,
 } from "../schemas/importer.schema";
 import type {
-  ImportProductPayload,
-  ImportSellerPayload,
   ImportImagePayload,
   DiscoverProductPayload,
   DiscoverSearchPayload,
@@ -119,16 +116,6 @@ export const importerService = {
       await waitForNextPoll(job.next_poll_after_seconds, signal);
     }
     throw new Error("درخواست لغو شد.");
-  },
-  async importProduct(payload: ImportProductPayload) {
-    return importAcceptedSchema.parse(
-      await importerApi.importProduct({
-        url: importUrlSchema.parse(payload.url),
-      }),
-    );
-  },
-  async importSeller(payload: ImportSellerPayload) {
-    return importerService.importProduct({ url: payload.seller_url });
   },
   async importImage(payload: ImportImagePayload, signal?: AbortSignal) {
     validateImportImage(payload.image);

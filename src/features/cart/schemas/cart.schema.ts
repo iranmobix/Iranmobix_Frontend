@@ -1,3 +1,4 @@
+import { cartAssignedExpertSchema } from "./cart-expert.schema";
 import type {
   CartSessionApiResponse,
   CartApiResponse,
@@ -101,6 +102,7 @@ export const cartResponseSchema = z.object({
       z.object({
         id: count,
         catalog_id: z.string(),
+        shipping_method: z.string().nullish(),
         source: z.string(),
         product: cartProductSchema,
         selected_options: cartSelectedOptionsSchema,
@@ -125,22 +127,30 @@ export const cartMergeSchema = z.object({
 }) satisfies z.ZodType<CartMergeApiResponse>;
 export const addToCartSchema = z.object({
   slug: z.string().trim().min(1),
-  payload: z.object({
-    color: z.string().optional(),
-    guarantee: z.string().optional(),
-    quantity: count.positive(),
-    number: count.positive().optional(),
-    selected_attributes: z
-      .array(
-        z.object({
-          category_attribute: count,
-          category_value: count,
-          value: z.string(),
-        }),
-      )
-      .optional(),
-    sku_attributes: z.record(z.string(), z.string()).optional(),
-  }),
+  payload: z
+    .object({
+      color: z.string().optional(),
+      guarantee: z.string().optional(),
+      quantity: count.positive().optional(),
+      number: count.positive().optional(),
+      shipping_method: z
+        .enum(["ground", "sea", "air_express", "commercial_air"])
+        .optional(),
+      selected_attributes: z
+        .array(
+          z.object({
+            category_attribute: count,
+            category_value: count,
+            value: z.string(),
+          }),
+        )
+        .optional(),
+      sku_attributes: z.record(z.string(), z.string()).optional(),
+    })
+    .transform(({ quantity, number, ...payload }) => ({
+      ...payload,
+      quantity: quantity ?? number ?? 1,
+    })),
 }) satisfies z.ZodType<AddToCartInput>;
 
 export const removeCartItemSchema = z.object({
@@ -150,32 +160,17 @@ export const updateCartItemSchema = removeCartItemSchema.extend({
   payload: z.object({ quantity: count.positive() }),
 }) satisfies z.ZodType<UpdateCartItemInput>;
 
-export const submitOrderSchema = z.object({
-  idempotency_key: z.string().min(1),
-  shipping_method: z.enum([
-    "sea_china_iran",
-    "sea_china_dubai",
-    "ground_china_iran",
-    "air_express",
-    "commercial_air_iran",
-    "commercial_air_dubai",
-  ]),
-  items: z
-    .array(
-      z.object({
-        slug: z.string().trim().min(1),
-        quantity: count.positive(),
-        color: z.string().trim().min(1).nullable(),
-        guarantee: z.string().trim().min(1).nullable(),
-        price: z.object({
-          unit_price_irr: amount,
-          total_discount_amount_irr: amount,
-          final_total_price_irr: amount,
-        }),
-      }),
-    )
-    .min(1),
-}) satisfies z.ZodType<SubmitOrderPayload>;
+export const submitOrderSchema = z
+  .object({
+    item_ids: z
+      .array(count.positive())
+      .min(1)
+      .refine(
+        (ids) => new Set(ids).size === ids.length,
+        "Duplicate cart item IDs",
+      ),
+  })
+  .strict() satisfies z.ZodType<SubmitOrderPayload>;
 
 export const submitOrderResponseSchema = z
   .object({
@@ -183,9 +178,7 @@ export const submitOrderResponseSchema = z
     tracking_code: z.string().min(1),
     initial_amount_irr: z.string().regex(/^\d+(\.\d+)?$/),
     expert_pricing_status: z.string(),
-    assigned_sales_expert: z
-      .object({ id: z.number(), name: z.string() })
-      .nullable(),
+    assigned_sales_expert: cartAssignedExpertSchema.nullable(),
     idempotent_replay: z.boolean(),
     next_action: z.object({
       type: z.string(),

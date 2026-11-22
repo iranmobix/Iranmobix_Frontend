@@ -17,11 +17,11 @@ const CartList = ({
 }: CartListProps) => (
   <section
     aria-labelledby="cart-list-title"
-    className="min-w-0 rounded-md bg-white px-2 sm:px-3"
+    className="min-w-0 rounded-lg bg-white px-3 lg:px-4"
   >
     <h1
       id="cart-list-title"
-      className="text-neutral-1000 hidden pt-5 pb-3 text-sm font-medium lg:block"
+      className="text-mobile-h6 lg:text-desktop-h5 text-neutral-900 pt-5 pb-4 text-right lg:pt-7 lg:pb-8"
     >
       سبد خرید
     </h1>

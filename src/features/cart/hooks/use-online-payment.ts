@@ -1,11 +1,8 @@
 "use client";
-import { useRef, useState, useSyncExternalStore } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useRef, useSyncExternalStore } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { tokenStorage } from "@/features/auth/utils/token-storage";
-import {
-  getOnlineGateways,
-  startOnlinePayment,
-} from "../services/online-payment.service";
+import { startOnlinePayment } from "../services/online-payment.service";
 import type { CheckoutSubmitInput } from "../services/checkout-submit.service";
 import {
   onlinePaymentStorage,
@@ -15,27 +12,8 @@ import {
 export function useOnlinePayment(
   trackingCode: string,
   sessionId: string | null,
-  enabled: boolean,
 ) {
-  const [selectedCode, selectGateway] = useState<string | null>(null);
   const lock = useRef(false);
-  const gateways = useQuery({
-    queryKey: ["cart", "gateways", sessionId],
-    queryFn: ({ signal }) => getOnlineGateways(signal),
-    enabled: enabled && Boolean(sessionId),
-    retry: false,
-    staleTime: 60000,
-    gcTime: 0,
-    refetchOnWindowFocus: false,
-  });
-  const items = gateways.data?.items ?? [];
-  const selectable = items.filter((g) => g.enabled && g.selectable);
-  const gatewayCode =
-    selectable.find((g) => g.code === selectedCode)?.code ??
-    selectable.find((g) => g.code === gateways.data?.defaultCode)?.code ??
-    selectable.find((g) => g.isDefault)?.code ??
-    selectable[0]?.code ??
-    null;
   const snapshot = useSyncExternalStore(
     onlinePaymentStorage.subscribe,
     onlinePaymentStorage.read,
@@ -52,10 +30,12 @@ export function useOnlinePayment(
       if (lock.current) throw new Error("درخواست پرداخت در حال انجام است.");
       if (
         !sessionId ||
-        !input.gateway_code ||
-        !selectable.some((g) => g.code === input.gateway_code)
+        tokenStorage.getSessionId() !== sessionId ||
+        input.tracking_code !== trackingCode
       )
-        throw new Error("یک درگاه فعال انتخاب کنید.");
+        throw new Error(
+          "نشست کاربری یا سفارش تغییر کرده است؛ دوباره بررسی کنید.",
+        );
       lock.current = true;
       try {
         const session = await startOnlinePayment(input);
@@ -72,5 +52,5 @@ export function useOnlinePayment(
       }
     },
   });
-  return { gateways, gatewayCode, selectGateway, mutation, pendingPayment };
+  return { mutation, pendingPayment };
 }

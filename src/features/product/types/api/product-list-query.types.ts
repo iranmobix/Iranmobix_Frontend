@@ -1,4 +1,3 @@
-import { ProductGuaranteeTypeApi } from "./product-guarantee-api.types";
 import { ProductSellerTypeApi } from "./product-seller-api.types";
 import { ProductSortApi } from "./product-sort-api.types";
 
@@ -14,11 +13,7 @@ export interface ProductListQuery {
 
   brands?: number[];
 
-  colors?: number[];
-
   seller_types?: ProductSellerTypeApi[];
-
-  guarantees?: ProductGuaranteeTypeApi[];
 
   in_iranmobix_inventory?: boolean;
 

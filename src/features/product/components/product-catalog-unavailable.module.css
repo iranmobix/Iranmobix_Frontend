@@ -1,0 +1,168 @@
+.scene {
+  position: relative;
+  width: min(100%, 350px);
+  height: 290px;
+  margin-inline: auto;
+  isolation: isolate;
+}
+.halo {
+  position: absolute;
+  inset: 12px 32px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    var(--primary-100),
+    var(--primary-50) 60%,
+    transparent 72%
+  );
+}
+.orbit {
+  position: absolute;
+  inset: 22px 28px;
+  border: 1px dashed var(--primary-200);
+  border-radius: 50%;
+  transform: rotate(-16deg);
+}
+.frontCard,
+.rearCard {
+  position: absolute;
+  width: 150px;
+  height: 204px;
+  border: 1px solid var(--primary-100);
+  border-radius: 18px;
+  background: white;
+}
+.frontCard {
+  top: 30px;
+  left: calc(50% - 75px);
+  padding: 12px;
+  transform: rotate(-6deg);
+  box-shadow: 0 18px 40px
+    color-mix(in srgb, var(--primary-900) 12%, transparent);
+}
+.product {
+  display: grid;
+  height: 100px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--primary-50);
+  color: var(--primary-400);
+}
+.line,
+.shortLine {
+  display: block;
+  height: 7px;
+  margin-top: 12px;
+  border-radius: 9px;
+  background: var(--neutral-200);
+}
+.shortLine {
+  width: 66%;
+  margin-top: 8px;
+  background: var(--neutral-100);
+}
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.cardFooter span {
+  width: 34px;
+  height: 6px;
+  border-radius: 9px;
+  background: var(--primary-100);
+}
+.cardFooter span:last-child {
+  width: 18px;
+  background: var(--secondary-200);
+}
+.rearCard {
+  top: 45px;
+  padding: 14px;
+  background: var(--neutral-50);
+}
+.rearCard div {
+  height: 10px;
+  margin-top: 14px;
+  border-radius: 8px;
+  background: var(--neutral-200);
+}
+.rearCard div:first-child {
+  height: 92px;
+  margin-top: 0;
+  background: var(--neutral-100);
+}
+.rearRight {
+  left: calc(50% - 26px);
+  transform: rotate(15deg) scale(0.85);
+}
+.rearLeft {
+  left: calc(50% - 124px);
+  transform: rotate(-20deg) scale(0.85);
+}
+.status {
+  position: absolute;
+  top: 194px;
+  left: calc(50% + 40px);
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 5px solid white;
+  border-radius: 50%;
+  background: var(--secondary-100);
+  color: var(--secondary-700);
+  box-shadow: 0 6px 16px
+    color-mix(in srgb, var(--secondary-800) 12%, transparent);
+}
+.spark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.sparkOne {
+  top: 22px;
+  left: 58px;
+  background: var(--secondary-400);
+}
+.sparkTwo {
+  bottom: 18px;
+  right: 70px;
+  width: 5px;
+  height: 5px;
+  background: var(--primary-300);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .frontCard {
+    animation: float-card 4s ease-in-out infinite;
+  }
+  .status {
+    animation: float-status 4s ease-in-out infinite;
+  }
+}
+@keyframes float-card {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(-4deg);
+  }
+}
+@keyframes float-status {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@media (max-width: 380px) {
+  .scene {
+    height: 255px;
+    transform: scale(0.88);
+    transform-origin: center center;
+  }
+}

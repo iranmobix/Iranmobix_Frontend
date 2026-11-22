@@ -1,3 +1,4 @@
+import { cartAssignedExpertSchema } from "./cart-expert.schema";
 import { z } from "zod";
 const money = z.string().regex(/^\d+(\.\d+)?$/);
 const windowSchema = z
@@ -67,6 +68,7 @@ const method = z
   })
   .passthrough();
 const legacyCheckoutPaymentSchema = z.object({
+  assigned_sales_expert: cartAssignedExpertSchema.nullish(),
   order: z
     .object({
       id: z.number().int().positive(),
@@ -109,6 +111,7 @@ const legacyCheckoutPaymentSchema = z.object({
           next_action: z.string(),
         })
         .passthrough(),
+      assigned_sales_expert: cartAssignedExpertSchema.nullish(),
       expert_pricing_status: z.string(),
       expert_final_amount: money.nullable(),
       expert_note: z.string(),
@@ -220,6 +223,7 @@ const legacyCheckoutPaymentSchema = z.object({
 });
 
 const compactCheckoutPaymentSchema = z.object({
+  assigned_sales_expert: cartAssignedExpertSchema.nullish(),
   contract: z
     .object({
       required: z.boolean(),
@@ -265,15 +269,31 @@ const compactCheckoutPaymentSchema = z.object({
     pdf_url: z.string().nullable(),
     pdf_status: z.string(),
   }),
-  pricing: z.object({
-    currency: z.string().optional(),
-    items_total: money,
-    item_count: z.number().int().nonnegative(),
-    shipping_packaging_amount: money,
-    domestic_shipping_amount: money,
-    discounted_price: money,
-    final_amount: money,
-  }),
+  pricing: z.union([
+    z.object({
+      quantity: z.number().int().nonnegative(),
+      price_before_discount_cny: money,
+      price_before_discount_toman: money,
+      price_after_discount_cny: money,
+      price_after_discount_toman: money,
+      discount_amount_cny: money,
+      discount_amount_toman: money,
+      international_transit: money,
+      insurance: money,
+      discharge: money,
+      iranmobix_services: money,
+      total_amount_iran: money,
+    }),
+    z.object({
+      currency: z.string().optional(),
+      items_total: money,
+      item_count: z.number().int().nonnegative(),
+      shipping_packaging_amount: money,
+      domestic_shipping_amount: money,
+      discounted_price: money,
+      final_amount: money,
+    }),
+  ]),
 });
 export const checkoutPaymentSchema = z.union([
   legacyCheckoutPaymentSchema,

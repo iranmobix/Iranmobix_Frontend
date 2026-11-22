@@ -19,13 +19,7 @@ export function getImportedProductFilters(products: Product[]): ProductFilters {
         ),
       ).values(),
     ],
-    colors: [
-      ...new Map(
-        products.flatMap((p) => p.colors.map((c) => [c.id, c] as const)),
-      ).values(),
-    ],
     sellerTypes: [],
-    guarantees: [],
   };
 }
 export function filterImportedProducts(
@@ -39,8 +33,6 @@ export function filterImportedProducts(
       (!query.sources?.length || query.sources.includes(p.source.name)) &&
       (!query.brands?.length ||
         Boolean(p.brand && query.brands.includes(p.brand.id))) &&
-      (!query.colors?.length ||
-        p.colors.some((c) => query.colors!.includes(c.id))) &&
       (!query.in_iranmobix_inventory || p.inIranMobixInventory) &&
       (!query.min_price ||
         (p.price.amountIrr !== null &&

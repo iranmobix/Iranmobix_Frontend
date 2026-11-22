@@ -12,8 +12,60 @@ export function mapCheckoutPayment(
   trackingCode = "",
 ): CheckoutPayment {
   if (!("order" in dto)) {
-    const p = dto.pricing;
+    const pricing = dto.pricing;
+    const p =
+      "total_amount_iran" in pricing
+        ? {
+            currency: "TOMAN",
+            final_amount: pricing.total_amount_iran,
+            item_count: pricing.quantity,
+          }
+        : pricing;
+    const rows: CheckoutPayment["rows"] =
+      "total_amount_iran" in pricing
+        ? [
+            {
+              key: "items_total",
+              label: "مجموع قیمت کالاها",
+              amount: pricing.price_before_discount_toman,
+            },
+            {
+              key: "international_transit",
+              label: "حمل و نقل بین‌الملل",
+              amount: pricing.international_transit,
+            },
+            { key: "insurance", label: "بیمه", amount: pricing.insurance },
+            { key: "discharge", label: "ترخیص", amount: pricing.discharge },
+            {
+              key: "iranmobix_services",
+              label: "خدمات ایران‌موبیکس",
+              amount: pricing.iranmobix_services,
+            },
+          ]
+        : [
+            {
+              key: "items_total",
+              label: "مجموع قیمت کالاها",
+              amount: pricing.items_total,
+            },
+            {
+              key: "shipping_packaging_amount",
+              label: "هزینه ارسال و بسته‌بندی",
+              amount: pricing.shipping_packaging_amount,
+            },
+            {
+              key: "domestic_shipping_amount",
+              label: "هزینه ارسال داخلی",
+              amount: pricing.domestic_shipping_amount,
+            },
+            {
+              key: "discounted_price",
+              label: "قیمت با تخفیف",
+              amount: pricing.discounted_price,
+            },
+          ];
     return {
+      assignedExpert: dto.assigned_sales_expert,
       contract: dto.contract
         ? {
             required: dto.contract.required,
@@ -58,6 +110,15 @@ export function mapCheckoutPayment(
       currency: p.currency ?? null,
       total: p.final_amount,
       quantity: p.item_count,
+      ...("total_amount_iran" in pricing
+        ? {
+            goodsPriceCny: pricing.price_before_discount_cny,
+            savings: {
+              amount: pricing.discount_amount_toman,
+              cny: pricing.discount_amount_cny,
+            },
+          }
+        : {}),
       wallet: {
         balance: dto.wallet.balance,
         shortage: dto.wallet.shortage,
@@ -66,28 +127,7 @@ export function mapCheckoutPayment(
         shortageToman: dto.wallet.shortage_toman,
         status: dto.wallet.status,
       },
-      rows: [
-        {
-          key: "items_total",
-          label: "مجموع قیمت کالاها",
-          amount: p.items_total,
-        },
-        {
-          key: "shipping_packaging_amount",
-          label: "هزینه ارسال و بسته‌بندی",
-          amount: p.shipping_packaging_amount,
-        },
-        {
-          key: "domestic_shipping_amount",
-          label: "هزینه ارسال داخلی",
-          amount: p.domestic_shipping_amount,
-        },
-        {
-          key: "discounted_price",
-          label: "قیمت با تخفیف",
-          amount: p.discounted_price,
-        },
-      ],
+      rows,
       pricingIssue: p.currency
         ? null
         : "واحد مبلغ‌های قیمت‌گذاری در پاسخ بک مشخص نشده است.",
@@ -135,6 +175,10 @@ export function mapCheckoutPayment(
     units(p.delivery_amount);
   return {
     contract: null,
+    assignedExpert:
+      dto.assigned_sales_expert !== undefined
+        ? dto.assigned_sales_expert
+        : dto.order.assigned_sales_expert,
     orderId: dto.order.id,
     trackingCode: dto.order.tracking_code,
     status: dto.order.expert_pricing_status,
@@ -219,6 +263,8 @@ export function applyCheckoutCouponPreview(
     ...current,
     currency: preview.currency,
     total: preview.total,
+    goodsPriceCny: preview.goodsPriceCny,
+    savings: preview.savings,
     rows: preview.rows,
     pricingIssue: preview.pricingIssue,
     wallet: preview.wallet,

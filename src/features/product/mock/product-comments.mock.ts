@@ -1,11 +1,4 @@
-export type ProductCommentPreview = {
-  id: string;
-  author: string;
-  date: string;
-  dateTime: string;
-  text: string;
-  reply?: { author: string; avatar: string; text: string };
-};
+import type { ProductCommentPreview } from "../types/domain/product-detail-comments.types";
 
 const commentText = "من از خرید این محصول خیلی راضی بودم. کیفیتش دقیقاً مطابق توضیحات بود و بسته‌بندی هم خیلی خوب انجام شده بود. از چیزی که انتظار داشتم بهتر بود و به‌موقع هم به دستم رسید.";
 

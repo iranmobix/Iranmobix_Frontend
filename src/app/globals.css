@@ -106,9 +106,183 @@
      Typography Tokens
   ====================== */
 
-  --text-display-xl: 60px;
-  --text-display-xl--line-height: 100%;
-  --text-display-xl--font-weight: 800;
+  /* Figma: desktop/display/XL */
+  --text-desktop-display-xl: 60px;
+  --text-desktop-display-xl--line-height: 100%;
+  --text-desktop-display-xl--font-weight: 800;
+  --text-desktop-display-xl--letter-spacing: 0;
+
+  /* Figma: mobile/display/XL */
+  --text-mobile-display-xl: 40px;
+  --text-mobile-display-xl--line-height: 100%;
+  --text-mobile-display-xl--font-weight: 800;
+  --text-mobile-display-xl--letter-spacing: 0;
+
+  /* Figma: desktop/display/M */
+  --text-desktop-display-m: 48px;
+  --text-desktop-display-m--line-height: 100%;
+  --text-desktop-display-m--font-weight: 700;
+  --text-desktop-display-m--letter-spacing: 0;
+
+  /* Figma: mobile/display/M */
+  --text-mobile-display-m: 32px;
+  --text-mobile-display-m--line-height: 100%;
+  --text-mobile-display-m--font-weight: 700;
+  --text-mobile-display-m--letter-spacing: 0;
+
+  /* Figma: desktop/H1 */
+  --text-desktop-h1: 40px;
+  --text-desktop-h1--line-height: 100%;
+  --text-desktop-h1--font-weight: 700;
+  --text-desktop-h1--letter-spacing: 0;
+
+  /* Figma: mobile/H1 */
+  --text-mobile-h1: 32px;
+  --text-mobile-h1--line-height: 100%;
+  --text-mobile-h1--font-weight: 700;
+  --text-mobile-h1--letter-spacing: 0;
+
+  /* Figma: desktop/H2 */
+  --text-desktop-h2: 36px;
+  --text-desktop-h2--line-height: 100%;
+  --text-desktop-h2--font-weight: 700;
+  --text-desktop-h2--letter-spacing: 0;
+
+  /* Figma: mobile/H2 */
+  --text-mobile-h2: 28px;
+  --text-mobile-h2--line-height: 100%;
+  --text-mobile-h2--font-weight: 700;
+  --text-mobile-h2--letter-spacing: 0;
+
+  /* Figma: desktop/H3 */
+  --text-desktop-h3: 32px;
+  --text-desktop-h3--line-height: 100%;
+  --text-desktop-h3--font-weight: 700;
+  --text-desktop-h3--letter-spacing: 0;
+
+  /* Figma: mobile/H3 */
+  --text-mobile-h3: 24px;
+  --text-mobile-h3--line-height: 100%;
+  --text-mobile-h3--font-weight: 700;
+  --text-mobile-h3--letter-spacing: 0;
+
+  /* Figma: desktop/H4 */
+  --text-desktop-h4: 24px;
+  --text-desktop-h4--line-height: 100%;
+  --text-desktop-h4--font-weight: 700;
+  --text-desktop-h4--letter-spacing: 0;
+
+  /* Figma: mobile/H4 */
+  --text-mobile-h4: 20px;
+  --text-mobile-h4--line-height: 100%;
+  --text-mobile-h4--font-weight: 700;
+  --text-mobile-h4--letter-spacing: 0;
+
+  /* Figma: desktop/H5 */
+  --text-desktop-h5: 20px;
+  --text-desktop-h5--line-height: 100%;
+  --text-desktop-h5--font-weight: 700;
+  --text-desktop-h5--letter-spacing: 0;
+
+  /* Figma: mobile/H5 */
+  --text-mobile-h5: 18px;
+  --text-mobile-h5--line-height: 100%;
+  --text-mobile-h5--font-weight: 700;
+  --text-mobile-h5--letter-spacing: 0;
+
+  /* Figma: desktop/H6 */
+  --text-desktop-h6: 18px;
+  --text-desktop-h6--line-height: 100%;
+  --text-desktop-h6--font-weight: 500;
+  --text-desktop-h6--letter-spacing: 0;
+
+  /* Figma: mobile/H6 */
+  --text-mobile-h6: 16px;
+  --text-mobile-h6--line-height: 100%;
+  --text-mobile-h6--font-weight: 500;
+  --text-mobile-h6--letter-spacing: 0;
+
+  /* Figma: desktop/body/L */
+  --text-desktop-body-l: 18px;
+  --text-desktop-body-l--line-height: 100%;
+  --text-desktop-body-l--font-weight: 400;
+  --text-desktop-body-l--letter-spacing: 0;
+
+  /* Figma: mobile/body/L */
+  --text-mobile-body-l: 16px;
+  --text-mobile-body-l--line-height: 100%;
+  --text-mobile-body-l--font-weight: 400;
+  --text-mobile-body-l--letter-spacing: 0;
+
+  /* Figma: desktop/body/M */
+  --text-desktop-body-m: 16px;
+  --text-desktop-body-m--line-height: 100%;
+  --text-desktop-body-m--font-weight: 400;
+  --text-desktop-body-m--letter-spacing: 0;
+
+  /* Figma: mobile/body/M */
+  --text-mobile-body-m: 16px;
+  --text-mobile-body-m--line-height: 100%;
+  --text-mobile-body-m--font-weight: 400;
+  --text-mobile-body-m--letter-spacing: 0;
+
+  /* Figma: desktop/body/S */
+  --text-desktop-body-s: 14px;
+  --text-desktop-body-s--line-height: 100%;
+  --text-desktop-body-s--font-weight: 400;
+  --text-desktop-body-s--letter-spacing: 0;
+
+  /* Figma: mobile/body/S */
+  --text-mobile-body-s: 14px;
+  --text-mobile-body-s--line-height: 100%;
+  --text-mobile-body-s--font-weight: 400;
+  --text-mobile-body-s--letter-spacing: 0;
+
+  /* Figma: desktop/label/L */
+  --text-desktop-label-l: 16px;
+  --text-desktop-label-l--line-height: 100%;
+  --text-desktop-label-l--font-weight: 500;
+  --text-desktop-label-l--letter-spacing: 0;
+
+  /* Figma: mobile/label/L */
+  --text-mobile-label-l: 16px;
+  --text-mobile-label-l--line-height: 100%;
+  --text-mobile-label-l--font-weight: 500;
+  --text-mobile-label-l--letter-spacing: 0;
+
+  /* Figma: desktop/label/M */
+  --text-desktop-label-m: 14px;
+  --text-desktop-label-m--line-height: 100%;
+  --text-desktop-label-m--font-weight: 500;
+  --text-desktop-label-m--letter-spacing: 0;
+
+  /* Figma: mobile/label/M */
+  --text-mobile-label-m: 14px;
+  --text-mobile-label-m--line-height: 100%;
+  --text-mobile-label-m--font-weight: 500;
+  --text-mobile-label-m--letter-spacing: 0;
+
+  /* Figma: desktop/caption */
+  --text-desktop-caption: 12px;
+  --text-desktop-caption--line-height: 100%;
+  --text-desktop-caption--font-weight: 400;
+  --text-desktop-caption--letter-spacing: 0;
+
+  /* Figma: mobile/caption */
+  --text-mobile-caption: 12px;
+  --text-mobile-caption--line-height: 100%;
+  --text-mobile-caption--font-weight: 400;
+  --text-mobile-caption--letter-spacing: 0;
+
+  --text-shipping-method: 12px;
+  --text-shipping-method--line-height: 100%;
+  --text-shipping-method--font-weight: 500;
+  --text-shipping-method--letter-spacing: 0;
+
+  --text-shipping-duration: 10px;
+  --text-shipping-duration--line-height: 100%;
+  --text-shipping-duration--font-weight: 400;
+  --text-shipping-duration--letter-spacing: 0;
 
   --text-heading-xl: 48px;
   --text-heading-xl--line-height: 100%;
@@ -264,35 +438,84 @@
 
 /* Shared product discovery/detail loader. Motion is decorative and opt-in. */
 @keyframes product-loading-orbit {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @keyframes product-loading-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 @keyframes product-loading-scan {
-  0%, 100% { transform: translateY(-20px); opacity: 0; }
-  20%, 75% { opacity: 1; }
-  85% { transform: translateY(60px); opacity: 0; }
+  0%,
+  100% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  20%,
+  75% {
+    opacity: 1;
+  }
+  85% {
+    transform: translateY(60px);
+    opacity: 0;
+  }
 }
 @keyframes product-loading-dot {
-  0%, 70%, 100% { transform: translateY(0); opacity: .4; }
-  35% { transform: translateY(-3px); opacity: 1; }
+  0%,
+  70%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  35% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
 }
 @keyframes product-loading-progress {
-  0% { transform: translateX(-105%); }
-  100% { transform: translateX(205%); }
+  0% {
+    transform: translateX(-105%);
+  }
+  100% {
+    transform: translateX(205%);
+  }
 }
 @keyframes product-loading-glow {
-  0%, 100% { opacity: .35; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .product-loading-orbit { transform-origin: center; animation: product-loading-orbit 3.6s linear infinite; }
-  .product-loading-float { animation: product-loading-float 2.8s ease-in-out infinite; }
-  .product-loading-satellite { animation: product-loading-float 3.2s ease-in-out infinite reverse; }
-  .product-loading-scan { animation: product-loading-scan 2.6s ease-in-out infinite; }
-  .product-loading-dot { animation: product-loading-dot 1.25s ease-in-out infinite; }
-  .product-loading-progress { animation: product-loading-progress 1.8s ease-in-out infinite; }
-  .product-loading-glow { animation: product-loading-glow 2s ease-in-out infinite; }
+  .product-loading-orbit {
+    transform-origin: center;
+    animation: product-loading-orbit 3.6s linear infinite;
+  }
+  .product-loading-float {
+    animation: product-loading-float 2.8s ease-in-out infinite;
+  }
+  .product-loading-satellite {
+    animation: product-loading-float 3.2s ease-in-out infinite reverse;
+  }
+  .product-loading-scan {
+    animation: product-loading-scan 2.6s ease-in-out infinite;
+  }
+  .product-loading-dot {
+    animation: product-loading-dot 1.25s ease-in-out infinite;
+  }
+  .product-loading-progress {
+    animation: product-loading-progress 1.8s ease-in-out infinite;
+  }
+  .product-loading-glow {
+    animation: product-loading-glow 2s ease-in-out infinite;
+  }
 }

@@ -67,6 +67,7 @@ export interface CartPricingApi {
   inventory_tracking_enabled: boolean;
 }
 export interface CartItemApi {
+  shipping_method?: string | null;
   id: number;
   catalog_id: string;
   source: string;

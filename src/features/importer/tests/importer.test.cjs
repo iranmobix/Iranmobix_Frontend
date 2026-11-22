@@ -56,13 +56,17 @@ test('image validation rejects non-images, empty and oversized files before tran
  assert.equal(h.calls.length,0);
 });
 const compactStatus=(overrides={})=>({job_id:6017,status:'done',ready_for_frontend:true,redirect_ready:false,selected_product_slug:'',product_detail_url:'',next_poll_after_seconds:0,candidates:[{candidate_id:1,source_url:'https://example.com/watch',status:'importing',slug:'',detail_url:'',import_timeout:false}],...overrides});
-test('product URL queues a real import at the exact endpoint',async()=>{const h=harness();h.setResponse(accepted);const result=await h.load('services/importer.service').importerService.importProduct({url:' https://www.alibaba.com/product-detail/example.html '});assert.equal(result.job_id,4207);assert.equal(h.calls[0].url,'/api/products/import/');assert.equal(h.calls[0].body.url,'https://www.alibaba.com/product-detail/example.html');assert.equal(Object.keys(h.calls[0].body).length,1);});
 test('text discovery posts a trimmed query and accepts the discovery job response',async()=>{const h=harness();h.setResponse({...accepted,status:'queued',result_mode:'discovery'});const result=await h.load('services/importer.service').importerService.discover({query:' wireless headphones '});assert.equal(result.job_id,4207);assert.equal(h.calls[0].url,'/api/products/discover/');assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{query:'wireless headphones'});});
 test('URL discovery normalizes a www URL and sends only source_url',async()=>{const h=harness();h.setResponse({...accepted,result_mode:'discovery'});await h.load('services/importer.service').importerService.discover({source_url:'www.alibaba.com/product-detail/example.html'});assert.equal(h.calls[0].url,'/api/products/discover/');assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{source_url:'https://www.alibaba.com/product-detail/example.html'});});
 test('discover input sends bare domains as source_url and natural text as query',async()=>{const h=harness();const service=h.load('services/importer.service');h.setResponse({...accepted,result_mode:'discovery'});const urlPayload=service.createDiscoverPayload('alibaba.com/product-detail/watch.html');await service.importerService.discover(urlPayload);assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{source_url:'https://alibaba.com/product-detail/watch.html'});const queryPayload=service.createDiscoverPayload('wireless headphones');await service.importerService.discover(queryPayload);assert.deepEqual(JSON.parse(JSON.stringify(h.calls[1].body)),{query:'wireless headphones'});});
 test('discovery rejects blank/overlong text and malformed accepted responses before use',async()=>{const h=harness();const service=h.load('services/importer.service').importerService;await assert.rejects(service.discover({query:'  '}));await assert.rejects(service.discover({query:'x'.repeat(301)}));assert.equal(h.calls.length,0);h.setResponse({job_id:3});await assert.rejects(service.discover({query:'headphones'}));});
-test('seller URLs use the same URL contract rather than an invented endpoint',async()=>{const h=harness();h.setResponse({...accepted,import_type:'seller'});await h.load('services/importer.service').importerService.importSeller({seller_url:'https://example.en.alibaba.com/'});assert.equal(h.calls[0].url,'/api/products/import/');assert.equal(h.calls[0].body.url,'https://example.en.alibaba.com/');});
-test('invalid links fail before transport and malformed accepted responses are rejected',async()=>{const h=harness();const service=h.load('services/importer.service').importerService;await assert.rejects(service.importProduct({url:'javascript:alert(1)'}));assert.equal(h.calls.length,0);h.setResponse({status:'pending'});await assert.rejects(service.importProduct({url:'https://example.com'}));});
+test('invalid single-product links fail before transport and malformed job responses are rejected', async () => {
+ const h=harness();const service=h.load('services/single-product-import');
+ await assert.rejects(service.singleProductImportStartOptions('javascript:alert(1)').queryFn());
+ assert.equal(h.calls.length,0);
+ h.setResponse({status:'pending'});
+ await assert.rejects(service.singleProductImportStartOptions('https://example.com').queryFn());
+});
 test('job polling preserves results, receives processing and forwards cancellation',async()=>{const h=harness();h.setResponse({id:4207,status:'processing',ready_for_frontend:false,next_poll_after_seconds:2,import_type:'product',result_mode:'list',product:null,results:[]});const signal=new AbortController().signal;const service=h.load('services/importer.service').importerService;const result=await service.getJobStatus('4207',signal);assert.equal(result.status,'processing');assert.equal(h.calls[0].url,'/api/products/jobs/4207/');assert.equal(h.calls[0].config.signal,signal);h.setResponse({...result,status:'done',ready_for_frontend:true,results:[{id:3,slug:'sample',title:'sample',images:[],min_price:'25.3',currency:'CNY'}]});const done=await service.getJobStatus('4207');assert.equal(done.results[0].min_price,'25.3');});
 test('completed external-search jobs preserve candidates that need detail import',async()=>{const h=harness();const raw={id:5997,source_url:'external-search:1bc04b5291c26a46:index',source:'external-search',status:'done',product:null,main_product:{title:'index',status:'discovered',is_primary:true,source_url:'https://sale.alibaba.com/p/keep_looking_for_header_upgrade/index.html',candidate_id:1,card_metadata_status:'awaiting_detail_click',rank:1,detail_action:'import_on_click',import_payload:{url:'https://sale.alibaba.com/p/keep_looking_for_header_upgrade/index.html'}},other_products:[],import_type:'search',result_mode:'list',ready_for_frontend:true,error_message:'',error_action:{},next_poll_after_seconds:0,results:[]};h.setResponse(raw);const job=await h.load('services/importer.service').importerService.getJobStatus('5997');assert.equal(job.results.length,0);assert.equal(job.product,null);assert.equal(job.main_product.title,'index');assert.equal(job.main_product.detail_action,'import_on_click');assert.equal(job.main_product.import_payload.url,'https://sale.alibaba.com/p/keep_looking_for_header_upgrade/index.html');});
 test('the discovery result keeps the main candidate above filters and maps other candidates to suggestions',()=>{const h=harness();const schema=h.load('schemas/importer.schema').importJobSchema;const {mapImportJobResults}=h.load('mappers/map-import-job-results');const mainUrl='https://www.alibaba.com/product-detail/watch.html';const otherUrl='https://www.alibaba.com/product-detail/strap.html';const job=schema.parse({id:5997,status:'done',ready_for_frontend:true,next_poll_after_seconds:0,import_type:'search',result_mode:'list',results:[],product:null,main_product:{title:'Watch',source_url:mainUrl,candidate_id:1,detail_action:'import_on_click',import_payload:{url:mainUrl}},other_products:[{title:'Strap',source_url:otherUrl,candidate_id:2,detail_action:'import_on_click',import_payload:{url:otherUrl}}]});const view=mapImportJobResults(job);assert.equal(view.requested.length,1);assert.equal(view.suggested.length,1);assert.equal(view.requested[0].title,'Watch');assert.equal(view.suggested[0].title,'Strap');assert.equal(view.requested[0].price.amount,null);assert.equal(view.requested[0].image,'');assert.equal(view.candidatesByProductId.get(view.requested[0].id).import_payload.url,mainUrl);});
@@ -296,4 +300,200 @@ test('pending discovery enrichment remains cancellable and never starts another 
  service.getJobStatus=async()=>{polls++;return {id:724,status:'done',next_poll_after_seconds:2,discovery:{enrichment_pending:true}};};
  await assert.rejects(service.getNextDiscoveryPage(null,'page-five',controller.signal),/لغو/);
  assert.equal(discoveries,1);assert.equal(polls,1);
+});
+
+test('URL jobs open their ready main product even when the job redirect fields are empty',()=>{
+ const {getImportLinkDetailsPath:route}=harness().load('utils/import-link-navigation');
+ const source_url='https://www.alibaba.com/product-detail/camera_123.html';
+ const job={status:'done',ready_for_frontend:true,redirect_ready:false,selected_product_slug:'',product_detail_url:'',product:null,
+  main_product:{status:'ready',metadata_pending:false,slug:'camera-bag',source_url,detail_url:'/api/product/camera-bag/'}};
+ assert.equal(route(job,{source_url}),'/products/camera-bag');
+ assert.equal(route({...job,main_product:{...job.main_product,slug:'محصول تست'}},{source_url}),'/products/%D9%85%D8%AD%D8%B5%D9%88%D9%84%20%D8%AA%D8%B3%D8%AA');
+ assert.equal(route({...job,main_product:{source_url,catalog_card:{slug:'catalog-bag'}}},{source_url}),'/products/catalog-bag');
+ for(const payload of [null,{query:'camera'},{cursor:'next'}]) assert.equal(route(job,payload),null);
+ for(const change of [{status:'processing'},{status:'failed'},{ready_for_frontend:false},{main_product:{...job.main_product,metadata_pending:true}},{main_product:{source_url}},{main_product:{...job.main_product,source_url:'https://example.com/other'}}])
+  assert.equal(route({...job,...change},{source_url}),null);
+});
+
+test('ready URL imports suppress automatic recommendation requests',()=>{
+ let requests=0;
+ const source_url='https://example.com/product';
+ const h=harness({
+  react:{useMemo:fn=>fn(),useCallback:fn=>fn,useEffect:fn=>fn()},
+  '@tanstack/react-query':{infiniteQueryOptions:value=>value,useInfiniteQuery:()=>({fetchNextPage:async()=>{requests++;},isFetching:false,isError:false})},
+  './use-import-job':{useImportJob:()=>({data:{status:'done',ready_for_frontend:true,main_product:{slug:'ready-product',source_url},discovery:{pagination:{has_more:true,next_cursor:'next'}}}})},
+  '../mappers/map-import-job-results':{mapImportJobPages:()=>({requested:[{id:1}],suggested:[]})},
+  '../services/importer.service':{importerService:{}},
+ });
+ const result=h.load('hooks/use-import-results').useImportResults('2063',{source_url});
+ assert.equal(result.detailsPath,'/products/ready-product');assert.equal(result.hasNextPage,false);assert.equal(requests,0);
+});
+test('single-product import uses the new POST and same-URL GET contract',async()=>{
+ const h=harness();const service=h.load('services/single-product-import');
+ const pending={job_id:2066,status:'processing',next_poll_after_seconds:2,product:null,error:''};
+ h.setResponse(pending);
+ const started=await service.singleProductImportStartOptions('https://www.alibaba.com/product-detail/camera.html?tracking=1').queryFn();
+ assert.equal(h.calls[0].url,'/api/product/import/');
+ assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{url:'https://www.alibaba.com/product-detail/camera.html?tracking=1'});
+ assert.equal(started.job_id,2066);
+ const ready={...pending,status:'done',next_poll_after_seconds:0,product:{slug:'camera-bag',title_fa:'کیف',price_cny:614.46,gallery:['https://example.com/photo.jpg']}};
+ h.setResponse(ready);
+ const signal=new AbortController().signal;
+ const result=await service.singleProductImportStatusOptions(2066).queryFn({signal});
+ assert.equal(h.calls[1].url,'/api/product/import/');assert.equal(h.calls[1].config.params.job_id,2066);assert.equal(h.calls[1].config.signal,signal);
+ assert.equal(result.product.price_cny,614.46);assert.equal(result.product.gallery[0],'https://example.com/photo.jpg');
+ assert.equal(service.isSingleProductImportSettled(result),true);
+ assert.equal(h.calls.some(call=>call.url.includes('/jobs/')||call.url.includes('/discover/')),false);
+});
+
+test('single-product import honors the backend poll delay and stops at zero or failure',()=>{
+ const h=harness();const service=h.load('services/single-product-import');
+ const response={job_id:2066,status:'processing',next_poll_after_seconds:3,product:null,error:''};
+ const options=service.singleProductImportStatusOptions(2066,response);
+ const interval=data=>options.refetchInterval({state:{status:'success',data}});
+ assert.equal(interval(response),3000);
+ assert.equal(interval({...response,status:'done',next_poll_after_seconds:2}),2000);
+ assert.equal(service.isSingleProductImportSettled({...response,product:{title_fa:'early'}}),false);
+ const ready={...response,status:'done',next_poll_after_seconds:0,product:{slug:'محصول'}};
+ assert.equal(interval(ready),false);assert.equal(service.isSingleProductImportSettled(ready),true);
+ assert.equal(interval({...response,status:'failed',error:'scraping failed'}),false);
+ assert.equal(service.getSingleProductImportError({...response,next_poll_after_seconds:0}).includes('بک'),true);
+ assert.equal(service.getSingleProductImportError({...ready,error:'failed'}),'failed');
+ assert.equal(options.refetchInterval({state:{status:'error',data:response}}),false);
+ assert.equal(options.initialData.job_id,2066);
+ assert.equal(service.singleProductImportStatusOptions(2067,response).initialData,undefined);
+ assert.equal(options.retry,false);assert.equal(options.refetchOnWindowFocus,false);
+ assert.equal(service.singleProductImportStartOptions('https://example.com').retry,false);
+});
+
+test('single-product import validates responses, rejects a different job and preserves resume parameters',async()=>{
+ const h=harness();const service=h.load('services/single-product-import');
+ h.setResponse({job_id:2067,status:'done',next_poll_after_seconds:0,product:{slug:'wrong'}});
+ await assert.rejects(service.singleProductImportStatusOptions(2066).queryFn({signal:new AbortController().signal}),/شناسه/);
+ h.setResponse({job_id:2066,status:'processing',next_poll_after_seconds:-1});
+ await assert.rejects(service.singleProductImportStartOptions('https://example.com').queryFn());
+ const target=new URL(service.singleProductImportPath('https://example.com/p?a=1&b=2',2066),'https://front.test');
+ assert.equal(target.pathname,'/imports/single');assert.equal(target.searchParams.get('job_id'),'2066');assert.equal(target.searchParams.get('url'),'https://example.com/p?a=1&b=2');
+ assert.throws(()=>service.singleProductImportPath('javascript:alert(1)'));
+});
+test('progressive import accepts a product before slug and retains already loaded sections across polls',()=>{
+ const h=harness();const service=h.load('services/single-product-import');const map=h.load('mappers/import-product-view').mapImportProductView;
+ const first=service.singleProductImportSchema.parse({job_id:2768,status:'processing',next_poll_after_seconds:2,product:{title_fa:'فرنچ پرس',gallery:['https://example.com/a.jpg']},error:''});
+ assert.equal(map(first).hasData,true);assert.equal(map(first).settled,false);assert.equal(map(first).amount,null);
+ const second=service.reconcileSingleProductImport(first,{...first,product:{price_cny:84.19,seller:{name:'Seller'}}});
+ assert.equal(second.product.title_fa,'فرنچ پرس');assert.equal(map(second).gallery.length,1);assert.equal(map(second).amount,84.19);
+ const temporary=service.reconcileSingleProductImport(second,{...first,product:{gallery:[],seller:null}});
+ assert.equal(map(temporary).gallery.length,1);assert.equal(map(temporary).seller.name,'Seller');
+ assert.equal(service.reconcileSingleProductImport(second,{...first,product:null}).product.price_cny,84.19);
+ const final=service.reconcileSingleProductImport(temporary,{...first,status:'done',next_poll_after_seconds:0,product:{slug:'coffee',gallery:[],seller:null}});
+ assert.equal(map(final).settled,true);assert.equal(map(final).gallery.length,0);assert.equal(map(final).seller,null);assert.equal(map(final).amount,84.19);
+ const failed=service.reconcileSingleProductImport(second,{...first,status:'failed',next_poll_after_seconds:0,error:'failed',product:null});
+ assert.equal(map(failed).amount,84.19);assert.equal(map(failed).settled,true);
+ const other=service.reconcileSingleProductImport(second,{...first,job_id:999,product:{title_fa:'Different'}});
+ assert.equal(map(other).amount,null);assert.equal(map(other).gallery.length,0);
+});
+
+test('current coffee import contract maps real prices, tiers, gallery and all seller fields without mock detail data',()=>{
+ const h=harness();const map=h.load('mappers/import-product-view').mapImportProductView;
+ const view=map({job_id:2768,status:'done',next_poll_after_seconds:0,error:'',product:{
+  slug:'coffee',product_code:'IRM-477199',title_en:'French Coffee Press',title_fa:'فرنچ پرس',source_url:'https://www.alibaba.com/product-detail/coffee.html',price_cny:'84.19',original_price_cny:93.52,percentage:10,weight_kg:1.05,
+  ladder_price:[{min_quantity:50,max_quantity:99,price:'102.06',currency:'CNY',original_price:'113.37'},{min_quantity:1000,max_quantity:null,price:'84.19',currency:'CNY'}],
+  key_attributes:{Material:'سرامیک',Usage:'خانه'},gallery:['https://example.com/1.jpg','https://example.com/1.jpg','javascript:alert(1)'],
+  specifications:{Capacity:'600 ml'},
+  other_sellers:[{slug:'seller-offer',fa_title:'Offer',price_cny:'0',price_toman:'12500',alibaba_verified:true,iranmobix_verified:true}],
+  related_products:[{slug:'related-one',fa_title:'Related',price_cny:'-1'}],
+  comments:[{author_name:'Reviewer',published_at_jalali:'1405/09/01',text:'Original',translated_text:'Translated'}],
+  seller:{seller_url:'https://www.alibaba.com/store/sample',name:'Guangzhou Donghan Ceramics Co., Ltd.',verified:true,is_iranmobix_selected:true,location:'Guangzhou, Guangdong, CN',rating:5,image:'https://example.com/seller.jpg',response_time:'≤5h',floorspace:'1000m²',year_founded:'2002',employees:'11',online_revenue:'US$ 630,000+',on_time_dispatch_rate:'100.0%',main_markets:[],service_quality_control:['Minor customization','Finished product inspection']},
+ }});
+ assert.equal(view.title,'فرنچ پرس');assert.equal(view.code,'IRM-477199');assert.equal(view.amount,84.19);assert.equal(view.original,93.52);assert.equal(view.percentage,10);
+ assert.equal(view.tiers.length,2);assert.equal(view.tiers[1].maximum,null);assert.equal(view.gallery.length,1);
+ assert.deepEqual(Object.entries(view.translatedSpecifications),[['Capacity','600 ml']]);
+ assert.equal(view.mainSpecifications.Material,view.mainSpecifications.Material.trim());
+ assert.equal(view.seller.rating,5);assert.equal(view.seller.trust.verified,true);assert.equal(view.seller.logo,'https://example.com/seller.jpg');assert.equal(view.seller.companyOverview.yearFounded,'2002');assert.equal(view.seller.companyOverview.employees,'11');assert.equal(view.seller.services.length,2);
+ assert.equal(view.seller.officialUrl,'https://www.alibaba.com/store/sample');
+ assert.equal(view.otherSellers[0].price.amount,0);assert.equal(view.otherSellers[0].price.amountIrr,125000);
+ assert.equal(view.otherSellers[0].seller.badges.join(','),'verified,iranmobix');
+ assert.equal(view.relatedProducts[0].price.amount,null);
+ assert.equal(view.comments[0].text,'Translated');assert.equal(view.comments[0].date,'1405/09/01');
+});
+
+test('missing and invalid import values stay unavailable while a genuine zero price is retained',()=>{
+ const h=harness();const map=h.load('mappers/import-product-view').mapImportProductView;
+ const response={job_id:1,status:'processing',next_poll_after_seconds:2,product:{price_cny:null,gallery:[],seller:null}};
+ assert.equal(map(response).amount,null);assert.equal(map(response).hasData,false);
+ for(const price of ['',true,-1,'NaN','Infinity','abc']) assert.equal(map({...response,product:{price_cny:price}}).amount,null);
+ assert.equal(map({...response,product:{price_cny:0}}).amount,0);
+ assert.equal(map({...response,status:'failed',error:'failed'}).settled,true);
+});
+
+test('single import controller persists its job and never navigates to a product or fetches product details',()=>{
+ for(const state of ['accepted','processing','done','network-error']) {
+  const navigations=[],effects=[],options=[];let calls=0;
+  const response={job_id:2768,status:state==='done'?'done':'processing',next_poll_after_seconds:state==='done'?0:2,product:{title_fa:'Coffee',slug:'coffee',price_cny:84.19},error:''};
+  const h=harness({react:{useEffect:fn=>effects.push(fn)},'next/navigation':{useRouter:()=>({replace:href=>navigations.push(href)})},'@tanstack/react-query':{queryOptions:value=>value,useQuery:option=>{options.push(option);calls++;return calls===1?{data:response,isError:false,isFetching:false}:{data:response,isError:state==='network-error',isFetching:false};}}});
+  const result=h.load('hooks/use-single-product-import').useSingleProductImport('https://example.com/coffee',state==='accepted'?undefined:2768);
+  effects.forEach(effect=>effect());
+  assert.equal(result.product.title,'Coffee');assert.equal(result.product.amount,84.19);
+  assert.equal(options[0].enabled,state==='accepted');assert.equal(options[1].enabled,true);
+  assert.equal(navigations.some(path=>path.startsWith('/products/')),false);assert.equal(h.calls.length,0);
+  assert.equal(navigations.length,state==='accepted'?1:0);
+  if(navigations[0])assert.equal(new URL(navigations[0],'https://front.test').searchParams.get('job_id'),'2768');
+  assert.equal(Boolean(result.error),state==='network-error');
+ }
+});
+test('single import displays each valid section on its own',()=>{
+ const map=harness().load('mappers/import-product-view').mapImportProductView;
+ const base={job_id:1,status:'processing',next_poll_after_seconds:2};
+ const product={title_en:'Coffee',gallery:['https://example.com/a.jpg'],price_cny:0,key_attributes:{Material:'Ceramic'}};
+ assert.equal(map({...base,product}).hasData,true);
+ for(const key of ['title_en','gallery','price_cny','key_attributes']) {
+  const incomplete={[key]:product[key]};
+  assert.equal(map({...base,product:incomplete}).hasData,true,key);
+ }
+ assert.equal(map({...base,product:{...product,title_en:'',title_fa:'قهوه'}}).hasData,true);
+ assert.equal(map({...base,product:{gallery:['javascript:alert(1)']}}).hasData,false);
+ const ratingOnly=map({...base,product:{seller:{rating:4.7}}});
+ assert.equal(ratingOnly.hasData,true);assert.equal(ratingOnly.seller.rating,4.7);assert.equal(ratingOnly.seller.name,'');
+ const ratingZero=map({...base,product:{...product,seller:{rating:0}}});
+ assert.equal(ratingZero.seller.rating,0);
+ const service=harness().load('services/single-product-import');
+ const merged=service.reconcileSingleProductImport({...base,product:{...product,seller:{rating:4.7}}},{...base,product:{seller:{name:'Supplier'}}});
+ const enriched=map(merged);assert.equal(enriched.hasData,true);assert.equal(enriched.seller.rating,4.7);assert.equal(enriched.seller.name,'Supplier');
+});
+test('prohibited imports accept structured errors, stop polling and discard any previously received product',async()=>{
+ const h=harness();const service=h.load('services/single-product-import');
+ const response={job_id:3080,status:'failed',next_poll_after_seconds:0,product:null,error:{code:'prohibited_product',message:'این کالا مجاز نیست؛ بیسیم / واکی تاکی',reason_code:'radio',retryable:false}};
+ const parsed=service.singleProductImportSchema.parse(response);
+ assert.equal(service.isSingleProductImportProhibited(parsed),true);assert.equal(service.canRetrySingleProductImport(parsed),false);
+ assert.match(service.getSingleProductImportError(parsed),/امکان واردکردن و نمایش/);assert.match(service.getSingleProductImportError(parsed),/واکی تاکی/);
+ const previous={...response,status:'processing',next_poll_after_seconds:2,error:'',product:{title_fa:'Product',price_cny:5}};
+ assert.equal(service.reconcileSingleProductImport(previous,parsed).product,null);
+ assert.equal(service.singleProductImportStatusOptions(3080).refetchInterval({state:{status:'success',data:parsed}}),false);
+ h.setResponse(response);assert.equal((await service.singleProductImportStartOptions('https://www.alibaba.com/product-detail/item.html').queryFn()).error.code,'prohibited_product');
+ const mapped=h.load('mappers/import-product-view').mapImportProductView(parsed);assert.equal(mapped.settled,true);assert.equal(mapped.hasData,false);
+ assert.equal(service.getSingleProductImportError({...response,error:'legacy error'}),'legacy error');
+ assert.equal(service.canRetrySingleProductImport({...response,error:{code:'unavailable',message:'Later',retryable:false}}),false);
+});
+
+test('nonretryable import failures cannot start a replacement job through retry',()=>{
+ const response={job_id:3080,status:'failed',next_poll_after_seconds:0,product:null,error:{code:'prohibited_product',message:'ممنوع',retryable:false}};
+ const options=[];
+ const h=harness({react:{useEffect:()=>{}},'next/navigation':{useRouter:()=>({replace:()=>{}})},'@tanstack/react-query':{queryOptions:value=>value,useQuery:option=>{options.push(option);return {data:response,isError:false,isFetching:false,refetch:()=>assert.fail('must not retry prohibited import')};}}});
+ const state=h.load('hooks/use-single-product-import').useSingleProductImport('https://example.com/item');
+ assert.equal(state.canRetry,false);assert.equal(state.isProhibited,true);assert.equal(options[1].enabled,false);state.retry();
+});
+test('main import specifications prioritize weight, use only key attributes and never exceed six items',()=>{
+ const map=harness().load('mappers/import-product-view').mapImportProductView;
+ const attributes=Object.fromEntries(Array.from({length:8},(_,i)=>['Attribute '+i,'Value '+i]));
+ const response={job_id:1,status:'processing',next_poll_after_seconds:2,product:{weight_kg:'1.05',key_attributes:attributes,specifications:{Unrelated:'Full specification'}}};
+ const view=map(response);const entries=Object.entries(view.mainSpecifications);
+ assert.equal(entries.length,6);assert.deepEqual(entries[0],['وزن (کیلوگرم)','1.05']);assert.equal(entries[1][0],'Attribute 0');assert.equal(entries[5][0],'Attribute 4');
+ assert.equal(view.translatedSpecifications.Unrelated,'Full specification');assert.equal(view.mainSpecifications.Unrelated,undefined);
+ for(const weight of [undefined,null,'',-1,'invalid']) {
+  const without=map({...response,product:{...response.product,weight_kg:weight}});
+  assert.equal(Object.keys(without.mainSpecifications).length,6);assert.equal(Object.keys(without.mainSpecifications)[0],'Attribute 0');
+ }
+ const onlyWeight=map({...response,product:{weight_kg:0}});assert.equal(onlyWeight.mainSpecifications['وزن (کیلوگرم)'],'0');
+ const empty=map({...response,product:{key_attributes:{Blank:' ',Nested:{value:'x'},Zero:0,Material:'Ceramic'}}});
+ assert.deepEqual(Object.keys(empty.mainSpecifications),['Zero','Material']);
 });

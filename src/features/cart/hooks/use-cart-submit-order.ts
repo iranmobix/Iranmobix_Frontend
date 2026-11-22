@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   useMutation,
@@ -10,56 +10,48 @@ import { tokenStorage } from "@/features/auth/utils/token-storage";
 import {
   cartOrderService,
   getCartSubmitError,
+  getCartSubmitConflictCart,
 } from "../services/cart-order.service";
 import { getCartSubmissionIssue } from "../mappers/cart-submit-order.mapper";
 import {
   CART_QUERY_KEY,
   CART_SUBMIT_MUTATION_KEY,
 } from "../constants/cart-query-keys";
-import type {
-  CartShippingMethod,
-  ServerCart,
-} from "../types/domain/cart.types";
+import type { ServerCart } from "../types/domain/cart.types";
 
 export function useCartSubmitOrder(
   cart: ServerCart | undefined,
   isMock: boolean,
   isStale: boolean,
 ) {
-  const [shippingMethod, setShippingMethod] =
-    useState<CartShippingMethod | null>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
   const locked = useRef(false);
   const busy = useIsMutating({ mutationKey: ["cart"] }) > 0;
   const issue = isMock
     ? "سبد نمونه قابل ثبت واقعی نیست."
-    : !shippingMethod
-      ? "لطفاً روش ارسال را انتخاب کنید."
-      : cart
-      ? getCartSubmissionIssue(cart, shippingMethod)
+    : cart
+      ? getCartSubmissionIssue(cart)
       : "اطلاعات سبد هنوز دریافت نشده است.";
   const mutation = useMutation({
     mutationKey: CART_SUBMIT_MUTATION_KEY,
     retry: false,
-    mutationFn: async ({
-      snapshot,
-      shippingMethod,
-    }: {
-      snapshot: ServerCart;
-      shippingMethod: CartShippingMethod;
-    }) => {
-      const trackingCode = await cartOrderService.submit(
-        snapshot,
-        "api",
-        shippingMethod,
-      );
+    mutationFn: async ({ snapshot }: { snapshot: ServerCart }) => {
+      const trackingCode = await cartOrderService.submit(snapshot, "api");
       return {
         trackingCode,
         quantity: snapshot.totalQuantity,
         total: snapshot.finalTotal,
         currency: snapshot.currency,
       };
+    },
+    onError: async (error) => {
+      const latestCart = getCartSubmitConflictCart(error);
+      if (!latestCart) return;
+      await queryClient.cancelQueries({ queryKey: CART_QUERY_KEY });
+      queryClient.setQueryData(CART_QUERY_KEY, latestCart);
+      // GET refreshes the displayed snapshot before the next explicit submit.
+      await queryClient.invalidateQueries({ queryKey: CART_QUERY_KEY });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: CART_QUERY_KEY });
@@ -68,7 +60,6 @@ export function useCartSubmitOrder(
   const submit = async () => {
     if (
       !cart ||
-      !shippingMethod ||
       issue ||
       isStale ||
       locked.current ||
@@ -83,16 +74,14 @@ export function useCartSubmitOrder(
     }
     locked.current = true;
     try {
-      await mutation.mutateAsync({ snapshot: cart, shippingMethod });
+      await mutation.mutateAsync({ snapshot: cart });
     } catch {
-      /* Keep the error visible and the same submission key for manual retry. */
+      /* Keep the server error visible; do not repeat an order POST automatically. */
     } finally {
       locked.current = false;
     }
   };
   return {
-    shippingMethod,
-    setShippingMethod,
     submit: () => void submit(),
     isPending: mutation.isPending,
     disabled: Boolean(issue) || isStale || busy || mutation.isSuccess,

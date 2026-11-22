@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getProductDetailsHref } from "@/features/product/utils/product-path";
 import { openProductDetailsTab } from "@/features/product/utils/product-navigation";
 import { Button } from "@/components/ui/button";
@@ -20,11 +21,15 @@ export default function ImportResultsPage({
   searchQuery?: string;
   sourceUrl?: string;
 }) {
+  const router = useRouter();
   const discoverPayload = useMemo<DiscoverProductPayload | null>(
     () => searchQuery ? { query: searchQuery } : sourceUrl ? { source_url: sourceUrl } : null,
     [searchQuery, sourceUrl],
   );
-  const { query, grouped, hasNextPage, fetchNextPage, isFetchingNextPage, isNextPageError, isWaitingForResults } = useImportResults(jobId, discoverPayload);
+  const { query, grouped, detailsPath, hasNextPage, fetchNextPage, isFetchingNextPage, isNextPageError, isWaitingForResults } = useImportResults(jobId, discoverPayload);
+  useEffect(() => {
+    if (detailsPath && !query.isError) router.replace(detailsPath);
+  }, [detailsPath, query.isError, router]);
   const job = query.data;
   const candidateCount = grouped.requested.length + grouped.suggested.length;
   const [detailsError, setDetailsError] = useState("");
@@ -52,6 +57,7 @@ export default function ImportResultsPage({
     setDetailsError("");
     openProductDetailsTab(href);
   };
+  if (detailsPath && !query.isError) return <ProductGridSkeleton />;
   if (job?.status === "done" && !query.isError && candidateCount > 0) {
     return (
       <ProductPage
@@ -80,7 +86,7 @@ export default function ImportResultsPage({
         <p role="alert">{job.error_message || "دریافت محصولات ناموفق بود."}</p>
       )}
       {job && !job.ready_for_frontend && job.status !== "failed" && job.status !== "done" && (
-        <p role="status">{job.status_label || "در حال دریافت و آماده‌سازی محصولات…"}</p>
+        <p role="status" className="text-mobile-body-s lg:text-desktop-body-s text-secondary-600">{job.status_label || "در حال دریافت و آماده‌سازی محصولات…"}</p>
       )}
       {job?.status === "done" && candidateCount === 0 && !isFetchingNextPage && !isWaitingForResults && (
         <div role="alert" className="space-y-3">

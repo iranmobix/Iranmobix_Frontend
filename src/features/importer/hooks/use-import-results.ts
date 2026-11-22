@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { infiniteQueryOptions, useInfiniteQuery } from "@tanstack/react-query";
 import { useImportJob } from "./use-import-job";
+import { getImportLinkDetailsPath } from "../utils/import-link-navigation";
 import { isImportJobEnriching } from "../utils/import-job-state";
 import { importerService } from "../services/importer.service";
 import { mapImportJobPages } from "../mappers/map-import-job-results";
@@ -30,6 +31,7 @@ export function discoveryPagesQueryOptions(jobId: string, payload: DiscoverProdu
 
 export function useImportResults(jobId: string, payload: DiscoverProductPayload | null) {
   const query = useImportJob(jobId);
+  const detailsPath = getImportLinkDetailsPath(query.data, payload);
   const initialCursor = query.data?.discovery?.pagination?.next_cursor ?? "";
   const nextPages = useInfiniteQuery(discoveryPagesQueryOptions(jobId, payload, initialCursor));
   const pages = useMemo(() => query.data ? [query.data, ...(nextPages.data?.pages ?? [])] : [], [query.data, nextPages.data]);
@@ -37,7 +39,7 @@ export function useImportResults(jobId: string, payload: DiscoverProductPayload 
   const latest = pages[pages.length - 1];
   const pagination = latest?.discovery?.pagination;
   const hasNextPage = Boolean(
-    query.data?.status === "done" && !isImportJobEnriching(query.data) && pagination?.has_more && pagination.next_cursor &&
+    !detailsPath && query.data?.status === "done" && !isImportJobEnriching(query.data) && pagination?.has_more && pagination.next_cursor &&
     (!nextPages.data || nextPages.hasNextPage),
   );
   const { fetchNextPage: fetchPage, isFetching, isError } = nextPages;
@@ -52,5 +54,5 @@ export function useImportResults(jobId: string, payload: DiscoverProductPayload 
   }, [hasNoSuggestions, hasNextPage, isFetching, isError, fetchNextPage]);
 
   const isWaitingForResults = !query.isError && hasNoSuggestions && isImportJobEnriching(query.data);
-  return { query, grouped, hasNextPage, fetchNextPage, isFetchingNextPage: isFetching, isNextPageError: isError, isWaitingForResults };
+  return { query, grouped, detailsPath, hasNextPage, fetchNextPage, isFetchingNextPage: isFetching, isNextPageError: isError, isWaitingForResults };
 }

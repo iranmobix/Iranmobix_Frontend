@@ -33,7 +33,7 @@ export const cartService = {
     options.signal?.throwIfAborted();
     // A first-time guest needs an identity before reading the cart, too.
     const session = tokenStorage.getAccessToken()
-      ? cartSessionStorage.read()
+      ? null
       : await ensureGuestCartSession();
     options.signal?.throwIfAborted();
     const response = await cartApi.getCart(session, options.signal);
@@ -41,7 +41,9 @@ export const cartService = {
   },
   async addItem(input: AddToCartInput): Promise<void> {
     const parsed = addToCartSchema.parse(input);
-    const session = await ensureGuestCartSession();
+    const session = tokenStorage.getAccessToken()
+      ? null
+      : await ensureGuestCartSession();
     // Never retry a POST automatically: a lost response may still mean the item was added.
     await cartApi.addItem(parsed, session);
   },

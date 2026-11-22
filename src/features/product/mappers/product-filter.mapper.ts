@@ -10,11 +10,7 @@ export const mapProductFilters = (
       label: source.label,
     })),
 
-    categories: filters.categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      slug: category.slug,
-    })),
+    categories: [],
 
     brands: filters.brands.map((brand) => ({
       id: brand.id,
@@ -22,20 +18,9 @@ export const mapProductFilters = (
       logo: brand.logo,
     })),
 
-    colors: filters.colors.map((color) => ({
-      id: color.id,
-      name: color.name,
-      value: color.value,
-    })),
-
     sellerTypes: filters.seller_types.map((seller) => ({
       value: seller.value,
       label: seller.label,
-    })),
-
-    guarantees: filters.guarantees.map((guarantee) => ({
-      value: guarantee.value,
-      label: guarantee.label,
     })),
   };
 };

@@ -4,6 +4,8 @@ import type { ProductSourceApi } from "./product-source-api.types";
 
 export interface ProductDetailApiResponse {
   product: ProductDetailApi;
+  weight_kg?: number | string | null;
+  key_attributes?: Record<string, unknown> | null;
   primary_image: string;
   gallery: ProductImageApi[];
   colors: ProductColorApi[];
@@ -24,6 +26,12 @@ export interface ProductDetailApi {
   slug: string;
   source: string;
   title: string;
+  title_fa?: string | null;
+  title_en?: string | null;
+  product_code?: string | null;
+  translated_by_ai?: boolean | null;
+  weight_kg?: number | string | null;
+  key_attributes?: Record<string, unknown> | null;
   short_description: string;
   price: ProductPriceDetailApi;
   brand: ProductBrandApi | null;

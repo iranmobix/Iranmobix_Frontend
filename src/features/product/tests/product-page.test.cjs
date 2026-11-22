@@ -26,7 +26,9 @@ function harness(overrides = {}) {
     const localRequire = (name) =>
       Object.hasOwn(overrides, name)
         ? overrides[name]
-        : name.startsWith(".")
+        : name === "../../assets/Spinner.svg"
+          ? { default: "/Spinner.svg" }
+          : name.startsWith(".")
           ? load(
               path.relative(base, path.resolve(path.dirname(absolute), name)),
             )
@@ -37,6 +39,7 @@ function harness(overrides = {}) {
       exports: module.exports,
       URL,
       URLSearchParams,
+      window: overrides.window,
     });
     cache.set(absolute, module.exports);
     return module.exports;
@@ -96,11 +99,13 @@ test("catalog combines loaded pages and retains server count and filter metadata
   const result = prepare({
     pages: [first, page([product(2)])],
     query: { search: "backend-filter", category: [5] },
+    categories: [{id: 5, name: "Watches", slug: ""}],
   });
   assert.equal(result.isCatalog, true);
   assert.equal(result.products.length, 2);
   assert.equal(result.productCount, 99);
-  assert.equal(result.filters, first.filters);
+  assert.equal(result.filters.sources, first.filters.sources);
+  assert.equal(result.filters.categories[0].slug, "");
   assert.equal(result.breadcrumbItems.at(-1).label, "Watches");
 });
 
@@ -211,6 +216,7 @@ function renderController(options = {}, configuration = {}) {
   const noop = () => {};
   const catalogFetch = async () => {};
   const h = harness({
+    "./use-product-navigation-categories": {useProductNavigationCategories: () => ({data: configuration.categories ?? [], isLoading: false, isError: false, refetch: noop})},
     "./use-product-query": {
       useProductQuery: () => ({
         query: {},
@@ -400,7 +406,8 @@ test("import cards expose real new-tab detail links for ready products and their
     candidatesByProductId:new Map([[2,{candidate_id:7,source_url:"https://example.com/camera"}],[3,{}]]),
     candidateJobIdsByProductId:new Map([[2,"724"]])};
   const h=harness({
-    react:{...React,useMemo:fn=>fn(),useState:()=>["",value=>errors.push(value)]},
+    react:{...React,useMemo:fn=>fn(),useEffect:()=>{},useState:()=>["",value=>errors.push(value)]},
+    "next/navigation":{useRouter:()=>({replace:()=>assert.fail("text search must not redirect")})},
     "../hooks/use-import-results":{useImportResults:()=>({query:{data:{status:"done"}},grouped,hasNextPage:false,isFetchingNextPage:false,isNextPageError:false})},
     "@/features/product/components/product-page":{default:"mock-product-page"},
     "@/features/product/components/product-grid/product-grid-skeleton":{default:"mock-skeleton"},
@@ -423,4 +430,546 @@ test("import cards expose real new-tab detail links for ready products and their
   element.props.onProductDetailsClick(invalid);
   assert.equal(opens.length,2);
   assert.match(errors.at(-1),/اطلاعات لازم/);
+});
+
+test("independent import page renders partial data and keeps it visible on polling errors",()=>{
+ for(const state of ['loading','partial','ready','partial-error','empty-error']) {
+  const hasData=['partial','ready','partial-error'].includes(state);
+  const h=harness({
+   'next/navigation':{useRouter:()=>({replace:()=>assert.fail('render must not navigate')})},
+   '../hooks/use-single-product-import':{useSingleProductImport:()=>({product:{hasData,settled:state==='ready'},error:state.endsWith('error')?'Network error':null,retry:()=>{},isRetrying:false})},
+   '../../product/components/detail/marketplace-product-details-view':{default:'mock-import-view'},
+   '@/features/product/components/detail/product-detail-skeleton':{default:'mock-detail-skeleton'},
+   '@/features/product/components/detail/product-details-error':{default:'mock-detail-error'},
+  });
+  const Page=h.load('../importer/components/single-product-import-page').default;
+  const element=Page({url:'https://example.com',jobId:2768});
+  assert.equal(element.type,state==='loading'?'mock-detail-skeleton':state==='empty-error'?'mock-detail-error':'mock-import-view');
+  if(state==='partial-error') assert.equal(element.props.notice,'Network error');
+ }
+});
+test("submitting a product URL opens the new detail loading tab immediately without discovery",async()=>{
+ const url="https://www.alibaba.com/product-detail/camera.html?x=1&y=2";
+ const opened=[],errors=[];let stateIndex=0;
+ const h=harness({
+  react:{...React,useRef:()=>({current:false}),useState:()=>[stateIndex++===0?url:"",value=>errors.push(value)]},
+  "next/navigation":{useRouter:()=>({push:()=>assert.fail("must open a new tab")})},
+  "next/image":{default:"mock-image"},
+  "radix-ui":{Popover:{Trigger:"mock-trigger"}},
+  "./import-image-search":{ImportImageSearch:"mock-image-search"},
+  "@/components/ui/input":{Input:"mock-input"},
+  "@/features/header/assets/search.svg":{},"@/features/header/assets/camera.svg":{},
+  "../services/importer.service":{createDiscoverPayload:value=>({source_url:value}),isDiscoverUrlInput:()=>true,
+    importerService:{discover:()=>assert.fail("URL import must not call discover")},ProductImportError:Error},
+  "../services/import-search-navigation":{runImportSearch:()=>assert.fail("URL import must not use legacy result navigation")},
+  "@/shared/api":{httpPost:()=>assert.fail("POST belongs to the destination tab"),httpGet:()=>assert.fail("GET belongs to the destination tab")},
+  window:{open:(href,target)=>{const tab={opener:{}};opened.push({href,target,tab});return tab;}},
+ });
+ const Header=h.load("../importer/components/import-header-input").default;
+ const element=Header({});const form=element.props.children[0].props.children;
+ await form.props.onSubmit({preventDefault(){}});
+ assert.equal(opened.length,1);assert.equal(opened[0].target,"_blank");assert.equal(opened[0].tab.opener,null);
+ const href=new URL(opened[0].href,"https://front.test");assert.equal(href.pathname,"/imports/single");assert.equal(href.searchParams.get("url"),url);
+ assert.equal(errors.some(value=>typeof value==="string"&&value.length>0),false);
+});
+test("progressive import view renders received sections alongside placeholders without fabricated prices or purchase readiness",()=>{
+ const pricingRequests = [];
+ const shippingRequests = [];
+ const cartRequests = [];
+ const h=harness({
+  '@/features/cart':{AddToCartButton:props=>{cartRequests.push(props);return React.createElement('button',{disabled:props.disabled},'Add to cart');}},
+  '@/features/product/hooks/use-product-toman-pricing':{useProductTomanPricing:(...args)=>{pricingRequests.push(args);return {data:undefined};}},
+  '@/features/product/services/product-toman-pricing':harness({'@/shared/api':{httpGet:()=>{}}}).load('services/product-toman-pricing'),
+  'next/link':{default:'a'},
+  '@/shared/components/breadcrumb/breadcrumb':{default:({items})=>React.createElement('nav',null,items.map(item=>item.label).join(' / '))},
+  '@/features/product/components/detail/product-detail-actions':{default:()=>null},
+  '@/features/product/components/detail/product-price-section':{default:harness().load('components/detail/product-price-section').default},
+  '@/features/product/components/detail/product-details-content':{default:harness({'next/image':{default:'mock-image'},'../../assets/star.svg':{default:'/star.svg'}}).load('components/detail/product-details-content').default},
+  '@/features/product/components/detail/product-other-sellers':{default:({products,previewOnly,title="دیگر فروشندگان این کالا"})=>React.createElement('section',{'data-seller-count':products.length,'data-preview':previewOnly},title)},
+  '@/features/product/components/detail/product-shipping-purchase-panel':{default:props=>{
+   if (props.slug) shippingRequests.push([props.slug,props.quantityValue,props.revision,props.pending,props.reuseSuccessful]);
+   return React.createElement(harness().load('components/detail/product-purchase-panel').default,props);
+  }},
+  '@/features/product/components/detail/product-currency-label':{default:harness().load('components/detail/product-currency-label').default},
+  '@/features/product/components/detail/product-quantity':{default:()=>null},
+  '@/features/product/components/detail/product-comments':{default:({sourceComments})=>React.createElement('section',{'data-comments':true},sourceComments?.map(comment=>comment.text).join(' '))},
+  '@/features/product/components/detail/product-purchase-preview':{default:()=>React.createElement('div',{'data-purchase-preview':true})},
+  '@/features/product/components/detail/product-detail-hero':{default:({gallery,overview,purchase})=>React.createElement('div',null,gallery,overview,purchase)},
+  '@/features/product/components/detail/product-gallery':{default:({product})=>React.createElement('p',null,`Gallery ${product.gallery.length}`)},
+  '@/features/product/components/detail/product-specifications':{default:({product})=>React.createElement('p',null,Object.values(product.translatedSpecifications).join(' '))},
+  '@/features/product/components/detail/supplier/product-supplier-detail':{default:({product})=>React.createElement('p',null,product.seller.name)},
+  '@/features/product/components/detail/product-detail-source':{default:()=>null},
+  '@/features/product/components/detail/supplier/SupplierIdentity':{default:({seller})=>React.createElement('p',null,seller.name)},
+  '@/components/ui/button':{Button:'button'},
+ });
+ const map=h.load('../importer/mappers/import-product-view').mapImportProductView;
+ const View=h.load('components/detail/marketplace-product-details-view').default;
+ const raw={job_id:2768,status:'processing',next_poll_after_seconds:2,product:{title_fa:'فرنچ پرس'}};
+ const render=product=>renderToStaticMarkup(React.createElement(View,{product,onRetry:()=>{},isRetrying:false}));
+ const partial=render(map(raw));assert.match(partial,/فرنچ پرس/);assert.match(partial,/در حال دریافت اطلاعات/);assert.doesNotMatch(partial,/۰ یوان|[۰-۹]+ تومان/);
+ const emptySections = render(map({...raw,status:'done',next_poll_after_seconds:0, product:{...raw.product,other_sellers:[],related_products:[]}}));
+ for (const html of [partial, emptySections]) {
+  assert.doesNotMatch(html, /دیگر فروشندگان این کالا|محصولات مشابه|data-seller-count/);
+ }
+ render(map({...raw,product:{...raw.product,slug:'coffee',price_cny:80}}));
+ const full=render(map({...raw,status:'done',next_poll_after_seconds:0,product:{...raw.product,slug:'coffee',price_cny:84.19,gallery:['https://example.com/photo'],key_attributes:{Material:'سرامیک'},seller:{name:'Actual seller'},specifications:{Capacity:'600 ml'},other_sellers:[{slug:'seller-one',fa_title:'Offer'}],related_products:[{slug:'related-one',fa_title:'Related'},{slug:'related-two',fa_title:'Related again'}],comments:[{text:'Backend review'}]}}));
+ assert.deepEqual(pricingRequests.slice(-2),[
+  ["coffee","marketplace-details",true,true,true],
+  ["coffee","marketplace-details",true,false,true],
+ ]);
+ assert.deepEqual(shippingRequests,[
+  ["coffee",1,"marketplace-details",true,true],
+  ["coffee",1,"marketplace-details",true,true],
+  ["coffee",1,"marketplace-details",false,true],
+  ["coffee",1,"marketplace-details",false,true],
+ ]);
+ assert.match(full,/Gallery 1/);assert.match(full,/سرامیک/);assert.match(full,/¥84.19/);assert.doesNotMatch(full,/در حال دریافت اطلاعات/);
+ assert.equal(cartRequests.at(-1).disabled,false);
+ assert.deepEqual(JSON.parse(JSON.stringify(cartRequests.at(-1).payload)),{quantity:1,shipping_method:"ground"});
+ assert.doesNotMatch(full,/import-purchase-note|اطلاعات موجودی/);
+ assert.match(full,/data-seller-count="1"/);assert.match(full,/data-seller-count="2"/);
+ assert.doesNotMatch(full,/data-preview="true"/);assert.match(full,/600 ml/);assert.match(full,/Backend review/);
+});
+test("Figma purchase slots retain one quantity, selected option IDs and the existing cart payload",()=>{
+ const state=[2,'20','30',{},false];let index=0,slots;
+ const h=harness({
+  react:{...React,useState:()=>{const current=index++;return [state[current],value=>{state[current]=typeof value==='function'?value(state[current]):value;}];}},
+  '@/features/cart':{AddToCartButton:'mock-cart-button'},
+  './product-warranty':{default:'mock-warranty'},'./product-quantity':{default:'mock-quantity'},
+  './product-color':{default:'mock-color'},'./product-sku-attributes':{default:'mock-sku'},
+ });
+ const Form=h.load('components/detail/product-purchase-form').default;
+ const item={slug:'camera',source:'iranmobix',marketable:true,inventory:{trackingEnabled:true,marketableNumber:10},price:{attributes:[]},colors:[{id:20,name:'Black'}],guarantees:[{id:30,name:'Warranty'}]};
+ const render=()=>{index=0;Form({product:item,renderLayout:value=>{slots=value;return null;}});};
+ render();assert.equal(slots.quantity.props.value,2);assert.equal(slots.submit.props.disabled,false);
+ assert.deepEqual(JSON.parse(JSON.stringify(slots.submit.props.payload)),{quantity:2,color:'20',guarantee:'30'});
+ slots.quantity.props.onChange(4);render();assert.equal(slots.submit.props.payload.quantity,4);
+ slots.options.props.children[0].props.onChange('');render();assert.equal(slots.submit.props.disabled,true);
+ assert.equal('guarantee' in slots.submit.props.payload,false);
+});
+test("scrollable gallery includes every thumbnail and supports image selection, arrows, touch swipes and zoom",()=>{
+ const values=[false,null];let cursor=0;
+ const h=harness({
+  react:{...React,useEffect:()=>{},useCallback:fn=>fn,useRef:()=>({current:null}),useState:()=>{const index=cursor++;return [values[index],value=>{values[index]=value;}];}},
+  'next/image':{default:'mock-image'},'./product-gallery-modal':{default:'mock-gallery-modal'},
+ });
+ const Gallery=h.load('components/detail/product-gallery').default;
+ const images=Array.from({length:11},(_,index)=>({id:index+1,url:`https://example.com/${index+1}.jpg`,isPrimary:index===0}));
+ const render=()=>{cursor=0;return Gallery({product:{gallery:images,source:'alibaba',officialUrl:'https://www.alibaba.com/product'}});};
+ let element=render();
+ assert.equal(element.props.children[1].props.children[0].props.children.length,11);
+ element.props.children[1].props.children[0].props.children[7].props.onClick();element=render();
+ assert.equal(element.props.children[0].props.children[0].props.children.props.src,images[7].url);
+ assert.equal(element.props.children[1].props.children[0].props.children[7].props['aria-pressed'],true);
+ const arrows=element.props.children[0].props.children[1];assert.equal(arrows.length,2);
+ arrows.find(button=>button.props['aria-label']==='تصویر بعدی').props.onClick();element=render();
+ assert.equal(element.props.children[0].props.children[0].props.children.props.src,images[8].url);
+ const swipe = (dx, dy) => {
+  const image = render().props.children[0].props.children[0];
+  let prevented = false;
+  image.props.onTouchStart({touches:[{clientX:100,clientY:100}]});
+  image.props.onTouchEnd({
+   touches:[],
+   changedTouches:[{clientX:100+dx,clientY:100+dy}],
+   preventDefault:()=>{prevented=true;},
+  });
+  return prevented;
+ };
+ assert.equal(swipe(-60,8),true);
+ assert.equal(render().props.children[0].props.children[0].props.children.props.src,images[9].url);
+ assert.equal(swipe(60,8),true);
+ assert.equal(swipe(-10,2),false);
+ assert.equal(swipe(45,-70),false);
+ element=render();
+ element.props.children[0].props.children[0].props.onClick();element=render();
+ assert.equal(element.props.children[2].type,'mock-gallery-modal');assert.equal(element.props.children[2].props.selectedIndex,8);
+});
+test("thumbnail overlay arrows scroll one image step and respect reduced motion",()=>{
+ for(const reduced of [false,true]) {
+  const calls=[];
+  const container={firstElementChild:{getBoundingClientRect:()=>({height:60})},scrollBy:options=>calls.push(options)};
+  const h=harness({
+   react:{...React,useEffect:()=>{},useCallback:fn=>fn,useRef:()=>({current:container}),useState:initial=>[initial,()=>{}]},
+   'next/image':{default:'mock-image'},'./product-gallery-modal':{default:'mock-gallery-modal'},
+   window:{matchMedia:()=>({matches:reduced})},
+  });
+  const Gallery=h.load('components/detail/product-gallery').default;
+  const images=Array.from({length:7},(_,index)=>({id:index+1,url:`https://example.com/${index}.jpg`,isPrimary:index===0}));
+  const view=Gallery({product:{gallery:images,source:'alibaba',officialUrl:''}});
+  const buttons=view.props.children[1].props.children[1];
+  buttons[0].props.onClick({currentTarget:{dataset:{scrollDirection:"-1"}}});buttons[1].props.onClick({currentTarget:{dataset:{scrollDirection:"1"}}});
+  assert.deepEqual(calls.map(item=>item.top),[-72,72]);assert.equal(calls[0].behavior,reduced?'auto':'smooth');
+ }
+});
+test("main specifications show at most six nonempty values and retain full text for truncated values",()=>{
+ const View=harness().load('components/detail/product-key-specifications').default;
+ const specifications={empty:'   ',...Object.fromEntries(Array.from({length:8},(_,index)=>[`ویژگی ${index+1}`,`مقدار ${index+1}`]))};
+ const html=renderToStaticMarkup(React.createElement(View,{specifications}));
+ assert.equal((html.match(/<dt\b/g)||[]).length,6);assert.equal((html.match(/<dd\b/g)||[]).length,6);
+ assert.match(html,/مقدار 6/);assert.doesNotMatch(html,/مقدار 7|مقدار 8/);
+ assert.match(html,/dir="rtl"/);assert.match(html,/grid-cols-3/);assert.match(html,/line-clamp-3/);assert.match(html,/title="مقدار 1"/);
+});
+test("main specifications keep the weight visible while the other cells are loading", () => {
+  const View = harness().load("components/detail/product-key-specifications").default;
+  const specifications = { Weight: "0.19" };
+  const render = (pending) => renderToStaticMarkup(React.createElement(View, { specifications, pending }));
+  const partial = render(true);
+  assert.match(partial, /<dd[^>]*title="0.19"[^>]*>0.19<\/dd>/);
+  assert.match(partial, /aria-busy="true"/);
+  assert.equal((partial.match(/<div aria-hidden="true"/g) || []).length, 5);
+  const settled = render(false);
+  assert.match(settled, /0.19/);
+  assert.doesNotMatch(settled, /aria-busy|role="status"|aria-hidden/);
+});
+test('Toman pricing uses the public endpoint, normalized slug and validates money without treating null as zero',async()=>{
+ const calls=[];let response={slug:'محصول',currency:'TOMAN',price:{final_amount_toman:'1514660',original_amount_toman:null,ladder_price:[{min_quantity:1,max_quantity:1,amount_toman:'0'}]}};
+ const h=harness({'@/shared/api':{httpGet:async(...args)=>{calls.push(args);return response;}}});
+ const service=h.load('services/product-toman-pricing');
+ const options=service.productTomanPricingOptions(encodeURIComponent('محصول'),'revision-1');
+ const signal=new AbortController().signal;
+ const data=await options.queryFn({signal});
+ assert.equal(calls[0][0],'/api/product/'+encodeURIComponent('محصول')+'/pricing/');
+ assert.equal(calls[0][1].signal,signal);assert.equal(calls[0][1].headers.Authorization,false);assert.equal(calls[0][1].withCredentials,false);
+ assert.equal(data.final_amount_toman,1514660);assert.equal(data.original_amount_toman,null);assert.equal(data.ladder_price[0].amount_toman,0);
+ assert.equal(service.productTomanPricingOptions('').enabled,false);
+ assert.notDeepEqual(options.queryKey,service.productTomanPricingOptions('محصول','revision-2').queryKey);
+ response={...response,slug:'other'};await assert.rejects(options.queryFn({signal}),/شناسه/);
+ response={...response,slug:'محصول',price:{final_amount_toman:'invalid'}};await assert.rejects(options.queryFn({signal}));
+});
+
+test('Toman quantity ladders match boundaries rather than API order and preserve original discounted prices',()=>{
+ const service=harness({'@/shared/api':{httpGet:()=>{}}}).load('services/product-toman-pricing');
+ const pricing={ladder_price:[{min_quantity:10,max_quantity:null,amount_toman:700,original_amount_toman:900},{min_quantity:1,max_quantity:9,amount_toman:1000,original_amount_toman:1100}]};
+ assert.equal(service.findTomanPriceTier(pricing,1,9).amount_toman,1000);
+ assert.equal(service.findTomanPriceTier(pricing,10,null).amount_toman,700);
+ assert.equal(service.findTomanPriceTier(pricing,1,null),undefined);
+ assert.equal(service.findTomanPriceTier(pricing,null,null),undefined);
+ const Price=harness().load('components/detail/product-price-section').default;
+ const html=renderToStaticMarkup(React.createElement(Price,{amount:20,amountToman:1000,tiers:[{amount:20,currency:'CNY',amountToman:1000,originalToman:1100,label:'1-9'},{amount:15,currency:'CNY',amountToman:700,label:'10+'}]}));
+ assert.match(html,/۱٬۰۰۰/);assert.match(html,/<del\b/);assert.match(html,/۱٬۱۰۰/);
+});
+test('thumbnail hover scroll runs at either edge and stops on leaving, blur, touch and disposal',()=>{
+ const {attachThumbnailHoverScroll}=harness().load('utils/thumbnail-hover-scroll');
+ const target=()=>{const listeners=new Map();return {addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name),fire:(name,event={})=>listeners.get(name)?.(event),listeners};};
+ const host=target(),view=target(),doc=target();const frames=new Map();let id=0,reduced=false;
+ Object.assign(view,{requestAnimationFrame:fn=>{frames.set(++id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id),matchMedia:()=>({matches:reduced})});
+ Object.assign(doc,{defaultView:view,visibilityState:'visible'});
+ const container={parentElement:host,ownerDocument:doc,scrollTop:100,scrollHeight:600,clientHeight:260,firstElementChild:{getBoundingClientRect:()=>({height:56})},getBoundingClientRect:()=>({top:10,height:260})};
+ const cleanup=attachThumbnailHoverScroll(container);
+ const move=(y,type='mouse')=>host.fire('pointermove',{clientY:y,pointerType:type});
+ const tick=time=>{const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn(time));};
+ move(260);tick(0);tick(50);assert.equal(container.scrollTop,106);
+ move(20);tick(100);assert.equal(container.scrollTop,100);
+ move(140);assert.equal(frames.size,0);
+ move(260);host.fire('pointerleave');assert.equal(frames.size,0);
+ move(260);view.fire('blur');assert.equal(frames.size,0);
+ move(260,'touch');assert.equal(frames.size,0);
+ reduced=true;move(260);assert.equal(frames.size,0);reduced=false;
+ container.scrollTop=339;move(260);tick(200);tick(250);assert.equal(container.scrollTop,340);assert.equal(frames.size,0);
+ container.scrollTop=100;move(260);doc.visibilityState='hidden';doc.fire('visibilitychange');assert.equal(frames.size,0);
+ move(260);cleanup();assert.equal(frames.size,0);assert.equal(host.listeners.size,0);assert.equal(view.listeners.size,0);assert.equal(doc.listeners.size,0);
+});
+test('gallery hover zoom follows mouse position, clamps its origin and clears for touch or exit',()=>{
+ const {updateGalleryHoverZoom:update,clearGalleryHoverZoom:clear}=harness().load('utils/gallery-hover-zoom');
+ const properties={};const target={dataset:{},style:{setProperty:(key,value)=>{properties[key]=value;}},getBoundingClientRect:()=>({left:100,top:50,width:400,height:200})};
+ const move=(x,y,pointerType='mouse')=>update({currentTarget:target,clientX:x,clientY:y,pointerType});
+ move(200,200);assert.equal(properties['--zoom-x'],'25%');assert.equal(properties['--zoom-y'],'75%');assert.equal(target.dataset.zoom,'true');
+ move(-10,800);assert.equal(properties['--zoom-x'],'0%');assert.equal(properties['--zoom-y'],'100%');
+ clear({currentTarget:target});assert.equal(target.dataset.zoom,undefined);
+ move(300,100);move(300,100,'touch');assert.equal(target.dataset.zoom,undefined);
+ move(300,100,'pen');assert.equal(target.dataset.zoom,undefined);
+});
+test('prohibited import always shows an explanation without retry even if older product data exists',()=>{
+ const h=harness({
+  'next/navigation':{useRouter:()=>({replace:()=>{}})},
+  '../hooks/use-single-product-import':{useSingleProductImport:()=>({product:{hasData:true,settled:true},isProhibited:true,canRetry:false,error:'این محصول مجاز نیست',retry:()=>assert.fail('no retry'),isRetrying:false})},
+  '@/features/product/components/detail/product-details-error':{default:'mock-error'},
+  '@/features/product/components/detail/product-detail-skeleton':{default:'mock-skeleton'},
+  '../../product/components/detail/marketplace-product-details-view':{default:'mock-view'},
+ });
+ const Page=h.load('../importer/components/single-product-import-page').default;
+ const view=Page({jobId:3080});assert.equal(view.type,'mock-error');assert.equal(view.props.onRetry,undefined);assert.match(view.props.title,/قابل نمایش نیست/);
+ const ErrorView=harness({'@/components/ui/button':{Button:props=>React.createElement('button',props)}}).load('components/detail/product-details-error').default;
+ const html=renderToStaticMarkup(React.createElement(ErrorView,{message:'این محصول مجاز نیست',title:'این محصول قابل نمایش نیست',onBack:()=>{},isRetrying:false}));
+ assert.doesNotMatch(html,/تلاش دوباره/);assert.match(html,/بازگشت به نتایج/);assert.match(html,/این محصول قابل نمایش نیست/);
+});
+test('shipping cost sends slug and quantity to the public API and retains null costs and genuine zero',async()=>{
+ const calls=[];
+ const response={currency:'TOMAN',land:{china_total_yuan:'1159.8',china_total_toman:'46693548',iranmobix_services_toman:'1400806',insurance_toman:'2801613',clearance_toman:'2334677',international_shipping_toman:'0',total_toman:'59202444'},sea:{china_total_toman:'46693548',international_shipping_toman:null,total_toman:null},air:{assigned_sales_expert:{id:1,name:'Expert',mobile:'09134464043',email:'expert@example.com'}}};
+ const h=harness({'@/shared/api':{httpGet:async(...args)=>{calls.push(args);return response;}}});
+ const service=h.load('services/product-shipping-cost');const options=service.productShippingCostOptions(encodeURIComponent('محصول'),10);
+ const signal=new AbortController().signal;const data=await options.queryFn({signal});
+ assert.equal(calls[0][0],'/api/product/'+encodeURIComponent('محصول')+'/shipping-cost/');assert.equal(calls[0][1].params.quantity,10);assert.equal(calls[0][1].signal,signal);
+ assert.equal(calls[0][1].headers.Authorization,false);assert.equal(calls[0][1].withCredentials,false);
+ assert.equal(data.land.total_toman,59202444);assert.equal(data.land.international_shipping_toman,0);assert.equal(data.sea.total_toman,null);assert.equal(data.air.assigned_sales_expert.mobile,'09134464043');
+ assert.notDeepEqual(options.queryKey,service.productShippingCostOptions('محصول',1).queryKey);
+ for(const quantity of [0,-1,1.5,NaN])assert.equal(service.productShippingCostOptions('item',quantity).enabled,false);
+ assert.equal(service.productShippingCostOptions('',1).enabled,false);
+});
+
+test("import price queries stop polling after success and keep the quote fresh", () => {
+  let options;
+  const h = harness({
+    react: { useState: (initial) => [initial, () => {}], useEffect: () => {} },
+    "@tanstack/react-query": {
+      queryOptions: (value) => value,
+      useQuery: (value) => {
+        options = value;
+        return {};
+      },
+    },
+    "@/shared/api": { httpGet: () => {} },
+  });
+  const { useProductTomanPricing } = h.load("hooks/use-product-toman-pricing");
+  const { useProductShippingCost } = h.load("hooks/use-product-shipping-cost");
+  for (const request of [
+    () => useProductTomanPricing("coffee", "marketplace-details", true, true, true),
+    () => useProductShippingCost("coffee", 1, false, "marketplace-details", true, true, true),
+  ]) {
+    request();
+    assert.equal(options.refetchInterval({ state: {} }), 2000);
+    assert.equal(options.refetchInterval({ state: { data: {} } }), false);
+    assert.equal(options.staleTime, Infinity);
+    assert.equal(options.refetchOnReconnect, false);
+  }
+});
+
+test('shipping requests start at one, debounce rapid changes for 1500ms and pause during empty quantity editing',()=>{
+ const state=[];let stateIndex=0,effect,cleanup,options,quote;const timers=new Map();let timerId=0;
+ const h=harness({
+  react:{useState:initial=>{const index=stateIndex++;if (!(index in state)) state[index]=initial;return [state[index],value=>{state[index]=value;}];},useEffect:fn=>{effect=fn;}},
+  window:{setTimeout:(fn,delay)=>{assert.equal(delay,1500);timers.set(++timerId,fn);return timerId;},clearTimeout:id=>timers.delete(id)},
+  '@tanstack/react-query':{queryOptions:value=>value,useQuery:value=>{options=value;return {data:quote,isPending:!quote,isFetching:!quote};}},
+  '@/shared/api':{httpGet:()=>{}},
+ });
+ const hook=h.load('hooks/use-product-shipping-cost').useProductShippingCost;
+ const render=(quantity,editing=false)=>{cleanup?.();stateIndex=0;const result=hook('item',quantity,editing);cleanup=effect();return result;};
+ assert.equal(render(1).isRecalculatingQuantity,false);
+ quote={currency:'TOMAN'};
+ assert.ok(render(1).data);assert.equal(options.enabled,true);assert.equal(options.queryKey[4],1);assert.equal(timers.size,0);
+ const updated=render(10);
+ assert.equal(updated.isRecalculatingQuantity,true);assert.equal(updated.data,undefined);assert.equal(options.enabled,false);assert.equal(timers.size,1);
+ render(100);assert.equal(timers.size,1);assert.equal(options.enabled,false);
+ const callbacks=[...timers.values()];timers.clear();callbacks.forEach(fn=>fn());
+ assert.ok(render(100).data);
+ assert.equal(render(100).isRecalculatingQuantity,false);assert.equal(options.enabled,true);assert.equal(options.queryKey[4],100);
+ assert.equal(render(100,true).data,undefined);assert.equal(options.enabled,false);assert.equal(timers.size,0);
+ render(200);assert.equal(timers.size,1);render(200,true);assert.equal(timers.size,0);assert.equal(options.enabled,false);
+ cleanup?.();
+});
+
+test('quantity input can be cleared, accepts Persian digits and clamps incomplete edits on blur',()=>{
+ let draft=null,value=1,editing=false;
+ const h=harness({
+  react:{...React,useId:()=>'quantity',useState:()=>[draft,next=>{draft=next;}]},
+  'next/image':{default:'mock-image'},'../../assets/plus1.svg':{default:''},'../../assets/minus.svg':{default:''},
+ });
+ const Quantity=h.load('components/detail/product-quantity').default;
+ const render=()=>Quantity({value,onChange:next=>{value=next;},onEditingChange:next=>{editing=next;},maximum:99,disabled:false,stock:null});
+ const input=()=>render().props.children[1].props.children[1];
+ input().props.onChange({target:{value:''}});assert.equal(input().props.value,'');assert.equal(value,1);assert.equal(editing,true);
+ input().props.onChange({target:{value:'۱۲'}});assert.equal(input().props.value,'12');assert.equal(value,12);assert.equal(editing,false);
+ input().props.onChange({target:{value:'1000'}});assert.equal(input().props.value,'1000');assert.equal(value,12);assert.equal(editing,true);
+ input().props.onBlur();assert.equal(value,99);assert.equal(editing,false);assert.equal(input().props.value,'99');
+ input().props.onChange({target:{value:''}});input().props.onBlur();assert.equal(input().props.value,'99');assert.equal(editing,false);
+});
+
+test('shipping tabs show their own breakdown and use the assigned expert instead of a fixed telephone',()=>{
+ let selected='ground';
+ const h=harness({react:{...React,useId:()=>'shipping',useState:()=>[selected,value=>{selected=value;}]}});
+ const Panel=h.load('components/detail/product-purchase-panel').default;
+ const shipping={currency:'TOMAN',land:{china_total_toman:100,china_total_yuan:2,insurance_toman:6,iranmobix_services_toman:3,clearance_toman:5,international_shipping_toman:10,total_toman:124},sea:{china_total_toman:100,china_total_yuan:2,insurance_toman:6,iranmobix_services_toman:3,clearance_toman:5,international_shipping_toman:null,total_toman:null},air:{assigned_sales_expert:{name:'فرنوش شفیعی',mobile:'09134464043'}}};
+ const render=()=>Panel({quantity:null,submit:null,shipping});
+ let view=render(),html=renderToStaticMarkup(view);assert.match(html,/۱۲۴/);assert.match(html,/خدمات ایران‌موبیکس/);
+ const labels=["قیمت در چین", "حمل و نقل", "بیمه", "ترخیص", "خدمات ایران‌موبیکس", "قیمت تحویل در ایران"];
+ for(let i=1;i<labels.length;i++)assert.ok(html.indexOf(labels[i-1])<html.indexOf(labels[i]));
+ view.props.children[0].props.children[1].props.children[0].props.children[0].props.onChange();
+ html=renderToStaticMarkup(render());assert.doesNotMatch(html,/۱۲۴/);assert.match(html,/— تومان/);
+ selected='express';html=renderToStaticMarkup(render());assert.match(html,/tel:09134464043/);assert.match(html,/فرنوش شفیعی/);assert.doesNotMatch(html,/03136637634/);assert.match(html,/inert=""/);
+});
+test('expert messaging links preserve the recipient and prefill the current product and quantity safely',()=>{
+ const {buildProductInquiryMessage:message,buildExpertChatLink:link}=harness().load('utils/product-expert-chat');
+ const text=message({title:'دوربین & کیف',code:'IRM-123',quantity:100,sourceUrl:'https://www.alibaba.com/product-detail/item.html?a=1&b=2'});
+ assert.match(text,/دوربین & کیف/);assert.match(text,/IRM-123/);assert.match(text,/تعداد: ۱۰۰ عدد/);assert.match(text,/ارسال هوایی/);assert.match(text,/a=1&b=2/);
+ const whatsapp=new URL(link('whatsapp','https://wa.me/989134464043',text));
+ assert.equal(whatsapp.pathname,'/989134464043');assert.equal(whatsapp.searchParams.get('text'),text);
+ const telegram=new URL(link('telegram','https://t.me/hamkar_city?profile',text));
+ assert.equal(telegram.pathname,'/hamkar_city');assert.equal(telegram.searchParams.get('text'),text);assert.equal(telegram.searchParams.has('profile'),false);
+ for(const bad of [null,'javascript:alert(1)','https://wa.me.evil.test/989134464043','https://t.me/share/url'])assert.equal(link('whatsapp',bad,text),null);
+ assert.equal(link('telegram','https://t.me.evil.test/hamkar_city',text),null);
+ assert.doesNotMatch(message({quantity:1,sourceUrl:'javascript:alert(1)'}),/javascript/);
+ assert.match(message({quantity:2}),/تعداد: ۲ عدد/);
+});
+
+test('shipping response retains the expert social URLs and the air tab renders the three Figma contact icons',async()=>{
+ const expert={id:1,name:'فرنوش شفیعی',mobile:'09134464043',email:'Farnooshshafiei899@gmail.com',whatsapp_url:'https://wa.me/989134464043',telegram_url:'https://t.me/hamkar_city'};
+ const service=harness({'@/shared/api':{httpGet:async()=>({currency:'TOMAN',land:null,sea:null,air:{assigned_sales_expert:expert}})}}).load('services/product-shipping-cost');
+ const shipping=await service.productShippingCostOptions('camera',1).queryFn({signal:new AbortController().signal});
+ assert.equal(shipping.air.assigned_sales_expert.whatsapp_url,expert.whatsapp_url);assert.equal(shipping.air.assigned_sales_expert.telegram_url,expert.telegram_url);
+ const Panel=harness({react:{...React,useId:()=>'expert',useState:()=>['express',()=>{}]}}).load('components/detail/product-purchase-panel').default;
+ const html=renderToStaticMarkup(Panel({quantity:null,submit:null,shipping,inquiry:{title:'دوربین',code:'IRM-123',quantity:5,sourceUrl:'https://example.com/item'}}));
+ assert.match(html,/tel:09134464043/);assert.doesNotMatch(html,/mailto:|Farnooshshafiei899@gmail.com/);assert.match(html,/https:\/\/wa.me\/989134464043\?text=/);assert.match(html,/https:\/\/t.me\/hamkar_city\?text=/);assert.match(html,/فرنوش شفیعی/);
+});
+test('air purchase layout shares the card height and keeps its commercial quantity and express contacts',()=>{
+ const Panel=harness({react:{...React,useId:()=>'shipping',useState:()=>['express',()=>{}]}}).load('components/detail/product-purchase-panel').default;
+ const view=Panel({quantity:React.createElement('span',null,'QUANTITY_FIELD'),notice:'FORM_NOTICE',submit:React.createElement('button',{disabled:true},'افزودن به سبد خرید'),shipping:{currency:'TOMAN',air:{assigned_sales_expert:{name:'Expert',mobile:'09134464043',whatsapp_url:'https://wa.me/989134464043',telegram_url:'https://t.me/hamkar_city'}}}});
+ const html=renderToStaticMarkup(view);
+ assert.match(html,/جهت استعلام هزینه‌های ارسال و خدمات با کارشناسان ما تماس بگیرید/);
+ assert.equal((html.match(/<a\b/g)||[]).length,3);assert.match(html,/invisible/);assert.match(html,/pointer-events-none/);assert.match(html,/aria-hidden="true" inert=""/);
+ assert.doesNotMatch(html,/min-h-\[520px\]|min-h-\[580px\]/);assert.match(html,/col-start-1 row-start-1/);assert.match(html,/<button[^>]*disabled=""/);
+});
+test('new air contract maps commercial total and nested express expert to their own sections',async()=>{
+ const expert={id:3,name:'محدثه امینی',mobile:'09133777103',email:'expert@example.com',whatsapp_url:'https://wa.me/989133777103',telegram_url:null};
+ const raw={currency:'TOMAN',product_type:'normal',land:{china_total_yuan:'106.11',china_total_toman:'4219995'},sea:{china_total_yuan:'106.11',china_total_toman:'4219995'},air:{express:{assigned_sales_expert:expert},commercial:{total_toman:1558984}}};
+ const service=harness({'@/shared/api':{httpGet:async()=>raw}}).load('services/product-shipping-cost');
+ const shipping=await service.productShippingCostOptions('camera',1).queryFn({signal:new AbortController().signal});
+ assert.equal(shipping.air.commercial.total_toman,1558984);assert.equal(shipping.air.express.assigned_sales_expert.mobile,expert.mobile);
+ const Panel=harness({react:{...React,useId:()=>'shipping',useState:()=>['express',()=>{}]}}).load('components/detail/product-purchase-panel').default;
+ const tree=Panel({quantity:React.createElement('input',{'aria-label':'تعداد تجاری'}),submit:null,shipping});
+ const html=renderToStaticMarkup(tree);
+ assert.match(html,/ارسال هوایی تجاری/);assert.match(html,/ارسال هوایی اکسپرس/);assert.match(html,/۱٬۵۵۸٬۹۸۴/);assert.match(html,/۴٬۲۱۹٬۹۹۵/);
+ assert.match(html,/tel:09133777103/);assert.match(html,/wa.me\/989133777103/);assert.doesNotMatch(html,/hamkar_city|09134464043/);
+ assert.equal((html.match(/aria-label="تعداد تجاری"/g)||[]).length,1);
+ const airSection=tree.props.children[1].props.children[1].props.children[1];
+ assert.equal(airSection.props.children[1].props.children[1].props.children.type,'input');
+});
+test('air modes open only one section and preserve the existing quantity when switching',()=>{
+ const state=['express','commercial'];let index=0;
+ const Panel=harness({react:{...React,useId:()=>'air-mode',useState:()=>{const position=index++;return [state[position],value=>{state[position]=value;}];}}}).load('components/detail/product-purchase-panel').default;
+ const quantity=React.createElement('input',{value:12,readOnly:true});
+ const render=()=>{index=0;return Panel({quantity,submit:null}).props.children[1].props.children[1].props.children[1];};
+ let air=render();let commercial=air.props.children[1],express=air.props.children[2].props.children[1];
+ assert.equal(commercial.props.hidden,false);assert.equal(express.props.hidden,true);
+ assert.equal(commercial.props.children[1].props.children,quantity);
+ air.props.children[2].props.children[0].props.children[0].props.onChange();
+ air=render();commercial=air.props.children[1];express=air.props.children[2].props.children[1];
+ assert.equal(commercial.props.hidden,true);assert.equal(express.props.hidden,false);
+ air.props.children[0].props.children[0].props.onChange();air=render();
+ assert.equal(air.props.children[1].props.hidden,false);assert.equal(air.props.children[2].props.children[1].props.hidden,true);
+ assert.equal(air.props.children[1].props.children[1].props.children,quantity);
+});
+test('import seller preview reuses the carousel and card, keeps arrow navigation and disables placeholder detail requests',()=>{
+ const scrolls=[];const api={canScrollPrev:()=>true,canScrollNext:()=>true,scrollPrev:jump=>scrolls.push(['prev',jump]),scrollNext:jump=>scrolls.push(['next',jump])};
+ const h=harness({
+  react:{...React,useId:()=>'seller-carousel',useCallback:fn=>fn,useSyncExternalStore:(_,snapshot)=>snapshot()},
+  'embla-carousel-react':{default:()=>[()=>{},api]},
+  '../../product-card/product-card':{default:'mock-shared-product-card'},
+  window:{matchMedia:()=>({matches:false})},
+ });
+ const products=h.load('../importer/mocks/import-other-sellers.mock').importOtherSellersMock;
+ const Carousel=h.load('components/detail/similar-products/similar-products-carousel').default;
+ const preview=Carousel({products,title:'دیگر فروشندگان این کالا',compactMobile:true,previewOnly:true,wideLayout:true});
+ const track=preview.props.children[1].props.children[0].props.children;
+ assert.equal(track.props.children.length,8);assert.equal(new Set(track.props.children.map(slide=>slide.key)).size,8);
+ for(const slide of track.props.children) {assert.equal(slide.props.children.type,'mock-shared-product-card');assert.equal(slide.props.children.props.detailsDisabled,true);slide.props.children.props.onDetailsClick();}
+ preview.props.children[1].props.children[1].props.onClick();preview.props.children[1].props.children[2].props.onClick();
+ assert.deepEqual(scrolls,[['prev',false],['next',false]]);
+ const regular=Carousel({products,compactMobile:true});
+ const card=regular.props.children[1].props.children[0].props.children.props.children[0].props.children;
+ assert.equal(card.props.detailsDisabled,false);assert.equal(card.props.onDetailsClick,undefined);
+ assert.equal(card.props.detailsHref, "/products/" + encodeURIComponent(products[0].slug));
+ const sourceUrl = "https://www.alibaba.com/product-detail/watch.html?a=1&b=2";
+ const sourceOnly = { ...products[0], slug: "", source: { ...products[0].source, name: "alibaba", url: sourceUrl } };
+ const fallback = Carousel({products:[sourceOnly],compactMobile:true});
+ const fallbackCard = fallback.props.children[1].props.children[0].props.children.props.children[0].props.children;
+ assert.equal(fallbackCard.props.detailsDisabled, false);
+ const fallbackUrl = new URL(fallbackCard.props.detailsHref, "https://front.test");
+ assert.equal(fallbackUrl.pathname, "/imports/single");
+ assert.equal(fallbackUrl.searchParams.get("url"), sourceUrl);
+});
+test("selected delivery tabs report the exact add-to-cart shipping method", () => {
+  const h=harness({react:{...React,useId:()=>"shipping",useState:initial=>[initial,()=>{}]}});
+  const Panel=h.load("components/detail/product-purchase-panel").default;
+  let selected="ground";
+  const render=()=>Panel({quantity:null,submit:null,shippingMethod:selected,onShippingMethodChange:next=>{selected=next;}});
+  const methods=render().props.children[0].props.children;
+  methods[1].props.children[0].props.children[0].props.onChange();
+  assert.equal(selected,"sea");
+  methods[2].props.children[0].props.children[0].props.onChange();
+  assert.equal(selected,"commercial_air");
+  let air=render().props.children[1].props.children[1].props.children[1];
+  air.props.children[2].props.children[0].props.children[0].props.onChange();
+  assert.equal(selected,"air_express");
+  air=render().props.children[1].props.children[1].props.children[1];
+  air.props.children[0].props.children[0].props.onChange();
+  assert.equal(selected,"commercial_air");
+});
+
+test("imported purchase leaves omitted SKU selections to the backend", () => {
+  const state=[1,"","",{},false];let cursor=0,slots;
+  const h=harness({
+    react:{...React,useState:()=>{const index=cursor++;return [state[index],value=>{state[index]=typeof value==="function"?value(state[index]):value;}];}},
+    "@/features/cart":{AddToCartButton:"mock-cart-button"},
+    "./product-warranty":{default:"mock-warranty"},
+    "./product-quantity":{default:"mock-quantity"},
+    "./product-color":{default:"mock-color"},
+    "./product-sku-attributes":{default:"mock-sku"},
+  });
+  const Form=h.load("components/detail/product-purchase-form").default;
+  const product={slug:"camera",source:"alibaba",marketable:true,inventory:{trackingEnabled:false,marketableNumber:0},price:{attributes:[{name:"color",values:[{value:"Black"},{value:"White"}]},{name:"Size",values:[]}]},colors:[],guarantees:[]};
+  const render=()=>{cursor=0;Form({product,shippingMethod:"air_express",renderLayout:value=>{slots=value;return null;}});};
+  render();
+  assert.equal(slots.submit.props.disabled,false);
+  assert.deepEqual(JSON.parse(JSON.stringify(slots.submit.props.payload)),{quantity:1,shipping_method:"air_express"});
+  slots.options.props.children[1].props.onChange("color","White");render();
+  assert.deepEqual(JSON.parse(JSON.stringify(slots.submit.props.payload)),{quantity:1,shipping_method:"air_express",sku_attributes:{color:"White"}});
+});
+
+
+test("catalog categories and breadcrumb use the dedicated category query instead of product metadata",()=>{
+  const stale=page([product(1)]);
+  stale.filters={...filters,categories:[{id:99,name:"Outdated product metadata",slug:"old"}]};
+  const state=renderController({},{
+    data:{pages:[stale]},
+    categories:[{id:84,name:"Dedicated API category",slug:""}],
+  });
+  assert.equal(state.model.filters.categories.length,1);
+  assert.equal(state.model.filters.categories[0].id,84);
+  assert.equal(state.model.filters.categories[0].name,"Dedicated API category");
+  const result=prepare({pages:[stale],query:{category:[84]},categories:state.model.filters.categories});
+  assert.equal(result.breadcrumbItems.at(-1).label,"Dedicated API category");
+});
+test("legacy color and guarantee URL filters no longer affect product queries",()=>{
+  const parse=harness().load("utils/product-query").parseProductQuery;
+  const query=parse(new URLSearchParams("category=84&colors=1,2&guarantees=iranmobix&sort=newest"));
+  assert.equal(query.category[0],84);
+  assert.equal("colors" in query,false);
+  assert.equal("guarantees" in query,false);
+});
+
+
+test("catalog failure replaces developer controls with one full-page refresh action",()=>{
+  let refreshes=0,clicked;
+  const h=harness({
+    window:{location:{reload:()=>{refreshes++;}}},
+    react:{...React,useState:()=>[false,()=>{}]},
+    "./product-catalog-unavailable.module.css":{default:new Proxy({}, {get:(_,name)=>String(name)})},
+    "@/components/ui/button":{Button:({children,onClick,disabled})=>{clicked=onClick;return React.createElement("button",{onClick,disabled},children);}},
+  });
+  const ErrorState=h.load("components/product-catalog-unavailable").default;
+  const html=renderToStaticMarkup(React.createElement(ErrorState));
+  assert.ok(html.includes("تازه‌سازی صفحه"));
+  assert.ok(html.includes('role="alert"'));
+  assert.ok(!html.includes("دادهٔ نمونه"));
+  assert.ok(!html.includes("تلاش دوباره"));
+  assert.equal((html.match(/<button/g)||[]).length,1);
+  clicked();
+  assert.equal(refreshes,1);
+});
+test("only an initial catalog error selects the graphic; valid empty results retain their existing flow",()=>{
+  const noop=()=>null;
+  const h=harness({
+    "./product-catalog-unavailable":{default:()=>React.createElement("div",{"data-catalog-unavailable":true},"catalog-unavailable")},
+    "@/shared/components/breadcrumb/breadcrumb":{default:noop},
+    "./product-sort":{default:noop},
+    "./product-card/product-card":{default:noop},
+    "./product-page-filters":{ProductPageFilters:noop},
+    "./product-page-results":{ProductPageResults:noop},
+    "./product-mobile-filters":{ProductMobileFilters:noop},
+  });
+  const View=h.load("components/product-page-view").default;
+  const model={...renderController().model,isCatalog:true,isError:true};
+  const render=changes=>renderToStaticMarkup(React.createElement(View,{model:{...model,...changes},options:{}}));
+  assert.ok(render({}).includes("data-catalog-unavailable"));
+  assert.ok(!render({isError:false,products:[]}).includes("data-catalog-unavailable"));
 });

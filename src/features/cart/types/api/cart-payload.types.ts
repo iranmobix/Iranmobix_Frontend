@@ -1,8 +1,12 @@
+export type AddToCartShippingMethod =
+  "ground" | "sea" | "air_express" | "commercial_air";
+
 export interface AddToCartPayload {
   color?: string;
   guarantee?: string;
-  quantity: number;
-  /** Separate backend field: never automatically copied from quantity. */
+  quantity?: number;
+  shipping_method?: AddToCartShippingMethod;
+  /** Backward-compatible alias used only when quantity is omitted. */
   number?: number;
   selected_attributes?: Array<{
     category_attribute: number;
@@ -24,20 +28,6 @@ export interface RemoveCartItemInput {
   itemId: string;
 }
 
-export interface SubmitOrderItemPayload {
-  slug: string;
-  quantity: number;
-  color: string | null;
-  guarantee: string | null;
-  price: {
-    unit_price_irr: string;
-    total_discount_amount_irr: string;
-    final_total_price_irr: string;
-  };
-}
-
 export interface SubmitOrderPayload {
-  idempotency_key: string;
-  shipping_method: import("../domain/cart.types").CartShippingMethod;
-  items: SubmitOrderItemPayload[];
+  item_ids: number[];
 }

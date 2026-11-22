@@ -8,10 +8,15 @@ import { useRouter } from "next/navigation";
 import { useAccessToken } from "@/features/auth/hooks/use-access-token";
 import { tokenStorage } from "@/features/auth/utils/token-storage";
 import type { ProductDetail } from "../../types/domain/product-detail.types";
-import { productCommentsMock, type ProductCommentPreview } from "../../mock/product-comments.mock";
+import { productCommentsMock } from "../../mock/product-comments.mock";
+import type { ProductCommentPreview } from "../../types/domain/product-detail-comments.types";
 import ProductCommentDialog from "./product-comment-dialog";
 
-type ProductCommentsProps = { product: ProductDetail };
+type ProductCommentsProps = {
+  product: Pick<ProductDetail, "title">;
+  sourceComments?: readonly ProductCommentPreview[];
+  sourceCommentsPending?: boolean;
+};
 type CommentTab = keyof typeof productCommentsMock;
 const INITIAL_VISIBLE = 6;
 
@@ -36,17 +41,42 @@ function CommentCard({ comment }: { comment: ProductCommentPreview }) {
   );
 }
 
-const ProductComments = ({ product }: ProductCommentsProps) => {
+function SourceCommentCard({ comment }: { comment: ProductCommentPreview }) {
+  return (
+    <article
+      dir="ltr"
+      className="text-mobile-caption lg:text-desktop-caption border-b border-neutral-300 py-4 text-left leading-relaxed last:border-b-0"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h3 dir="auto" className="min-w-0 font-medium break-words text-neutral-900">
+          {comment.author}
+        </h3>
+        <time
+          dir="auto"
+          dateTime={comment.dateTime}
+          className="shrink-0 text-right text-neutral-700"
+        >
+          {comment.date}
+        </time>
+      </div>
+      <p dir="auto" className="mt-2 text-left break-words whitespace-pre-line text-neutral-800">
+        {comment.text}
+      </p>
+    </article>
+  );
+}
+
+const ProductComments = ({ product, sourceComments, sourceCommentsPending = false }: ProductCommentsProps) => {
   const router = useRouter();
   const accessToken = useAccessToken();
-  const [activeTab, setActiveTab] = useState<CommentTab>("iranmobix");
+  const [activeTab, setActiveTab] = useState<CommentTab>(sourceComments ? "source" : "iranmobix");
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [formOpen, setFormOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [localComments, setLocalComments] = useState<ProductCommentPreview[]>([]);
   const comments = activeTab === "iranmobix"
-    ? [...localComments, ...productCommentsMock.iranmobix]
-    : productCommentsMock.source;
+    ? [...localComments, ...(sourceComments ? [] : productCommentsMock.iranmobix)]
+    : sourceComments ?? productCommentsMock.source;
   const expanded = visibleCount > INITIAL_VISIBLE;
 
   const requireLogin = () => {
@@ -105,7 +135,18 @@ const ProductComments = ({ product }: ProductCommentsProps) => {
 
         {(["iranmobix", "source"] as const).map((tab) => (
           <Tabs.Content key={tab} value={tab} className="outline-none focus-visible:ring-2 focus-visible:ring-primary-200">
-            {activeTab === tab && comments.slice(0, visibleCount).map((comment) => <CommentCard key={comment.id} comment={comment} />)}
+            {activeTab === tab && comments.slice(0, visibleCount).map((comment) => (
+              tab === "source" ? (
+                <SourceCommentCard key={comment.id} comment={comment} />
+              ) : (
+                <CommentCard key={comment.id} comment={comment} />
+              )
+            ))}
+            {activeTab === tab && comments.length === 0 && (
+              <p role="status" className="py-4 text-xs text-neutral-700">
+                {tab === "source" && sourceCommentsPending ? "در حال دریافت دیدگاه‌ها…" : "دیدگاهی برای نمایش وجود ندارد."}
+              </p>
+            )}
             {(comments.length > visibleCount || expanded) && (
               <button type="button" onClick={() => setVisibleCount(visibleCount < comments.length ? visibleCount + INITIAL_VISIBLE : INITIAL_VISIBLE)}
                 className="mx-auto mt-5 flex items-center gap-1 py-2 text-xs text-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 lg:text-sm">

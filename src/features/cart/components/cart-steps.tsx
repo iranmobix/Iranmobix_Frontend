@@ -18,14 +18,14 @@ export default function CartSteps({ currentStep }: CartStepsProps) {
       aria-label="مراحل سفارش"
       className="mx-auto w-full max-w-[600px] py-1 sm:py-6"
     >
-      <ol className="before:border-primary-300 relative grid grid-cols-4 before:absolute before:inset-x-[12.5%] before:top-[17px] before:border-t-2 before:border-dotted sm:before:top-[35px]">
+      <ol className="before:border-primary-300 relative grid grid-cols-4 [--cart-step-axis:18px] before:absolute before:inset-x-[12.5%] before:top-[calc(var(--cart-step-axis)-1px)] before:border-t-2 before:border-dotted sm:[--cart-step-axis:36px]">
         {steps.map((step, index) => (
           <li
             key={step.id}
             aria-current={index === activeIndex ? "step" : undefined}
             className="relative flex min-w-0 flex-col items-center gap-1 px-0.5 text-center sm:gap-2 sm:px-1"
           >
-            <span className="flex h-5 w-full items-end justify-center sm:h-10">
+            <span className="relative flex h-5 w-full items-end justify-center sm:h-10">
               {index === activeIndex ? (
                 <Image
                   src={ship}
@@ -38,7 +38,7 @@ export default function CartSteps({ currentStep }: CartStepsProps) {
                 <span
                   aria-hidden="true"
                   className={
-                    "border-primary-500 relative -bottom-0.5 size-1.5 rounded-full border sm:-bottom-1 sm:size-2.5 " +
+                    "border-primary-500 absolute top-[var(--cart-step-axis)] size-1.5 -translate-y-1/2 rounded-full border sm:size-2.5 " +
                     (index < activeIndex ? "bg-primary-500" : "bg-neutral-50")
                   }
                 />

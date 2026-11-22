@@ -1,7 +1,11 @@
 "use client";
+import CheckoutDialog from "./checkout-dialog";
+import { checkoutPaymentApi } from "../../api/checkout-payment.api";
+import { tokenStorage } from "@/features/auth/utils/token-storage";
+import { orderReviewStatusStorage } from "../../utils/order-review.storage";
+import CheckoutReviewPending from "./checkout-review-pending";
 import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import CheckoutOnlineGateways from "./checkout-online-gateways";
 import { useOnlinePayment } from "../../hooks/use-online-payment";
 import { onlineReturnUrl } from "../../utils/online-payment.utils";
 import CheckoutReceiptModal from "./checkout-receipt-modal";
@@ -31,6 +35,30 @@ export default function CheckoutPaymentPage({
   const [acceptedContract, setAcceptedContract] = useState<string | null>(null);
   const payment = useMutation({ mutationFn: submitCheckout, retry: false });
   const query = useCheckoutPayment(trackingCode);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const cancel = useMutation({
+    mutationFn: ({
+      code,
+      sessionId,
+    }: {
+      code: string;
+      sessionId: string | null;
+    }) => {
+      if (!sessionId || tokenStorage.getSessionId() !== sessionId)
+        throw new Error("نشست ورود تغییر کرده است؛ دوباره وارد شوید.");
+      return checkoutPaymentApi.cancelOrder(code);
+    },
+    retry: false,
+    onSuccess: (_, { code, sessionId }) => {
+      orderReviewStatusStorage.save(code, sessionId, "cancelled");
+      setCancelOpen(false);
+    },
+  });
+  const cancelInScope =
+    cancel.variables?.code === trackingCode &&
+    cancel.variables?.sessionId === query.sessionId;
+  const cancelling = cancelInScope && cancel.isPending;
+  const cancelled = cancelInScope && cancel.isSuccess;
   const receipt = useOfflineReceipt();
   const [receiptOpen, setReceiptOpen] = useState(false);
   const receiptInScope =
@@ -40,16 +68,14 @@ export default function CheckoutPaymentPage({
   const receiptSuccess = receiptInScope && receipt.isSuccess;
   const [address, setAddress] = useState<string | null>(null);
   const [method, setMethod] = useState<CheckoutPaymentMethod | null>(null);
-  const online = useOnlinePayment(
-    trackingCode,
-    query.sessionId,
-    method === "online" && query.canContinue,
-  );
+  const online = useOnlinePayment(trackingCode, query.sessionId);
   const onlineBusy = online.mutation.isPending || online.mutation.isSuccess;
   const [bankOpen, setBankOpen] = useState(false);
   const [addressOpen, setAddressOpen] = useState(false);
   const [addressNotice, setAddressNotice] = useState("");
   const data = query.data;
+  const awaitingReview =
+    query.isAwaitingReview || data?.status === "pending_review";
   const loginUrl =
     "/login?returnTo=" +
     encodeURIComponent("/cart/" + encodeURIComponent(trackingCode));
@@ -78,6 +104,8 @@ export default function CheckoutPaymentPage({
   const accepted = contractKey !== null && acceptedContract === contractKey;
   const canPay = Boolean(
     query.canContinue &&
+    !cancelling &&
+    !cancelled &&
     selectedAddress &&
     activeMethod &&
     accepted &&
@@ -86,13 +114,7 @@ export default function CheckoutPaymentPage({
     !payment.isSuccess &&
     !receiptPending &&
     !receiptSuccess &&
-    !onlineBusy &&
-    (activeMethod !== "online" ||
-      Boolean(
-        online.gatewayCode &&
-        !online.gateways.isError &&
-        !online.gateways.isFetching,
-      )),
+    !onlineBusy,
   );
   const paymentTypes = {
     online: "online",
@@ -134,12 +156,10 @@ export default function CheckoutPaymentPage({
       return;
     }
     if (activeMethod === "online") {
-      if (!online.gatewayCode) return;
       online.mutation.mutate({
         tracking_code: trackingCode,
         address_id: Number(selectedAddress),
         payment_type: "online",
-        gateway_code: online.gatewayCode,
         contract_accepted: true,
         final_amount: data.total,
         ...(query.appliedCouponCode
@@ -204,7 +224,11 @@ export default function CheckoutPaymentPage({
           }
         />
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <h1 className="sr-only lg:not-sr-only">انتخاب آدرس و پرداخت</h1>
+          <h1 className="sr-only lg:not-sr-only">
+            {awaitingReview
+              ? "در انتظار تأیید کارشناس"
+              : "انتخاب آدرس و پرداخت"}
+          </h1>
           <span className="hidden lg:inline">
             کد پیگیری: <bdi>{trackingCode}</bdi>
           </span>
@@ -218,6 +242,28 @@ export default function CheckoutPaymentPage({
               <Link href={loginUrl}>ورود به حساب</Link>
             </Button>
           </section>
+        ) : cancelled ? (
+          <section role="status" className="space-y-4 rounded-lg bg-white p-6">
+            <p className="text-mobile-label-l lg:text-desktop-label-l text-neutral-900">
+              سفارش شما لغو شد.
+            </p>
+            <Button asChild>
+              <Link href="/cart">بازگشت به سبد خرید</Link>
+            </Button>
+          </section>
+        ) : awaitingReview ? (
+          <div className="space-y-3">
+            <CheckoutReviewPending expert={query.assignedExpert} />
+            {query.isError && (
+              <p
+                role="status"
+                className="text-body-sm text-center text-neutral-800"
+              >
+                وضعیت جدید سفارش فعلاً قابل دریافت نیست؛ بررسی خودکار ادامه
+                دارد.
+              </p>
+            )}
+          </div>
         ) : query.isPending ? (
           <div role="status" className="space-y-4 rounded-lg bg-white p-6">
             <span className="sr-only">در حال دریافت اطلاعات پرداخت</span>
@@ -283,43 +329,12 @@ export default function CheckoutPaymentPage({
                   "درخواست ثبت شد؛ مرحله بعد: " + payment.data.next_action.type}
               </p>
             )}
-            <Button
-              variant="secondary"
-              disabled={
-                query.isFetching ||
-                query.couponPending ||
-                receiptPending ||
-                onlineBusy
-              }
-              onClick={() => void query.refetch()}
-            >
-              {query.isFetching ? "در حال بررسی…" : "بررسی مجدد وضعیت سفارش"}
-            </Button>
+
             {data && !query.isError && (
               <>
-                <p
-                  role="status"
-                  className="rounded-lg bg-white p-5 text-sm leading-7"
-                >
-                  {data.status === "approved" && query.expired
-                    ? "مهلت قیمت تأییدشده پایان یافته یا تاریخ اعتبار نامعتبر است؛ وضعیت سفارش را مجدداً بررسی کنید."
-                    : data.message}
-                  {data.status === "pending_review" && (
-                    <span className="block text-xs">
-                      وضعیت کارشناس هر ۱۵ ثانیه بررسی می‌شود.
-                    </span>
-                  )}
-                  {data.expiresAt && (
-                    <span className="block text-xs">
-                      اعتبار قیمت تا:{" "}
-                      <bdi>
-                        {Number.isFinite(Date.parse(data.expiresAt))
-                          ? new Date(data.expiresAt).toLocaleString("fa-IR")
-                          : "تاریخ نامعتبر از بک"}
-                      </bdi>
-                    </span>
-                  )}
-                </p>
+                {data.status === "pending_review" && (
+                  <CheckoutReviewPending expert={query.assignedExpert} />
+                )}
                 {(data.status === "approved" || data.status === null) && (
                   <div className="grid items-start gap-3 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_330px] xl:grid-cols-[minmax(0,1fr)_410px]">
                     <div className="space-y-3 sm:space-y-6">
@@ -360,10 +375,6 @@ export default function CheckoutPaymentPage({
                           {addressNotice}
                         </p>
                       )}
-                      <p className="sr-only lg:not-sr-only lg:text-xs lg:text-neutral-700">
-                        انتخاب آدرس فعلاً محلی است؛ قرارداد ثبت آدرس روی سفارش
-                        دریافت نشده است.
-                      </p>
                       <CheckoutPaymentMethods
                         value={activeMethod}
                         serverOptions={data.options}
@@ -394,26 +405,25 @@ export default function CheckoutPaymentPage({
                           setAcceptedContract(value ? contractKey : null)
                         }
                       />
-                      {activeMethod === "online" && (
-                        <CheckoutOnlineGateways
-                          items={online.gateways.data?.items ?? []}
-                          value={online.gatewayCode}
-                          onChange={online.selectGateway}
-                          pending={online.gateways.isFetching}
-                          error={online.gateways.isError}
-                          disabled={
-                            onlineBusy || payment.isPending || receiptPending
-                          }
-                          onRetry={() => void online.gateways.refetch()}
-                        />
-                      )}
                     </div>
                     <CheckoutPaymentSummary
+                      onCancel={
+                        onlineBusy ||
+                        payment.isPending ||
+                        payment.isSuccess ||
+                        receiptPending ||
+                        receiptSuccess ||
+                        cancelling
+                          ? undefined
+                          : () => setCancelOpen(true)
+                      }
+                      remainingSeconds={query.remainingSeconds}
                       data={data}
                       method={activeMethod}
                       canPay={canPay}
                       isSubmitting={
                         payment.isPending ||
+                        cancelling ||
                         receiptPending ||
                         online.mutation.isPending
                       }
@@ -427,6 +437,52 @@ export default function CheckoutPaymentPage({
           </>
         )}
       </div>
+      {cancelOpen && !needsLogin && !cancelled && (
+        <CheckoutDialog
+          title="لغو سفارش"
+          onDismiss={() => !cancelling && setCancelOpen(false)}
+        >
+          <div className="space-y-4 px-5 pb-5">
+            <p className="text-mobile-body-s lg:text-desktop-body-s leading-7 text-neutral-900">
+              آیا می‌خواهید این سفارش را لغو کنید؟
+            </p>
+            {cancelInScope && cancel.isError && (
+              <p
+                role="alert"
+                className="text-mobile-body-s text-error leading-7"
+              >
+                {axios.isAxiosError(cancel.error)
+                  ? cancel.error.response?.data?.detail ||
+                    "لغو سفارش انجام نشد؛ دوباره تلاش کنید."
+                  : "لغو سفارش انجام نشد؛ دوباره تلاش کنید."}
+              </p>
+            )}
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                disabled={cancelling}
+                className="flex-1"
+                onClick={() =>
+                  cancel.mutate({
+                    code: trackingCode,
+                    sessionId: query.sessionId,
+                  })
+                }
+              >
+                {cancelling ? "در حال لغو سفارش…" : "تأیید لغو سفارش"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={cancelling}
+                onClick={() => setCancelOpen(false)}
+              >
+                انصراف
+              </Button>
+            </div>
+          </div>
+        </CheckoutDialog>
+      )}
       {receiptOpen && !needsLogin && (
         <CheckoutReceiptModal
           onDismiss={() => setReceiptOpen(false)}

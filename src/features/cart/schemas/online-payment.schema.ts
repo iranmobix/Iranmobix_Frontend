@@ -21,22 +21,6 @@ export const onlineRedirectSchema = z.object({
   url: redirectUrl.nullable(),
   fields: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
 });
-export const paymentGatewayListSchema = z.object({
-  default_gateway_code: gatewayCodeSchema.nullable(),
-  gateways: z.array(
-    z
-      .object({
-        code: gatewayCodeSchema,
-        title: z.string(),
-        enabled: z.boolean(),
-        selectable: z.boolean(),
-        reason: z.string().nullable(),
-        sandbox: z.boolean(),
-        is_default: z.boolean(),
-      })
-      .passthrough(),
-  ),
-});
 export const onlineSessionSchema = z
   .object({
     order_id: paymentId,

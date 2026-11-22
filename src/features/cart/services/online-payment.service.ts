@@ -2,42 +2,19 @@ import { z } from "zod";
 import { onlinePaymentApi } from "../api/online-payment.api";
 import {
   gatewayCodeSchema,
-  paymentGatewayListSchema,
   onlineRedirectSchema,
   onlineSessionSchema,
   onlineFinalizeSchema,
 } from "../schemas/online-payment.schema";
-import type {
-  OnlineGateway,
-  OnlinePaymentSession,
-} from "../types/domain/online-payment.types";
+import type { OnlinePaymentSession } from "../types/domain/online-payment.types";
 import {
   submitCheckout,
   type CheckoutSubmitInput,
 } from "./checkout-submit.service";
-export async function getOnlineGateways(
-  signal?: AbortSignal,
-): Promise<{ defaultCode: string | null; items: OnlineGateway[] }> {
-  const response = paymentGatewayListSchema.parse(
-    await onlinePaymentApi.gateways(signal),
-  );
-  return {
-    defaultCode: response.default_gateway_code,
-    items: response.gateways.map((g) => ({
-      code: g.code,
-      title: g.title,
-      enabled: g.enabled,
-      selectable: g.selectable,
-      reason: g.reason,
-      isSandbox: g.sandbox,
-      isDefault: g.is_default,
-    })),
-  };
-}
 export async function startOnlinePayment(
   input: CheckoutSubmitInput,
 ): Promise<OnlinePaymentSession> {
-  const gatewayCode = gatewayCodeSchema.parse(input.gateway_code);
+  const gatewayCode = gatewayCodeSchema.optional().parse(input.gateway_code);
   if (input.payment_type !== "online")
     throw new Error("روش پرداخت آنلاین انتخاب نشده است.");
   const response = await submitCheckout({
@@ -58,7 +35,9 @@ export async function startOnlinePayment(
     .parse(response.online_payment ?? {});
   if (
     (detail.order_id && detail.order_id !== response.order.id) ||
-    (detail.gateway_code && detail.gateway_code !== gatewayCode) ||
+    (gatewayCode &&
+      detail.gateway_code &&
+      detail.gateway_code !== gatewayCode) ||
     (detail.payment_id &&
       response.payment?.id &&
       detail.payment_id !== response.payment.id)
@@ -87,7 +66,7 @@ export async function startOnlinePayment(
   );
   if (
     session.order_id !== response.order.id ||
-    session.gateway_code !== gatewayCode
+    (gatewayCode && session.gateway_code !== gatewayCode)
   )
     throw new Error("پاسخ درگاه با سفارش یا درگاه انتخاب‌شده یکسان نیست.");
   if (!session.already_paid && !session.redirect.url)

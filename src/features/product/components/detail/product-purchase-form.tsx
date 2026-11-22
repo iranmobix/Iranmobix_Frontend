@@ -2,6 +2,7 @@
 import { useState, type ReactNode } from "react";
 import type { ProductDetail } from "../../types/domain/product-detail.types";
 import { AddToCartButton } from "@/features/cart";
+import type { AddToCartShippingMethod } from "@/features/cart/types/api/cart-payload.types";
 import ProductWarranty from "./product-warranty";
 import ProductQuantity from "./product-quantity";
 import ProductColor from "./product-color";
@@ -13,21 +14,33 @@ import {
 type Props = {
   product: ProductDetail;
   isMock?: boolean;
+  shippingMethod?: AddToCartShippingMethod;
   children?: ReactNode;
   compact?: boolean;
   mobileStack?: boolean;
+  renderLayout?: (slots: {
+    quantityValue: number;
+    quantityEditing: boolean;
+    options: ReactNode;
+    quantity: ReactNode;
+    submit: ReactNode;
+    notices: ReactNode;
+  }) => ReactNode;
 };
 export default function ProductPurchaseForm({
   product,
   isMock = false,
+  shippingMethod = "ground",
   children,
   compact = false,
   mobileStack = false,
+  renderLayout,
 }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [colorId, setColorId] = useState("");
   const [guaranteeId, setGuaranteeId] = useState("");
   const [skuSelection, setSkuSelection] = useState<Record<string, string>>({});
+  const [quantityEditing, setQuantityEditing] = useState(false);
   const sku = resolveProductSkuSelection(
     product.price.attributes,
     skuSelection,
@@ -53,15 +66,104 @@ export default function ProductPurchaseForm({
     (item) => String(item.id) === guaranteeId,
   );
   const missingGuarantee = product.guarantees.length > 0 && !guarantee;
+  const imported = product.source !== "iranmobix";
+  const missingSku = !imported && !sku.isComplete;
+  const selectedSku = Object.fromEntries(
+    Object.entries(sku.attributes).filter(([name]) =>
+      Object.hasOwn(skuSelection, name),
+    ),
+  );
   const payload = {
     quantity: selectedQuantity,
-    ...(product.price.attributes.length > 0
-      ? { sku_attributes: sku.attributes }
+    ...(imported ? { shipping_method: shippingMethod } : {}),
+    ...(imported && Object.keys(selectedSku).length > 0
+      ? { sku_attributes: selectedSku }
       : {}),
     ...(color ? { color: String(color.id) } : {}),
     ...(guarantee ? { guarantee: String(guarantee.id) } : {}),
   };
 
+  if (renderLayout) {
+    return (
+      <>
+        {renderLayout({
+          quantityValue: selectedQuantity || 1,
+          quantityEditing,
+          options: (
+            <>
+              <ProductWarranty
+                product={product}
+                value={guarantee ? String(guarantee.id) : ""}
+                onChange={setGuaranteeId}
+              />
+              {skuColor ? (
+                <ProductSkuAttributes
+                  attributes={[skuColor]}
+                  value={skuSelection}
+                  onChange={selectSku}
+                  disabled={unavailable}
+                />
+              ) : (
+                <ProductColor
+                  product={product}
+                  value={color ? String(color.id) : ""}
+                  onChange={setColorId}
+                />
+              )}
+            </>
+          ),
+          quantity: (
+            <ProductQuantity
+              value={selectedQuantity}
+              onChange={setQuantity}
+              onEditingChange={setQuantityEditing}
+              maximum={maximum}
+              disabled={unavailable}
+              stock={
+                product.inventory.trackingEnabled
+                  ? product.inventory.marketableNumber
+                  : null
+              }
+            />
+          ),
+          notices: (
+            <>
+              {isMock && (
+                <p className="mt-3 text-xs text-neutral-700">
+                  محصول نمونه به سبد واقعی اضافه نمی‌شود.
+                </p>
+              )}
+              {!isMock && missingGuarantee && (
+                <p className="mt-3 text-xs text-neutral-700">
+                  گارانتی را انتخاب کنید.
+                </p>
+              )}
+              {!isMock && missingSku && (
+                <p className="mt-3 text-xs text-neutral-700">
+                  اطلاعات لازم برای افزودن این محصول کامل نیست.
+                </p>
+              )}
+            </>
+          ),
+          submit: (
+            <AddToCartButton
+              key={JSON.stringify([product.slug, payload])}
+              slug={product.slug}
+              payload={payload}
+              disabled={
+                isMock ||
+                unavailable ||
+                missingGuarantee ||
+                missingSku ||
+                quantityEditing
+              }
+              className="h-10 w-full shrink-0"
+            />
+          ),
+        })}
+      </>
+    );
+  }
   return (
     <div className="flex min-w-0 flex-col">
       <div className="min-w-0">
@@ -84,6 +186,7 @@ export default function ProductPurchaseForm({
             <ProductQuantity
               value={selectedQuantity}
               onChange={setQuantity}
+              onEditingChange={setQuantityEditing}
               maximum={maximum}
               disabled={unavailable}
               stock={
@@ -95,7 +198,7 @@ export default function ProductPurchaseForm({
             {skuColor ? (
               <ProductSkuAttributes
                 attributes={[skuColor]}
-                value={sku.attributes}
+                value={skuSelection}
                 onChange={selectSku}
                 disabled={unavailable}
               />
@@ -117,7 +220,7 @@ export default function ProductPurchaseForm({
       {!isMock && missingGuarantee && (
         <p className="mt-3 text-xs text-neutral-700">گارانتی را انتخاب کنید.</p>
       )}
-      {!isMock && !sku.isComplete && (
+      {!isMock && missingSku && (
         <p className="mt-3 text-xs text-neutral-700">
           اطلاعات لازم برای افزودن این محصول کامل نیست.
         </p>
@@ -126,7 +229,13 @@ export default function ProductPurchaseForm({
         key={JSON.stringify([product.slug, payload])}
         slug={product.slug}
         payload={payload}
-        disabled={isMock || unavailable || missingGuarantee || !sku.isComplete}
+        disabled={
+          isMock ||
+          unavailable ||
+          missingGuarantee ||
+          missingSku ||
+          quantityEditing
+        }
         className="mt-5 shrink-0"
       />
     </div>

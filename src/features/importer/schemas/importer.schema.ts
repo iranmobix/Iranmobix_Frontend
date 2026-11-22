@@ -8,15 +8,6 @@ export const importUrlSchema = z
     (v) => ["http:", "https:"].includes(new URL(v).protocol),
     "لینک معتبر وارد کنید.",
   );
-export const importAcceptedSchema = z.object({
-  job_id: z.number().int().positive(),
-  status: z.enum(["pending", "processing", "done", "failed"]),
-  status_url: z.string(),
-  next_poll_after_seconds: z.number().nonnegative(),
-  import_type: z.string(),
-  result_mode: z.string(),
-  ready_for_frontend: z.boolean(),
-});
 export const discoverAcceptedSchema = z.object({
   job_id: z.number().int().positive(),
   status: z.string().min(1),

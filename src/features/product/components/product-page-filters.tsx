@@ -9,6 +9,9 @@ export function ProductPageFilters({
   model: Pick<
     ProductPageModel,
     | "filters"
+    | "categoriesLoading"
+    | "categoriesError"
+    | "retryCategories"
     | "draftQuery"
     | "updateQuery"
     | "priceMin"
@@ -36,6 +39,9 @@ export function ProductPageFilters({
       selectedSources={draftQuery.sources ?? []}
       onSourcesChange={(value) => updateQuery("sources", value)}
       categories={filters?.categories ?? []}
+      categoriesLoading={model.categoriesLoading}
+      categoriesError={model.categoriesError}
+      onRetryCategories={model.retryCategories}
       selectedCategories={draftQuery.category ?? []}
       onCategoryChange={(value) => updateQuery("category", value)}
       minPrice={draftQuery.min_price ?? ""}
@@ -49,9 +55,6 @@ export function ProductPageFilters({
       brands={filters?.brands ?? []}
       selectedBrands={draftQuery.brands ?? []}
       onBrandsChange={(value) => updateQuery("brands", value)}
-      colors={filters?.colors ?? []}
-      selectedColors={draftQuery.colors ?? []}
-      onColorsChange={(value) => updateQuery("colors", value)}
       sellerTypes={filters?.sellerTypes ?? []}
       selectedSellerTypes={draftQuery.seller_types ?? []}
       onSellerTypesChange={(value) => updateQuery("seller_types", value)}
@@ -59,9 +62,6 @@ export function ProductPageFilters({
       onInventoryChange={(value) =>
         updateQuery("in_iranmobix_inventory", value)
       }
-      guarantees={filters?.guarantees ?? []}
-      selectedGuarantees={draftQuery.guarantees ?? []}
-      onGuaranteesChange={(value) => updateQuery("guarantees", value)}
       onApply={applyFilters}
       onReset={resetDraftQuery}
     />

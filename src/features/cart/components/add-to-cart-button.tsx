@@ -19,9 +19,7 @@ export default function AddToCartButton({
       <Button
         type="button"
         disabled={disabled || action.isBusy}
-        onClick={() => {
-          if (!disabled) action.add({ slug, payload });
-        }}
+        onClick={disabled ? undefined : () => action.add({ slug, payload })}
         aria-busy={action.isPending}
         aria-describedby={messageId}
         className="h-11 w-full rounded-lg"

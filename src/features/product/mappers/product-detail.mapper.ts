@@ -1,3 +1,4 @@
+import { buildMainSpecifications } from "../utils/build-main-specifications";
 import type {
   ProductCommentCollectionApi,
   ProductRelatedProductApi,
@@ -12,7 +13,14 @@ import {
   parseProductAmount,
 } from "./product-detail-price.mapper";
 import { mapProductDetailSeller } from "./product-detail-seller.mapper";
-import { productDetailResponseSchema } from "../schemas/product-response.schema";
+import {
+  marketplaceProductDetailSchema,
+  productDetailResponseSchema,
+} from "../schemas/product-response.schema";
+import {
+  mapMarketplaceProductDetails,
+  type MarketplaceProductDetails,
+} from "./marketplace-product-details.mapper";
 
 // Related products and other seller offers share the compact detail response shape.
 function mapRelatedProduct(
@@ -35,7 +43,12 @@ function mapCommentCollection(
   return { count: comments.count, results: [...comments.results] };
 }
 
-export const mapProductDetail = (input: unknown): ProductDetail => {
+export const mapProductDetail = (
+  input: unknown,
+): ProductDetail | MarketplaceProductDetails => {
+  const marketplace = marketplaceProductDetailSchema.safeParse(input);
+  if (marketplace.success) return mapMarketplaceProductDetails(marketplace.data);
+
   const response = productDetailResponseSchema.parse(input);
   const product = response.product;
 
@@ -44,6 +57,16 @@ export const mapProductDetail = (input: unknown): ProductDetail => {
     slug: product.slug,
     source: product.source,
     title: product.title,
+    ...(product.product_code?.trim()
+      ? { productCode: product.product_code.trim() }
+      : {}),
+    ...(product.title_fa?.trim()
+      ? { persianTitle: product.title_fa.trim() }
+      : {}),
+    ...(product.title_en?.trim()
+      ? { englishTitle: product.title_en.trim() }
+      : {}),
+    ...(product.translated_by_ai === true ? { translatedByAi: true } : {}),
     shortDescription: product.short_description,
 
     /* Price */
@@ -137,6 +160,17 @@ export const mapProductDetail = (input: unknown): ProductDetail => {
 
     /* Specifications */
     translatedSpecifications: { ...response.translated_specifications },
+    ...(product.key_attributes !== undefined ||
+    response.key_attributes !== undefined ||
+    product.weight_kg !== undefined ||
+    response.weight_kg !== undefined
+      ? {
+          mainSpecifications: buildMainSpecifications(
+            product.weight_kg ?? response.weight_kg,
+            product.key_attributes ?? response.key_attributes,
+          ),
+        }
+      : {}),
 
     /* Related Products */
     relatedProducts: response.related_products.map(mapRelatedProduct),

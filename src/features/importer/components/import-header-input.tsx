@@ -14,6 +14,7 @@ import {
   ProductImportError,
 } from "../services/importer.service";
 import { runImportSearch } from "../services/import-search-navigation";
+import { singleProductImportPath } from "../services/single-product-import";
 export default function ImportHeaderInput({
   compact = false,
 }: {
@@ -44,6 +45,19 @@ export default function ImportHeaderInput({
     lock.current = true;
     setPending(true);
     try {
+      if ("source_url" in payload) {
+        // Open the loading/details route during the submit gesture, before any API request.
+        const tab = window.open(
+          singleProductImportPath(payload.source_url),
+          "_blank",
+        );
+        if (!tab)
+          throw new ProductImportError(
+            "برای نمایش نتیجه، اجازه بازشدن تب جدید را بدهید.",
+          );
+        tab.opener = null;
+        return;
+      }
       await runImportSearch({
         request: () => importerService.discover(payload),
         openTab: () => window.open("about:blank", "_blank"),
@@ -62,14 +76,16 @@ export default function ImportHeaderInput({
     }
   };
   return (
-    <div className={compact ? "min-w-0 flex-1" : "w-full max-w-[500px]"}>
+    <div
+      className={compact ? "min-w-0 flex-1" : "max-w-[500px] min-w-0 flex-1"}
+    >
       <ImportImageSearch>
         <form
           onSubmit={submit}
           className={
             compact
-              ? "flex h-[38px] min-w-0 items-center gap-1 rounded-full border border-[#d4d0c6] bg-white px-2 py-1 transition-colors duration-200 hover:border-[#b0a0e8] focus-within:border-[#b0a0e8] active:border-[#b0a0e8]"
-              : "flex h-[64px] items-center gap-2 rounded-full border border-[#d4d0c6] bg-white px-4 py-2 transition-colors duration-200 hover:border-[#b0a0e8] focus-within:border-[#b0a0e8] active:border-[#b0a0e8]"
+              ? "flex h-[38px] min-w-0 items-center gap-1 rounded-full border border-[#d4d0c6] bg-white px-2 py-1 transition-colors duration-200 focus-within:border-[#b0a0e8] hover:border-[#b0a0e8] active:border-[#b0a0e8]"
+              : "flex h-[52px] min-w-0 items-center gap-2 rounded-full border border-[#d4d0c6] bg-white px-4 py-2 transition-colors duration-200 focus-within:border-[#b0a0e8] hover:border-[#b0a0e8] active:border-[#b0a0e8] xl:h-[64px]"
           }
         >
           <button
@@ -81,7 +97,7 @@ export default function ImportHeaderInput({
             <Image
               src={search}
               alt=""
-              className={compact ? "size-3.5" : undefined}
+              className={compact ? "size-3.5" : "size-5 xl:size-auto"}
             />
           </button>
           <Input
@@ -97,7 +113,7 @@ export default function ImportHeaderInput({
             className={
               compact
                 ? "h-7 min-w-0 flex-1 border-0 bg-transparent p-0 text-[10px] text-neutral-900 placeholder:text-neutral-500 hover:border-0 focus-visible:border-0 focus-visible:ring-0"
-                : "flex-1 border-0 bg-transparent p-0 text-neutral-900 placeholder:text-neutral-600 hover:border-0 focus-visible:border-0 focus-visible:ring-0"
+                : "xl:text-body-lg min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-neutral-900 placeholder:text-neutral-600 hover:border-0 focus-visible:border-0 focus-visible:ring-0"
             }
           />
           <Popover.Trigger asChild>
@@ -110,7 +126,7 @@ export default function ImportHeaderInput({
               <Image
                 src={camera}
                 alt=""
-                className={compact ? "size-3.5" : undefined}
+                className={compact ? "size-3.5" : "size-5 xl:size-auto"}
               />
             </button>
           </Popover.Trigger>

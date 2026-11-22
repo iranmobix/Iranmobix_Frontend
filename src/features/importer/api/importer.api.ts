@@ -1,6 +1,5 @@
 import { httpGet, httpPost } from "@/shared/api";
 import type {
-  ImportProductPayload,
   ImportImagePayload,
   DiscoverProductPayload,
   ImportCandidatePayload,
@@ -8,10 +7,11 @@ import type {
 export const importerApi = {
   discover: (payload: DiscoverProductPayload, signal?: AbortSignal) =>
     httpPost<unknown>("/api/products/discover/", payload, { signal }),
-  importProduct: (payload: ImportProductPayload) =>
-    httpPost<unknown>("/api/products/import/", payload),
   importCandidate: (jobId: string, payload: ImportCandidatePayload) =>
-    httpPost<unknown>(`/api/products/jobs/${encodeURIComponent(jobId)}/candidates/import/`, payload),
+    httpPost<unknown>(
+      `/api/products/jobs/${encodeURIComponent(jobId)}/candidates/import/`,
+      payload,
+    ),
   getCandidateImportStatus: (jobId: string, signal?: AbortSignal) =>
     httpGet<unknown>(`/api/products/jobs/${encodeURIComponent(jobId)}/`, {
       params: { compact: true },

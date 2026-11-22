@@ -35,13 +35,13 @@ export interface ProductAppliedFiltersApi {
 export interface ProductFiltersApi {
   sources: ProductSourceFilterApi[];
 
-  categories: ProductCategoryFilterApi[];
+  categories?: ProductCategoryFilterApi[];
 
   brands: ProductBrandFilterApi[];
 
-  colors: ProductColorFilterApi[];
+  colors?: ProductColorFilterApi[];
 
   seller_types: ProductSellerTypeFilterApi[];
 
-  guarantees: ProductGuaranteeFilterApi[];
+  guarantees?: ProductGuaranteeFilterApi[];
 }

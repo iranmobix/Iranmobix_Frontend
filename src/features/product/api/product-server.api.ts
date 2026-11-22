@@ -33,12 +33,10 @@ async function getPublicProduct(
 
 /** Public reads only: no cookies, incoming headers or browser auth interceptors. */
 export const productServerApi = {
+  getCategories: (signal?: AbortSignal) =>
+    getPublicProduct("/api/product/categories/", undefined, signal),
   getProducts: (query?: ProductListQuery, signal?: AbortSignal) =>
     getPublicProduct("/api/catalog/products/", query, signal),
   getProductDetail: (slug: string, signal?: AbortSignal) =>
-    getPublicProduct(
-      getProductDetailApiPath(slug),
-      undefined,
-      signal,
-    ),
+    getPublicProduct(getProductDetailApiPath(slug), undefined, signal),
 };

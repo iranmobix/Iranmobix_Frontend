@@ -12,6 +12,52 @@ const object = z.record(z.string(), z.unknown());
 
 /** Read-only recovery: preserve usable fields and report every absent/invalid consumed value. */
 export function mapCartForDisplay(input: unknown): ServerCart {
+  const storefront = z.object({
+    items: z.array(z.record(z.string(), z.unknown())),
+    pay_detail: z.record(z.string(), z.unknown()),
+  }).safeParse(input);
+  if (storefront.success) {
+    const { items, pay_detail } = storefront.data;
+    const cart = mapCartForDisplay({
+      currency: "TOMAN",
+      item_count: items.length,
+      total_quantity: items.every(row => Number.isSafeInteger(row.quantity) && Number(row.quantity) >= 1)
+        ? items.reduce((sum, row) => sum + Number(row.quantity), 0) : undefined,
+      subtotal: pay_detail.total_price_iran,
+      final_total: pay_detail.total_price_iran,
+      discount_total: pay_detail.total_discount_amount,
+      items: items.map((row) => ({
+        id: row.id, quantity: row.quantity, shipping_method: row.shipping_method,
+        product: {
+          slug: row.slug, title: row.fa_title || row.en_title, short_title: row.fa_title,
+          image: row.image,
+          source: {name: "alibaba", label: "علی‌بابا", url: row.source_url},
+          seller: {name: row.seller_name, badges: [row.alibaba_verified === true && 'verified', row.iranmobix_verified === true && 'iranmobix'].filter(Boolean)},
+          price: {amount: row.price_in_china, currency: "CNY"},
+        },
+      })),
+    });
+    cart.storefront = true;
+    const paymentAmount = (key: string) => amount.nullish().catch(null).parse(pay_detail[key]) ?? null;
+    cart.paymentDetails = {
+      chinaTotalCny: paymentAmount('total_price_china'),
+      chinaTotalToman: paymentAmount('total_price_in_china_toman'),
+      iranTotalToman: paymentAmount('total_price_iran'),
+      internationalTransitToman: paymentAmount('international_transit'),
+      insuranceToman: paymentAmount('insurance'),
+      clearanceToman: paymentAmount('discharge'),
+      servicesToman: paymentAmount('iranmobix_services'),
+      discountToman: paymentAmount('total_discount_amount'),
+    };
+    cart.items.forEach((item, index) => {
+      const row = items[index];
+      item.discountPriceToman = amount.nullish().catch(null).parse(row.discount_price);
+      item.chinaPriceToman = amount.nullish().catch(null).parse(row.price_in_china_toman) ?? null;
+      item.chinaPriceCny = amount.nullish().catch(null).parse(row.price_in_china);
+      item.deliveryPriceToman = amount.nullish().catch(null).parse(row.price_in_iran);
+    });
+    return cart;
+  }
   const diagnostics: CartDataIssue[] = [];
   const get = (path: string) => {
     let value: unknown = input;
@@ -81,6 +127,7 @@ export function mapCartForDisplay(input: unknown): ServerCart {
           in_iranmobix_inventory:bool(`${p}.in_iranmobix_inventory`),official_url:string(`${p}.official_url`),marketable:bool(`${p}.marketable`),
         },
         selected_options:{color:get(`${selected}.color`).value ?? null,guarantee:get(`${selected}.guarantee`).value ?? null,attributes},
+        shipping_method:read(path + '.shipping_method',text.nullish().catch(null),null),
         quantity:number(`${path}.quantity`),
         availability:{marketable:bool(`${availability}.marketable`),available_quantity:read(`${availability}.available_quantity`,count.nullable(),null),is_available:bool(`${availability}.is_available`)},
         pricing:{

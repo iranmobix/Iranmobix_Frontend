@@ -13,7 +13,7 @@ import SupplierMarkets from "./SupplierMarkets";
 import SupplierServices from "./SupplierServices";
 
 type ProductSupplierDetailProps = {
-  product: ProductDetail;
+  product: Pick<ProductDetail, "seller">;
 };
 
 const ProductSupplierDetail = ({ product }: ProductSupplierDetailProps) => {

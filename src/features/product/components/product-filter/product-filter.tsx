@@ -5,17 +5,12 @@ import { ProductSellerTypeApi } from "../../types/api";
 import {
   ProductBrandFilterOption,
   ProductCategoryFilterOption,
-  ProductColorFilterOption,
-  ProductGuaranteeFilterOption,
-  ProductGuaranteeType,
   ProductSellerTypeFilterOption,
   ProductSourceFilterOption,
 } from "../../types/domain";
 
 import ProductBrandFilter from "./product-brand-filter";
 import ProductCategoryFilter from "./product-category-filter";
-import ProductColorFilter from "./product-color-filter";
-import ProductGuaranteeFilter from "./product-guarantee-filter";
 import ProductInventoryFilter from "./product-inventory-filter";
 import ProductPriceFilter from "./product-price-filter";
 import ProductSellerTypeFilter from "./product-seller-type-filter";
@@ -30,6 +25,9 @@ type ProductFilterProps = {
   onSourcesChange: (sources: string[]) => void;
 
   categories: ProductCategoryFilterOption[];
+  categoriesLoading?: boolean;
+  categoriesError?: boolean;
+  onRetryCategories?: () => void;
   selectedCategories: number[];
   onCategoryChange: (categories: number[]) => void;
 
@@ -43,20 +41,12 @@ type ProductFilterProps = {
   selectedBrands: number[];
   onBrandsChange: (brands: number[]) => void;
 
-  colors: ProductColorFilterOption[];
-  selectedColors: number[];
-  onColorsChange: (colors: number[]) => void;
-
   sellerTypes: ProductSellerTypeFilterOption[];
   selectedSellerTypes: ProductSellerTypeApi[];
   onSellerTypesChange: (sellerTypes: ProductSellerTypeApi[]) => void;
 
   inIranMobixInventory: boolean;
   onInventoryChange: (value: boolean) => void;
-
-  guarantees: ProductGuaranteeFilterOption[];
-  selectedGuarantees: ProductGuaranteeType[];
-  onGuaranteesChange: (guarantees: ProductGuaranteeType[]) => void;
 
   onApply: () => void;
   onReset: () => void;
@@ -70,6 +60,9 @@ const ProductFilter = ({
   onSourcesChange,
 
   categories,
+  categoriesLoading,
+  categoriesError,
+  onRetryCategories,
   selectedCategories,
   onCategoryChange,
 
@@ -84,20 +77,12 @@ const ProductFilter = ({
   selectedBrands,
   onBrandsChange,
 
-  colors,
-  selectedColors,
-  onColorsChange,
-
   sellerTypes,
   selectedSellerTypes,
   onSellerTypesChange,
 
   inIranMobixInventory,
   onInventoryChange,
-
-  guarantees,
-  selectedGuarantees,
-  onGuaranteesChange,
 
   onApply,
   onReset,
@@ -136,11 +121,11 @@ const ProductFilter = ({
           ? "flex w-full flex-col bg-white"
           : embedded
             ? "flex w-full flex-col rounded-md bg-white p-5"
-          : "sticky top-[var(--product-filter-top,181px)] flex max-h-[calc(100dvh-var(--product-filter-top,181px)-24px)] w-[18.06vw] shrink-0 flex-col self-start rounded-md bg-white p-5"
+            : "sticky top-[var(--product-filter-top,181px)] flex max-h-[calc(100dvh-var(--product-filter-top,181px)-24px)] w-[18.06vw] shrink-0 flex-col self-start rounded-md bg-white p-5"
       }
     >
       {/* Header */}
-      <h2 className="shrink-0 text-label-lg text-neutral-1000">فیلترها</h2>
+      <h2 className="text-label-lg text-neutral-1000 shrink-0">فیلترها</h2>
 
       {/* Filters */}
       <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
@@ -155,6 +140,9 @@ const ProductFilter = ({
 
           <ProductCategoryFilter
             categories={categories}
+            loading={categoriesLoading}
+            error={categoriesError}
+            onRetry={onRetryCategories}
             value={selectedCategories}
             onChange={onCategoryChange}
             isOpen={openFilter === "category"}
@@ -179,14 +167,6 @@ const ProductFilter = ({
             onToggle={() => handleToggleFilter("brand")}
           />
 
-          <ProductColorFilter
-            colors={colors}
-            value={selectedColors}
-            onChange={onColorsChange}
-            isOpen={openFilter === "color"}
-            onToggle={() => handleToggleFilter("color")}
-          />
-
           <ProductSellerTypeFilter
             sellerTypes={sellerTypes}
             value={selectedSellerTypes}
@@ -199,17 +179,11 @@ const ProductFilter = ({
             value={inIranMobixInventory}
             onChange={onInventoryChange}
           />
-
-          <ProductGuaranteeFilter
-            guarantees={guarantees}
-            value={selectedGuarantees}
-            onChange={onGuaranteesChange}
-          />
         </div>
       </div>
 
       {/* Actions */}
-      <div className="mt-6 shrink-0 flex flex-col gap-2">
+      <div className="mt-6 flex shrink-0 flex-col gap-2">
         <Button
           type="button"
           onClick={onApply}

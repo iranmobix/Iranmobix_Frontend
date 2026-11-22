@@ -7,9 +7,17 @@ type BreadcrumbItem = {
 
 type BreadcrumbProps = {
   items: BreadcrumbItem[];
+  variant?: "default" | "product-detail";
 };
 
-const Breadcrumb = ({ items }: BreadcrumbProps) => {
+const Breadcrumb = ({ items, variant = "default" }: BreadcrumbProps) => {
+  const productDetail = variant === "product-detail";
+  const typography = productDetail
+    ? "text-mobile-caption lg:text-desktop-body-s"
+    : "text-sm";
+  const itemColor = productDetail ? "text-neutral-800" : "text-neutral-500";
+  const currentColor = productDetail ? "text-neutral-900" : "text-neutral-1000";
+  const separatorColor = productDetail ? itemColor : "text-neutral-400";
   return (
     <nav aria-label="مسیر صفحه" className="flex items-center gap-2">
       {items.map((item, index) => {
@@ -23,24 +31,24 @@ const Breadcrumb = ({ items }: BreadcrumbProps) => {
             {item.href && !isLastItem ? (
               <Link
                 href={item.href}
-                className="text-sm text-neutral-500 transition-colors hover:text-primary-700"
+                className={`${typography} ${itemColor} hover:text-primary-700 transition-colors`}
               >
                 {item.label}
               </Link>
             ) : (
               <span
-                className={`text-sm ${
-                  isLastItem
-                    ? "font-medium text-neutral-1000"
-                    : "text-neutral-500"
-                }`}
+                aria-current={isLastItem ? "page" : undefined}
+                className={`${typography} ${isLastItem ? `${currentColor} font-medium` : itemColor}`}
               >
                 {item.label}
               </span>
             )}
 
             {!isLastItem && (
-              <span aria-hidden="true" className="text-sm text-neutral-400">
+              <span
+                aria-hidden="true"
+                className={`${typography} ${separatorColor}`}
+              >
                 /
               </span>
             )}

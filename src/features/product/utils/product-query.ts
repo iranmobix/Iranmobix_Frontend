@@ -1,8 +1,5 @@
 import type { ProductListQuery } from "../types/api/product-list-query.types";
-import type {
-  ProductGuaranteeTypeApi,
-  ProductSellerTypeApi,
-} from "../types/api";
+import type { ProductSellerTypeApi } from "../types/api";
 
 export const DEFAULT_PRODUCT_SORT: ProductListQuery["sort"] = "newest";
 
@@ -78,13 +75,8 @@ export const parseProductQuery = (
 
     brands: parseNumberArray(searchParams.get("brands")),
 
-    colors: parseNumberArray(searchParams.get("colors")),
-
     seller_types: parseStringArray(searchParams.get("seller_types")) as
       ProductSellerTypeApi[] | undefined,
-
-    guarantees: parseStringArray(searchParams.get("guarantees")) as
-      ProductGuaranteeTypeApi[] | undefined,
 
     in_iranmobix_inventory: parseBoolean(
       searchParams.get("in_iranmobix_inventory"),

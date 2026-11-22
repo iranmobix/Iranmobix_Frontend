@@ -3,8 +3,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useCartMergeFlow } from "../hooks/use-cart-merge-flow";
 
-export default function CartMergeAfterLogin() {
-  const { isPending, isError, issues, hasIssues } = useCartMergeFlow();
+export default function CartMergeAfterLogin({
+  returnTo,
+}: { returnTo?: string | null } = {}) {
+  const { isPending, isError, issues, hasIssues } = useCartMergeFlow(returnTo);
   if (isError || hasIssues)
     return (
       <div className="space-y-4 text-sm leading-7" dir="rtl">

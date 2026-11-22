@@ -11,13 +11,16 @@ const config = (session?: GuestCartSession | null) => ({
   withCredentials: true,
   headers: session ? { [session.header]: session.token } : undefined,
 });
-/** Runtime schemas validate responses in the service; unknown add response is not guessed. */
+/** Shared transport for guest and authenticated carts. */
 export const cartApi = {
   createSession: () =>
     httpPost<unknown>("/api/cart/session/", undefined, config()),
   getCart: (session?: GuestCartSession | null, signal?: AbortSignal) =>
     httpGet<unknown>("/api/cart/", { ...config(session), signal }),
-  addItem: ({ slug, payload }: AddToCartInput, session: GuestCartSession) =>
+  addItem: (
+    { slug, payload }: AddToCartInput,
+    session?: GuestCartSession | null,
+  ) =>
     httpPost<unknown>(
       `/api/add-to-cart/${encodeURIComponent(slug)}`,
       payload,
@@ -43,8 +46,6 @@ export const cartApi = {
   merge: (session: GuestCartSession) =>
     httpPost<unknown>("/api/cart/merge/", undefined, config(session)),
 
-  submitOrder: (
-    payload: SubmitOrderPayload,
-    session?: GuestCartSession | null,
-  ) => httpPost<unknown>("/api/cart/submit-order", payload, config(session)),
+  submitOrder: (payload: SubmitOrderPayload) =>
+    httpPost<unknown>("/api/cart/submit-order", payload, config()),
 };

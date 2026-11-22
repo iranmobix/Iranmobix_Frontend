@@ -14,7 +14,10 @@ const badge = z.enum(["verified", "trusted", "iranmobix"]);
 const source = z.object({
   name: z.string(),
   label: z.string(),
-  url: z.string().nullable().transform((value) => value ?? ""),
+  url: z
+    .string()
+    .nullable()
+    .transform((value) => value ?? ""),
 });
 const brand = z.object({
   id,
@@ -37,9 +40,12 @@ export const productListItemSchema: z.ZodType<ProductListItemApi> = z.object({
   title: z.string(),
   short_title: z.string(),
   short_description: z.string(),
-  image: z.string().nullable().transform((value) => value ?? ""),
+  image: z
+    .string()
+    .nullable()
+    .transform((value) => value ?? ""),
   source,
-  colors: z.array(color),
+  colors: z.array(color).default([]),
   price: z.object({
     amount: optionalProductAmountSchema,
     currency: z.string(),
@@ -57,9 +63,14 @@ export const productListItemSchema: z.ZodType<ProductListItemApi> = z.object({
       type: guaranteeType.nullable(),
       label: z.string().nullable(),
     })
-    .nullable(),
+    .nullable()
+    .optional()
+    .transform((value) => value ?? null),
   in_iranmobix_inventory: z.boolean(),
-  official_url: z.string().nullable().transform((value) => value ?? ""),
+  official_url: z
+    .string()
+    .nullable()
+    .transform((value) => value ?? ""),
   marketable: z.boolean(),
 });
 
@@ -73,13 +84,10 @@ export const productListEnvelopeSchema = z.object({
   results: z.array(z.unknown()),
   filters: z.object({
     sources: z.array(option),
-    categories: z.array(z.object({ id, name: z.string(), slug: z.string() })),
     brands: z.array(
       z.object({ id, name: z.string(), logo: z.string().nullable() }),
     ),
-    colors: z.array(color),
     seller_types: z.array(option.extend({ value: badge })),
-    guarantees: z.array(option.extend({ value: guaranteeType })),
   }),
 });
 
@@ -106,7 +114,9 @@ const priceRange = z
     (value) =>
       orderedPriceRange(value) &&
       Number(value.minimum_toman) <= Number(value.maximum_toman) &&
-      (value.minimum_usd === null || value.maximum_usd === null || Number(value.minimum_usd) <= Number(value.maximum_usd)),
+      (value.minimum_usd === null ||
+        value.maximum_usd === null ||
+        Number(value.minimum_usd) <= Number(value.maximum_usd)),
     "بازهٔ قیمت نامعتبر است.",
   );
 
@@ -198,12 +208,28 @@ const relatedProduct = z.object({
   slug,
   title: z.string(),
   short_description: z.string(),
-  image: z.string().nullable().transform((value) => value ?? ""),
+  image: z
+    .string()
+    .nullable()
+    .transform((value) => value ?? ""),
   price: productDetailPriceSchema,
   seller: detailSeller.nullable(),
   source,
 });
 const comments = z.object({ count, results: z.array(z.unknown()) });
+
+// Marketplace details use a flat payload also returned by the import flow.
+export const marketplaceProductDetailSchema = z
+  .object({
+    slug,
+    product: z.never().optional(),
+    title_fa: z.string().nullish(),
+    title_en: z.string().nullish(),
+  })
+  .passthrough()
+  .refine(({ title_fa, title_en }) =>
+    Boolean(title_fa?.trim() || title_en?.trim()),
+  );
 
 export const productDetailResponseSchema: z.ZodType<ProductDetailApiResponse> =
   z.object({
@@ -211,6 +237,12 @@ export const productDetailResponseSchema: z.ZodType<ProductDetailApiResponse> =
       slug,
       source: z.string(),
       title: z.string(),
+      title_fa: z.string().nullish(),
+      title_en: z.string().nullish(),
+      product_code: z.string().nullish(),
+      translated_by_ai: z.boolean().nullish(),
+      weight_kg: z.union([z.number(), z.string()]).nullish().catch(null),
+      key_attributes: z.record(z.string(), z.unknown()).nullish().catch(null),
       short_description: z.string(),
       price: productDetailPriceSchema,
       brand: brand.nullable(),
@@ -231,7 +263,10 @@ export const productDetailResponseSchema: z.ZodType<ProductDetailApiResponse> =
           is_delete: z.boolean().nullish(),
         })
         .nullable(),
-      official_url: z.string().nullable().transform((value) => value ?? ""),
+      official_url: z
+        .string()
+        .nullable()
+        .transform((value) => value ?? ""),
       marketable: z.boolean(),
       inventory: z.object({
         marketable_number: count,
@@ -240,7 +275,10 @@ export const productDetailResponseSchema: z.ZodType<ProductDetailApiResponse> =
         tracking_enabled: z.boolean(),
       }),
     }),
-    primary_image: z.string().nullable().transform((value) => value ?? ""),
+    primary_image: z
+      .string()
+      .nullable()
+      .transform((value) => value ?? ""),
     gallery: z.array(
       z.object({ id, url: z.string(), is_primary: z.boolean() }),
     ),
@@ -271,6 +309,8 @@ export const productDetailResponseSchema: z.ZodType<ProductDetailApiResponse> =
       has_review: z.boolean(),
     }),
     translated_specifications: z.record(z.string(), z.string()),
+    weight_kg: z.union([z.number(), z.string()]).nullish().catch(null),
+    key_attributes: z.record(z.string(), z.unknown()).nullish().catch(null),
     related_products: z.array(relatedProduct),
     other_sellers: z.array(relatedProduct),
     comment_summary: z.string().nullable(),

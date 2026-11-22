@@ -9,6 +9,9 @@ import { toggleFilterValue } from "../../utils";
 
 type ProductCategoryFilterProps = {
   categories: ProductCategoryFilterOption[];
+  loading?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   value: number[];
   onChange: (categories: number[]) => void;
 
@@ -18,6 +21,9 @@ type ProductCategoryFilterProps = {
 
 const ProductCategoryFilter = ({
   categories,
+  loading = false,
+  error = false,
+  onRetry,
   value,
   onChange,
   isOpen,
@@ -59,7 +65,7 @@ const ProductCategoryFilter = ({
           <div className="relative mb-2">
             <Search
               size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400"
             />
 
             <input
@@ -71,6 +77,32 @@ const ProductCategoryFilter = ({
             />
           </div>
 
+          {loading && (
+            <div role="status" className="space-y-2 py-2">
+              <span className="sr-only">در حال دریافت دسته‌بندی‌ها</span>
+              {[0, 1, 2].map((key) => (
+                <div
+                  key={key}
+                  className="h-8 rounded bg-neutral-100 motion-safe:animate-pulse"
+                />
+              ))}
+            </div>
+          )}
+          {error && (
+            <div
+              role="alert"
+              className="text-mobile-body-s space-y-2 py-2 leading-6 text-neutral-800"
+            >
+              <p>دسته‌بندی‌ها فعلاً در دسترس نیستند.</p>
+              <button
+                type="button"
+                onClick={onRetry}
+                className="text-primary-600 focus-visible:ring-primary-300 rounded px-2 py-1 focus-visible:ring-2"
+              >
+                تلاش دوباره
+              </button>
+            </div>
+          )}
           {/* Categories */}
           <div className="max-h-60 overflow-y-auto">
             {filteredCategories.map((category) => {
@@ -119,7 +151,7 @@ const ProductCategoryFilter = ({
               );
             })}
 
-            {filteredCategories.length === 0 && (
+            {!loading && !error && filteredCategories.length === 0 && (
               <p className="py-2 text-sm text-gray-500">
                 دسته‌بندی‌ای پیدا نشد.
               </p>

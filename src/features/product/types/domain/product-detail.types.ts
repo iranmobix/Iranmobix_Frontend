@@ -19,6 +19,10 @@ export interface ProductDetail {
   source: string;
   title: string;
   shortDescription: string;
+  productCode?: string;
+  persianTitle?: string;
+  englishTitle?: string;
+  translatedByAi?: boolean;
   price: ProductDetailPrice;
   brand: ProductBrand | null;
   category: ProductCategory | null;
@@ -32,6 +36,7 @@ export interface ProductDetail {
   guarantees: ProductDetailGuarantee[];
   description: ProductDescription;
   translatedSpecifications: Record<string, string>;
+  mainSpecifications?: Record<string, string>;
   relatedProducts: ProductRelatedProduct[];
   otherSellers: ProductRelatedProduct[];
   commentSummary: string | null;
@@ -44,6 +49,10 @@ export interface ProductRelatedProduct {
   slug: string;
   title: string;
   shortDescription: string;
+  productCode?: string;
+  persianTitle?: string;
+  englishTitle?: string;
+  translatedByAi?: boolean;
   image: string;
   price: ProductDetailPrice;
   seller: ProductDetailSeller | null;

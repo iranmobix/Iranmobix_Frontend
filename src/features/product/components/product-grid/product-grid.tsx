@@ -1,5 +1,8 @@
 import type { ProductMobileCurrency } from "../product-card/product-mobile-card";
-import type { Product, ProductDataIssue } from "../../types/domain/product.types";
+import type {
+  Product,
+  ProductDataIssue,
+} from "../../types/domain/product.types";
 import ProductCard from "../product-card/product-card";
 
 type ProductGridProps = {
@@ -29,7 +32,9 @@ const ProductGrid = ({
       mobileLayout
       discoveryMobile={discoveryMobile}
       mobileCurrency={mobileCurrency}
-      onDetailsClick={onProductDetailsClick ? () => onProductDetailsClick(product) : undefined}
+      onDetailsClick={
+        onProductDetailsClick ? () => onProductDetailsClick(product) : undefined
+      }
       detailsPending={openingProductId === product.id}
       detailsDisabled={openingProductId != null}
       dataIssues={productDataIssues?.get(product.id)}
@@ -37,7 +42,7 @@ const ProductGrid = ({
   );
 
   return (
-    <section className="grid grid-cols-1 gap-3 lg:grid-cols-4 lg:gap-4">
+    <section className="grid grid-cols-1 gap-3 lg:grid-cols-[repeat(auto-fill,minmax(240px,1fr))] lg:gap-4">
       {products.map((product) => renderProduct(product))}
     </section>
   );

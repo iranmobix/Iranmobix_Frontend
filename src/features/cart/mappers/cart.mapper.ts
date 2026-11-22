@@ -26,6 +26,7 @@ function mapCartItem(item: CartItemApi, currency: string): ServerCartItem {
   return {
     id: String(item.id),
     catalogId: item.catalog_id,
+    shippingMethod: item.shipping_method ?? null,
     source: item.source,
     currency,
     product: {

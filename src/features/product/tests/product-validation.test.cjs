@@ -35,6 +35,7 @@ function harness(response) {
       module,
       exports: module.exports,
       structuredClone,
+      URLSearchParams,
       setTimeout,
       clearTimeout,
     });
@@ -459,4 +460,40 @@ test("mock list and detail delays are cancellable without waiting for preview re
     controller.abort();
     await assert.rejects(pending, { name: "AbortError" });
   }
+});
+
+
+
+test("product list ignores category, color and guarantee filter metadata from the products endpoint",async()=>{
+  for(const legacy of [undefined,null,"invalid metadata",[{id:"invalid"}]]) {
+    const raw=listFixture();
+    raw.filters.categories=legacy;raw.filters.colors=legacy;raw.filters.guarantees=legacy;
+    const result=await harness(raw).load("services/product.service").productService.getProducts({category:[84],sort:"newest"});
+    assert.equal(result.products.length,raw.results.length);
+    assert.equal(result.filters.categories.length,0);
+    assert.equal("colors" in result.filters,false);
+    assert.equal("guarantees" in result.filters,false);
+  }
+});
+
+
+test("product cards remain renderable when the backend omits colors and guarantee",async()=>{
+  const raw=listFixture();
+  delete raw.results[0].colors;
+  delete raw.results[0].guarantee;
+  const result=await harness(raw).load("services/product.service").productService.getProducts();
+  assert.equal(result.products.length,raw.results.length);
+  assert.equal(result.products[0].colors.length,0);
+  assert.equal(result.products[0].guarantee,null);
+  assert.equal(result.products[0].id,raw.results[0].id);
+  assert.equal(result.products[0].price.amount,Number(raw.results[0].price.amount));
+});
+test("optional card fields still reject malformed values when supplied",()=>{
+  const schema=harness().load("schemas/product-response.schema").productListItemSchema;
+  for(const invalid of [null,"invalid",{}]) {
+    const card=listFixture().results[0];card.colors=invalid;
+    assert.equal(schema.safeParse(card).success,false);
+  }
+  const card=listFixture().results[0];card.guarantee={available:"yes"};
+  assert.equal(schema.safeParse(card).success,false);
 });

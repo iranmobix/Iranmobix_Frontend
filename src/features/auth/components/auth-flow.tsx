@@ -1,26 +1,15 @@
 "use client";
 
 import AuthLogo from "./auth-logo";
-import { useEffect } from "react";
+import CartMergeAfterLogin from "@/features/cart/components/cart-merge-after-login";
 import { useOtpFlow } from "../hooks/useOtpFlow";
 import OtpSection from "./otp-section";
 import { IdentityForm } from "./identity-form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export default function AuthFlow() {
   const otp = useOtpFlow();
-  const router = useRouter();
   const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (otp.step !== "LOGGED_IN") {
-      return;
-    }
-
-    const returnTo = searchParams.get("returnTo");
-
-    router.replace(returnTo || "/");
-  }, [otp.step, router, searchParams]);
 
   return (
     <div className="w-full">
@@ -53,7 +42,9 @@ export default function AuthFlow() {
         />
       )}
 
-      {otp.step === "LOGGED_IN" && <div>Login Success</div>}
+      {otp.step === "LOGGED_IN" && (
+        <CartMergeAfterLogin returnTo={searchParams.get("returnTo")} />
+      )}
     </div>
   );
 }

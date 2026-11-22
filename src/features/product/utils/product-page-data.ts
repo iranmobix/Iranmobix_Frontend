@@ -1,3 +1,4 @@
+import type { ProductCategoryFilterOption } from "../types/domain/product-filter.types";
 import type { ProductListResult } from "../types/domain/product-list.types";
 import type { ProductPageProps } from "../types/domain/product-page.types";
 import type { ProductListQuery } from "../types/api/product-list-query.types";
@@ -11,6 +12,7 @@ type Input = Pick<
   ProductPageProps,
   "importedProducts" | "discoveryProducts"
 > & {
+  categories?: ProductCategoryFilterOption[];
   pages: ProductListResult[];
   query: ProductListQuery;
 };
@@ -18,6 +20,7 @@ type Input = Pick<
 /** Pure data preparation: no React, routing, network or browser dependencies. */
 export function getProductPageData({
   pages,
+  categories = [],
   query,
   importedProducts,
   discoveryProducts,
@@ -29,16 +32,21 @@ export function getProductPageData({
   const products = isCatalog
     ? Array.from(
         new Map(
-          pages.flatMap((page) => page.products).map((product) => [product.id, product]),
+          pages
+            .flatMap((page) => page.products)
+            .map((product) => [product.id, product]),
         ).values(),
       )
     : filterImportedProducts(
         discoveryProducts?.suggested ?? sourceProducts,
         query,
       );
-  const filters = isCatalog
-    ? pages[0]?.filters
-    : getImportedProductFilters(sourceProducts);
+  const filters = {
+    ...(isCatalog
+      ? (pages[0]?.filters ?? { sources: [], brands: [], sellerTypes: [] })
+      : getImportedProductFilters(sourceProducts)),
+    categories: isCatalog ? categories : [],
+  };
   const amounts = products
     .map((product) => product.price.amountIrr)
     .filter(

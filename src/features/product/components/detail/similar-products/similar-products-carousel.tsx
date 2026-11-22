@@ -7,20 +7,36 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Product } from "@/features/product/types/domain/product.types";
 import type { ProductRelatedProduct } from "../../../types/domain/product-detail.types";
 import ProductCard from "../../product-card/product-card";
+import { getProductDetailsHref } from "../../../utils/product-path";
+import { singleProductImportPath } from "../../../../importer/utils/single-product-import-path";
+import { importUrlSchema } from "../../../../importer/schemas/importer.schema";
 
 type SimilarProductsCarouselProps = {
   products: readonly (Product | ProductRelatedProduct)[];
   title?: string;
+  desktopTitleClassName?: string;
   compactMobile?: boolean;
+  previewOnly?: boolean;
+  wideLayout?: boolean;
 };
 
 const MIN_ITEMS_FOR_LOOP = 7;
+
+function getCardDetailsHref(product: Product | ProductRelatedProduct) {
+  if (product.slug.trim()) return getProductDetailsHref(product.slug);
+  if (product.source.name !== "alibaba") return undefined;
+  const source = importUrlSchema.safeParse(product.source.url);
+  return source.success ? singleProductImportPath(source.data) : undefined;
+}
 
 // Reused from feature/product-details; shared by similar and recently viewed products.
 const SimilarProductsCarousel = ({
   products,
   title = "کالاهای مشابه",
+  desktopTitleClassName,
   compactMobile = false,
+  previewOnly = false,
+  wideLayout = false,
 }: SimilarProductsCarouselProps) => {
   const id = useId();
   const hasEnoughProducts = products.length >= MIN_ITEMS_FOR_LOOP;
@@ -31,6 +47,14 @@ const SimilarProductsCarousel = ({
     dragFree: false,
     containScroll: hasEnoughProducts ? false : "trimSnaps",
     slidesToScroll: 1,
+    breakpoints: {
+      "(min-width: 1024px)": {
+        // Four full cards, with half of the adjacent card on either side.
+        align: (viewSize, slideSize) => (viewSize - 4 * slideSize - 3 * 16) / 2,
+        containScroll: false,
+        startIndex: products.length >= 6 ? 1 : 0,
+      },
+    },
   });
 
   const subscribe = useCallback(
@@ -68,7 +92,9 @@ const SimilarProductsCarousel = ({
         id={id}
         className={
           compactMobile
-            ? "text-neutral-1000 lg:text-body-lg-medium mb-3 px-1 text-xs font-medium lg:mb-6 lg:px-6"
+            ? wideLayout
+              ? `text-neutral-1000 mb-3 px-1 text-xs font-medium ${desktopTitleClassName ?? ""}`
+              : `text-neutral-1000 mb-3 px-1 text-xs font-medium ${desktopTitleClassName ?? "lg:text-body-lg-medium lg:mb-6 lg:px-6"}`
             : "text-body-lg-medium text-neutral-1000 mb-6 px-4 lg:px-6"
         }
       >
@@ -90,7 +116,7 @@ const SimilarProductsCarousel = ({
               scroll(event.key === "ArrowLeft" ? "next" : "previous");
             }
           }}
-          className={`${compactMobile ? "px-0" : "px-4"} focus-visible:ring-primary-300 overflow-hidden focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset lg:px-32`}
+          className={`${compactMobile ? "px-0" : "px-4"} focus-visible:ring-primary-300 overflow-hidden focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset lg:px-0`}
         >
           <div
             className={
@@ -99,22 +125,33 @@ const SimilarProductsCarousel = ({
                 : "flex touch-pan-y items-stretch gap-4"
             }
           >
-            {products.map((product) => (
-              <div
-                key={`${product.source.name}:${product.slug}:${product.seller?.id ?? ""}`}
-                className={
-                  compactMobile
-                    ? "min-w-0 shrink-0 grow-0 basis-[calc((100%-8px)/2)] sm:basis-[40%] lg:basis-[calc((100%-48px)/4)]"
-                    : "min-w-0 shrink-0 grow-0 basis-[min(260px,80%)] sm:basis-[calc((100%-16px)/2)] lg:basis-[calc((100%-48px)/4)]"
-                }
-              >
-                <ProductCard
-                  product={product}
-                  variant="bordered"
-                  compactMobile={compactMobile}
-                />
-              </div>
-            ))}
+            {products.map((product) => {
+              const detailsHref = previewOnly
+                ? undefined
+                : getCardDetailsHref(product);
+              const detailsDisabled = !detailsHref;
+              return (
+                <div
+                  key={`${product.source.name}:${product.slug || product.source.url}:${product.seller?.id ?? ""}`}
+                  className={
+                    compactMobile
+                      ? wideLayout
+                        ? "min-w-0 shrink-0 grow-0 basis-[calc((100%-8px)/2)] sm:basis-[40%] lg:basis-[calc((100%-80px)/5)]"
+                        : "min-w-0 shrink-0 grow-0 basis-[calc((100%-8px)/2)] sm:basis-[40%] lg:basis-[calc((100%-80px)/5)]"
+                      : "min-w-0 shrink-0 grow-0 basis-[min(260px,80%)] sm:basis-[calc((100%-16px)/2)] lg:basis-[calc((100%-80px)/5)]"
+                  }
+                >
+                  <ProductCard
+                    product={product}
+                    variant="bordered"
+                    detailsHref={detailsHref}
+                    detailsDisabled={detailsDisabled}
+                    onDetailsClick={detailsDisabled ? () => {} : undefined}
+                    compactMobile={compactMobile}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -124,9 +161,9 @@ const SimilarProductsCarousel = ({
           disabled={!(scrollState & 1)}
           aria-label="محصولات قبلی"
           aria-controls={`${id}-viewport`}
-          className={`${compactMobile ? "hidden lg:flex" : "flex"} bg-primary-500 hover:bg-primary-700 focus-visible:ring-primary-300 absolute top-1/2 right-4 z-10 size-12 -translate-y-1/2 items-center justify-center rounded-full text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0`}
+          className={`${compactMobile ? "hidden lg:flex" : "flex"} bg-primary-500 hover:bg-primary-700 focus-visible:ring-primary-300 absolute top-1/2 right-4 z-10 ${wideLayout ? "size-8" : "size-12"} -translate-y-1/2 items-center justify-center rounded-full text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0`}
         >
-          <ArrowRight size={24} aria-hidden="true" />
+          <ArrowRight size={wideLayout ? 18 : 24} aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -134,9 +171,9 @@ const SimilarProductsCarousel = ({
           disabled={!(scrollState & 2)}
           aria-label="محصولات بعدی"
           aria-controls={`${id}-viewport`}
-          className={`${compactMobile ? "hidden lg:flex" : "flex"} bg-primary-500 hover:bg-primary-700 focus-visible:ring-primary-300 absolute top-1/2 left-4 z-10 size-12 -translate-y-1/2 items-center justify-center rounded-full text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0`}
+          className={`${compactMobile ? "hidden lg:flex" : "flex"} bg-primary-500 hover:bg-primary-700 focus-visible:ring-primary-300 absolute top-1/2 left-4 z-10 ${wideLayout ? "size-8" : "size-12"} -translate-y-1/2 items-center justify-center rounded-full text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0`}
         >
-          <ArrowLeft size={24} aria-hidden="true" />
+          <ArrowLeft size={wideLayout ? 18 : 24} aria-hidden="true" />
         </button>
       </div>
     </section>

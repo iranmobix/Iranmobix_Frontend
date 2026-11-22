@@ -1,6 +1,7 @@
 import type { ProductSeller } from "./product.types";
 
 export interface ProductDetailSeller extends ProductSeller {
+  officialUrl?: string;
   location: string | null;
   logo: string | null;
   rating: number | null;

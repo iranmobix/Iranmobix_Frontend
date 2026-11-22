@@ -36,7 +36,7 @@ export default function ProductLoadingIndicator({ variant = "results", announce 
           {[0, 1, 2].map((index) => <span key={index} className="product-loading-dot size-1 rounded-full bg-primary-400" style={{ animationDelay: `${index * 160}ms` }} />)}
         </span>
       </p>
-      <p className="max-w-sm px-3 text-xs leading-6 text-neutral-700">
+      <p className="max-w-sm px-3 text-mobile-body-s lg:text-desktop-body-s text-secondary-600">
         {variant === "details" ? "اطلاعات محصول در حال دریافت و آماده‌سازی است؛ لطفاً کمی صبر کنید." : "محصولات در حال دریافت و آماده‌سازی هستند؛ لطفاً کمی صبر کنید."}
       </p>
       <div aria-hidden="true" dir="ltr" className="mt-1 h-1 w-32 overflow-hidden rounded-full bg-primary-100">

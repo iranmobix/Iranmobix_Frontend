@@ -1,3 +1,4 @@
+import { getProductCategoryHref } from "./product-category-path";
 import type { ProductDetail } from "../types/domain/product-detail.types";
 
 interface BreadcrumbItem {
@@ -16,6 +17,7 @@ export const buildProductDetailBreadcrumb = (
   if (product.category) {
     items.push({
       label: product.category.name,
+      href: getProductCategoryHref(product.category.name, product.category.id),
     });
   }
 

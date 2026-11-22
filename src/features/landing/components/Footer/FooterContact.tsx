@@ -17,7 +17,7 @@ const contactItems = [
   {
     id: "address",
     icon: location,
-    text: "اصفهان، خیابان شریف واقفی، کوچه سپهر، پلاک ۱۶۶",
+    text: "اصفهان، خیابان شریف واقفی",
   },
   {
     id: "email",

@@ -3,7 +3,7 @@ import type { ProductPageProps } from "../types/domain/product-page.types";
 import type { ProductMobileCurrency } from "./product-card/product-mobile-card";
 import Breadcrumb from "@/shared/components/breadcrumb/breadcrumb";
 import ProductSort from "./product-sort";
-import ProductDataFeedback from "./product-data-feedback";
+import ProductCatalogUnavailable from "./product-catalog-unavailable";
 import ProductCard from "./product-card/product-card";
 import { ProductPageFilters } from "./product-page-filters";
 import { ProductPageResults } from "./product-page-results";
@@ -20,10 +20,6 @@ export default function ProductPageView({
   const {
     isCatalog,
     isError,
-    isMock,
-    isFetching,
-    useMockData,
-    useApiData,
     query,
     productCount,
     mobileCurrency,
@@ -43,15 +39,6 @@ export default function ProductPageView({
     discoveryError,
     productDataIssues,
   } = options;
-  const feedback = (
-    <ProductDataFeedback
-      isError={isCatalog && isError}
-      isMock={isMock}
-      isFetching={isFetching}
-      onUseMock={useMockData}
-      onUseApi={useApiData}
-    />
-  );
   const sortControls = (
     <ProductSort
       value={query.sort ?? "newest"}
@@ -70,14 +57,13 @@ export default function ProductPageView({
   if (isError && isCatalog) {
     return (
       <main className="w-full bg-neutral-50 px-2.5 py-4 lg:px-10 lg:py-6">
-        {feedback}
+        <ProductCatalogUnavailable />
       </main>
     );
   }
 
   return (
     <main className="w-full bg-neutral-50 px-2.5 py-4 lg:px-10 lg:py-9">
-      {isCatalog && feedback}
       <div className="flex items-center justify-between gap-4">
         <div className="[&_a]:text-[10px] lg:[&_a]:text-sm [&_nav]:flex-wrap [&_nav]:gap-1 lg:[&_nav]:flex-nowrap lg:[&_nav]:gap-2 [&_span]:text-[10px] lg:[&_span]:text-sm">
           <Breadcrumb items={breadcrumbItems} />

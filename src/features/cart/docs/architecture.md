@@ -130,14 +130,13 @@ CartProduct عمداً مدل Product لیست نیست: قیمت‌های آن 
 
 | فایل                                  | مسئولیت                                                                          |
 | ------------------------------------- | -------------------------------------------------------------------------------- |
-| mappers/cart-submit-order.mapper.ts   | payload دقیق از domain؛ تشخیص سبد ناقص، بدون تبدیل ارز                           |
-| services/cart-order.service.ts        | کنترل ورود/منبع، هماهنگی snapshot و idempotency، ارسال API، پیام خطای قابل نمایش |
-| utils/cart-order.storage.ts           | ذخیرهٔ کلید و وضعیت دریافت درخواست در sessionStorage؛ fallback حافظه             |
+| mappers/cart-submit-order.mapper.ts | ساخت item_ids از شناسه ردیف‌های سبد و بررسی اعتبار و یکتایی شناسه‌ها |
+| services/cart-order.service.ts | کنترل ورود و منبع، اشتراک درخواست در حال اجرا، ارسال item_ids و اعتبارسنجی پاسخ |
 | hooks/use-cart-submit-order.ts        | mutation بدون retry، guard هم‌زمانی، redirect ورود، pending/error و نتیجه        |
 | components/cart-order-submitted.tsx   | نمایش دریافت موفق درخواست؛ ادعای تأیید سفارش یا پرداخت ندارد                     |
 | tests/fixtures/cart-cny-response.json | پاسخ واقعی CNY و مقادیر IRR برای تست قرارداد و پیلود                             |
 
-CartPage دیگر service یا tokenStorage را مستقیم مصرف نمی‌کند. useCartItemActions و useAddToCart هنگام ثبت اولیه هم از اجرای mutation جدید جلوگیری می‌کنند. قرارداد و محدودیت‌های idempotency در api-contract.md آمده است.
+CartPage دیگر service یا tokenStorage را مستقیم مصرف نمی‌کند. useCartItemActions و useAddToCart هنگام ثبت اولیه هم از اجرای mutation جدید جلوگیری می‌کنند. قرارداد item_ids در api-contract.md آمده است.
 
 
 ## صفحهٔ واقعی پرداخت

@@ -1,18 +1,30 @@
 "use client";
+import { useCallback } from "react";
 import { useAccessToken } from "@/features/auth/hooks/use-access-token";
 import CartSteps from "./cart-steps";
-import { Button } from "@/components/ui/button";
+import CartUnavailable from "./cart-unavailable";
 import { useCartItemActions } from "../hooks/use-cart-actions";
 import { useCart } from "../hooks/use-cart";
 import CartEmpty from "./cart-empty";
 import CartList from "./cart-list";
-import CartShippingMethods from "./cart-shipping-methods";
 import CartSummary from "./cart-summary";
 import { useCartSubmitOrder } from "../hooks/use-cart-submit-order";
 import CartOrderSubmitted from "./cart-order-submitted";
 import { getCartFieldNote } from "../utils/cart-data-issues";
 
 export default function CartPage() {
+  const paymentSidebarRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const header = document.querySelector("header");
+    const updateOffset = () => {
+      const height = header?.getBoundingClientRect().height ?? 0;
+      node.style.setProperty("--cart-header-height", height + "px");
+    };
+    updateOffset();
+    const observer = new ResizeObserver(updateOffset);
+    if (header) observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
   const accessToken = useAccessToken();
   const cartQuery = useCart();
   const actions = useCartItemActions();
@@ -40,21 +52,6 @@ export default function CartPage() {
     >
       <div className="mx-auto max-w-[1440px] space-y-3 sm:space-y-5">
         <CartSteps currentStep={accessToken ? "cart" : "account"} />
-        {showMock && (
-          <div
-            role="status"
-            className="bg-primary-50 flex flex-wrap items-center justify-between gap-3 rounded-lg p-4 text-sm"
-          >
-            پیش‌نمایش دادهٔ نمونه
-            <Button
-              variant="ghost"
-              onClick={cartQuery.showApiData}
-              disabled={actions.isBusy}
-            >
-              دریافت سبد واقعی
-            </Button>
-          </div>
-        )}
         {cartQuery.isPending && !cart && (
           <div role="status" className="rounded-lg bg-white p-8">
             <span className="sr-only">در حال دریافت سبد خرید</span>
@@ -68,32 +65,7 @@ export default function CartPage() {
             </div>
           </div>
         )}
-        {cartQuery.isError && (
-          <div role="alert" className="space-y-4 rounded-lg bg-white p-6">
-            <p>
-              {showMock
-                ? "نمایش دادهٔ نمونه ناموفق بود."
-                : "دریافت اطلاعات سبد خرید ناموفق بود."}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={() => void cartQuery.refetch()}
-                disabled={cartQuery.isFetching || actions.isBusy}
-              >
-                تلاش دوباره
-              </Button>
-              {!showMock && (
-                <Button
-                  variant="secondary"
-                  onClick={cartQuery.showMockData}
-                  disabled={actions.isBusy}
-                >
-                  نمایش دادهٔ نمونه
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+        {cartQuery.isError && <CartUnavailable />}
         {!showMock && actions.isError && (
           <p
             role="alert"
@@ -107,7 +79,7 @@ export default function CartPage() {
             در حال به‌روزرسانی سبد خرید…
           </p>
         )}
-        {cart && (
+        {cart && !cartQuery.isError && (
           <>
             {cart.issues.length > 0 && (
               <ul
@@ -119,8 +91,12 @@ export default function CartPage() {
                 ))}
               </ul>
             )}
-            {cart.items.length === 0 && !getCartFieldNote(cart.dataIssues,"items") ? (
-              <CartEmpty />
+            {cart.items.length === 0 ? (
+              getCartFieldNote(cart.dataIssues, "items") ? (
+                <CartUnavailable />
+              ) : (
+                <CartEmpty />
+              )
             ) : (
               <div className="grid items-start gap-2 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_30%]">
                 <div className="min-w-0 space-y-2 sm:space-y-3">
@@ -136,14 +112,14 @@ export default function CartPage() {
                     }
                     onRemove={showMock ? undefined : actions.removeItem}
                   />
-                  <CartShippingMethods
-                    value={submitOrder.shippingMethod}
-                    onChange={submitOrder.setShippingMethod}
-                    disabled={actions.isBusy || submitOrder.isPending}
-                  />
                 </div>
-                <div className="space-y-3">
+                <div
+                  ref={paymentSidebarRef}
+                  className="min-w-0 space-y-3 lg:sticky lg:top-[calc(var(--cart-header-height,157px)+16px)] lg:self-start"
+                >
                   <CartSummary
+                    items={cart.items}
+                    paymentDetails={cart.paymentDetails}
                     dataIssues={cart.dataIssues}
                     currency={cart.currency}
                     totals={{
