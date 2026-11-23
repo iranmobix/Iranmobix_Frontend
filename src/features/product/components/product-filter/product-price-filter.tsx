@@ -1,5 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
+import Image from "next/image";
+import arrow from "../../assets/arrow.svg";
 
 type ProductPriceFilterProps = {
   minPrice: string;
@@ -148,23 +150,12 @@ const ProductPriceFilter = ({
         type="button"
         aria-expanded={isOpen}
         onClick={onToggle}
-        className="flex min-h-14 w-full items-center justify-between text-right"
+        className="flex min-h-12 w-full items-center justify-between text-right"
       >
-        <span className="text-label-md leading-8">بازه قیمت</span>
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 20 20"
-          className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m5 9 7 7 7-7" />
-        </svg>
+        <span className="text-label-md text-neutral-900">بازه قیمت</span>
+        <span className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
+          <Image src={arrow} alt="" width={16} height={16} />
+        </span>
       </button>
 
       {isOpen && (

@@ -6,10 +6,10 @@ import { services } from "./services.data";
 export function ServicesSection() {
   return (
     <ServicesReveal>
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-2.5 py-6 lg:gap-10 lg:px-[120px] lg:py-20">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-2.5 py-6 lg:gap-10 lg:px-[120px] lg:py-20">
         <h1
           data-service-reveal
-          className="text-neutral-1000 lg:text-heading-lg text-center text-sm font-semibold"
+          className="text-mobile-h4 text-neutral-1000 lg:text-heading-lg text-center lg:font-semibold"
         >
           خدمات ما
         </h1>

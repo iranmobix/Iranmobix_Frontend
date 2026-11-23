@@ -47,7 +47,7 @@ test("scroll bursts coalesce without measuring layout or rewriting styles every 
 test("seeks wait for decoding, ease forward and follow the latest reverse-scroll target",()=>{
   const s=setup();s.flush();s.window.scrollY=900;s.window.emit("scroll");s.flush();
   const first=s.video.currentTime;
-  const target=(900+100-200)/1400*(8-1/24);
+  const target=(900-200)/1400*(8-1/24);
   assert.ok(first>0 && first<target);
   s.window.scrollY=1200;s.window.emit("scroll");s.flush();
   assert.equal(s.seeks.length,1);
@@ -59,7 +59,7 @@ test("controller settles on the scroll target and leaves no continuous animation
   const s=setup();s.flush();s.window.scrollY=900;s.window.emit("scroll");s.flush();
   for(let n=0;n<150 && s.video.seeking;n++){s.decoded();s.flush();}
   assert.equal(s.frames.size,0);
-  assert.ok(Math.abs(s.video.currentTime-(800/1400*(8-1/24)))<1/48);
+  assert.ok(Math.abs(s.video.currentTime-(700/1400*(8-1/24)))<1/48);
   s.cleanup();
 });
 test("unready video waits for media data and reduced motion stays on its first frame",()=>{
@@ -150,7 +150,7 @@ test("touch seeks are frame-aligned, bounded and follow the newest scroll target
   assert.equal(s.seeks.length,1);
   s.window.scrollY=1200;s.window.emit("scroll");s.flush();
   assert.equal(s.seeks.length,2);
-  const target=Math.round((1100/1400*(8-1/24))*24)/24;
+  const target=Math.round((1000/1400*(8-1/24))*24)/24;
   assert.ok(Math.abs(s.video.currentTime-target)<1e-8);
   s.decoded();s.flush();assert.equal(s.frames.size,0);
   s.cleanup();
@@ -177,5 +177,20 @@ test("explicit source choice corrects browsers that initially select the wrong v
   assert.equal(s.video.src,sources[0].src);
   assert.equal(s.video.currentSrc,sources[0].src);
   assert.equal(s.loads(),1);
+  s.cleanup();
+});
+
+test("video stays on its first frame until the hero reaches the top of the viewport",()=>{
+  const s=setup({touch:true});s.flush();
+  for(const position of [0,100,199,200]) {
+    s.window.scrollY=position;s.window.emit("scroll");s.flush();
+    assert.equal(s.video.currentTime,0);
+    assert.equal(s.seeks.length,0);
+  }
+  s.window.scrollY=400;s.window.emit("scroll");s.flush();
+  assert.ok(s.video.currentTime>0);
+  s.decoded();s.flush();
+  s.window.scrollY=200;s.window.emit("scroll");s.flush();s.flush();
+  assert.equal(s.video.currentTime,0);
   s.cleanup();
 });

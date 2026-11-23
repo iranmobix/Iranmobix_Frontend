@@ -16,7 +16,7 @@ export default function ProductCommentDialog({ onSubmit }: {onSubmit: (text: str
 
   return (
     <Dialog.Portal>
-      <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/40" />
+      <Dialog.Overlay className="fixed inset-0 z-[70] modal-backdrop" />
       <Dialog.Content dir="rtl" className="fixed top-1/2 left-1/2 z-[71] w-[calc(100vw-32px)] max-w-[420px] max-h-[calc(100dvh-32px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg bg-white shadow-xl outline-none">
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
           <Dialog.Title className="text-sm font-medium text-neutral-900">ثبت دیدگاه</Dialog.Title>

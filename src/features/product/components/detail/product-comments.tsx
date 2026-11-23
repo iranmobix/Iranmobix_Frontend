@@ -115,13 +115,13 @@ const ProductComments = ({ product, sourceComments, sourceCommentsPending = fals
 
   return (
     <Dialog.Root open={Boolean(accessToken) && formOpen} onOpenChange={changeFormOpen}>
-    <section id="product-comments" dir="rtl" aria-label={`دیدگاه‌های ${product.title}`} className="w-full min-w-0 scroll-mt-48 rounded-lg bg-white px-3 py-4 lg:px-6">
+    <section id="product-comments" dir="rtl" aria-label={`دیدگاه‌های ${product.title}`} className="w-full min-w-0 scroll-mt-48 rounded-lg bg-white px-2 py-4 lg:px-4 lg:py-6">
       <Tabs.Root value={activeTab} onValueChange={(value) => {setActiveTab(value as CommentTab); setVisibleCount(INITIAL_VISIBLE);}} dir="rtl">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-3 border-b border-neutral-300">
-          <h2 className="text-xs font-medium text-neutral-900 lg:sr-only">دیدگاه‌ها</h2>
-          <Tabs.List aria-label="منبع دیدگاه‌ها" className="order-2 flex w-full min-w-0 lg:order-1 lg:w-auto">
-            <Tabs.Trigger value="iranmobix" className="flex-1 border-b-2 border-transparent px-2 pb-3 text-[10px] whitespace-nowrap text-neutral-900 outline-none data-[state=active]:border-primary-500 data-[state=active]:text-primary-500 focus-visible:bg-primary-50 lg:flex-none lg:px-4 lg:pb-5 lg:text-sm">دیدگاه‌ها در ایران موبیکس</Tabs.Trigger>
-            <Tabs.Trigger value="source" className="flex-1 border-b-2 border-transparent px-2 pb-3 text-[10px] whitespace-nowrap text-neutral-900 outline-none data-[state=active]:border-primary-500 data-[state=active]:text-primary-500 focus-visible:bg-primary-50 lg:flex-none lg:px-4 lg:pb-5 lg:text-sm">دیدگاه‌ها در سایت مرجع</Tabs.Trigger>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-3 border-b border-neutral-300 lg:mb-6">
+          <h2 className="text-mobile-h6 text-neutral-1000 lg:sr-only">دیدگاه‌ها</h2>
+          <Tabs.List aria-label="منبع دیدگاه‌ها" className="relative z-10 order-2 -mb-px flex w-full min-w-0 self-end lg:order-1 lg:w-auto">
+            <Tabs.Trigger value="iranmobix" className="flex-1 border-b-2 border-transparent px-2 pb-3 text-[10px] whitespace-nowrap text-neutral-900 outline-none data-[state=active]:border-primary-500 data-[state=active]:text-primary-500 focus-visible:bg-primary-50 lg:flex-none lg:px-4 lg:pb-5 lg:text-desktop-label-l lg:text-neutral-900">دیدگاه‌ها در ایران موبیکس</Tabs.Trigger>
+            <Tabs.Trigger value="source" className="flex-1 border-b-2 border-transparent px-2 pb-3 text-[10px] whitespace-nowrap text-neutral-900 outline-none data-[state=active]:border-primary-500 data-[state=active]:text-primary-500 focus-visible:bg-primary-50 lg:flex-none lg:px-4 lg:pb-5 lg:text-desktop-label-l lg:text-neutral-900">دیدگاه‌ها در سایت مرجع</Tabs.Trigger>
           </Tabs.List>
           <Dialog.Trigger asChild>
           <button type="button"

@@ -14,7 +14,7 @@ export function ProductMobileFilters({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/40 lg:hidden" />
+        <Dialog.Overlay className="fixed inset-0 z-[60] modal-backdrop lg:hidden" />
         <Dialog.Content
           dir="rtl"
           className="fixed top-0 right-0 bottom-0 z-[61] w-[min(92vw,360px)] overflow-y-auto bg-white p-5 lg:hidden"

@@ -119,7 +119,7 @@ export default function AccountEditDialog({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px]" />
+        <Dialog.Overlay className="fixed inset-0 z-50 modal-backdrop" />
         <Dialog.Content
           dir="rtl"
           aria-describedby="panel-editor-description"

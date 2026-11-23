@@ -23,13 +23,13 @@ export function ServicesCard({
       <div className="flex flex-col items-start gap-2.5 lg:items-stretch lg:gap-6">
         <div className="[&_img]:size-8 lg:[&_img]:size-auto">{icon}</div>
 
-        <h3 className="text-neutral-1000 lg:text-heading-2xs text-xs leading-5 font-medium lg:leading-8">
+        <h3 className="text-mobile-h6 text-neutral-1000 lg:text-heading-2xs lg:leading-8 lg:font-medium">
           {title}
         </h3>
 
         {mobileDescription ? (
           <>
-            <p className="text-[10px] leading-[18px] whitespace-pre-line text-neutral-700 lg:hidden">
+            <p className="text-mobile-body-s leading-[calc(1em+8px)] whitespace-pre-line text-neutral-900 lg:hidden">
               {mobileDescription}
             </p>
             <p className="text-body-lg hidden leading-10 whitespace-pre-line text-neutral-700 lg:block">
@@ -37,12 +37,12 @@ export function ServicesCard({
             </p>
           </>
         ) : (
-          <p className="lg:text-body-lg text-[10px] leading-[18px] whitespace-pre-line text-neutral-700 lg:leading-10">
+          <p className="text-mobile-body-s lg:text-body-lg leading-[calc(1em+8px)] whitespace-pre-line text-neutral-900 lg:leading-10 lg:text-neutral-700">
             {description}
           </p>
         )}
-        <span className="text-primary-500 flex items-center gap-1 text-[10px] lg:hidden">
-          جزئیات <ArrowLeft size={12} aria-hidden="true" />
+        <span className="text-mobile-label-l text-primary-600 flex items-center gap-1 lg:hidden">
+          جزئیات <ArrowLeft size={18} className="shrink-0" aria-hidden="true" />
         </span>
       </div>
     </article>

@@ -124,3 +124,29 @@ test("detail contract accepts null company overview and null fields without reje
     on_time_dispatch_rate:null, online_revenue:null, employees:null, main_markets:null, service_quality_control:null};
   assert.ok(productDetailResponseSchema.safeParse(fixture).success);
 });
+
+test("mobile seller card displays only received identity, statistics and markets",()=>{
+  const seller=supplier({
+    name:"Long supplier company name",logo:"/supplier-logo.png",location:"Guangzhou, CN",rating:4.3,
+    companyOverview:overview({yearFounded:"2002",responseTime:"≤5h",onTimeDispatchRate:"97.7%"}),
+    market:["France","USA"],
+  });
+  const html=render("product-seller-card",{seller,mobileDetail:true});
+  for(const text of ["Long supplier company name","/supplier-logo.png","Guangzhou, CN","2002","≤5h","97.7%","بازارهای اصلی","France","USA"])assert.ok(html.includes(text),text);
+  assert.ok(html.includes("truncate"));
+  assert.ok(!html.includes("نرخ سفارش مجدد"));
+  assert.ok(!html.includes("از بک"));
+  assert.ok(!html.includes("—"));
+});
+
+test("mobile seller section omits absent sellers and has a real pending state while importing",()=>{
+  const Section=load("components/detail/product-mobile-seller").default;
+  assert.equal(renderToStaticMarkup(React.createElement(Section,{seller:null})),"");
+  const pending=renderToStaticMarkup(React.createElement(Section,{seller:null,pending:true}));
+  assert.ok(pending.includes('aria-busy="true"'));
+  assert.ok(pending.includes("در حال دریافت اطلاعات فروشنده"));
+  const html=renderToStaticMarkup(React.createElement(Section,{seller:supplier({rating:0})}));
+  assert.ok(html.includes("lg:hidden"));
+  assert.ok(html.includes("امتیاز فروشنده"));
+  assert.ok(!html.includes("بازارهای اصلی"));
+});

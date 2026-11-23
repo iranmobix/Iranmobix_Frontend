@@ -74,11 +74,11 @@ export default function ProductPriceSection({
   return (
     <section dir="rtl" aria-label="قیمت محصول" className="min-w-0 space-y-2.5">
       <div className="text-mobile-caption lg:text-desktop-caption flex flex-wrap items-center gap-x-2 text-neutral-800 lg:gap-y-2">
-        <span className="text-mobile-label-l order-1 max-lg:text-neutral-900 lg:text-desktop-label-l lg:order-none">
+        <span className="text-mobile-label-l lg:text-desktop-label-l order-1 max-lg:text-neutral-900 lg:order-none">
           قیمت واحد:
         </span>
         {amount !== null ? (
-          <span className="text-mobile-h4 order-3 w-full text-neutral-900 max-lg:mt-2 lg:text-desktop-h6 lg:order-none lg:w-auto">
+          <span className="text-mobile-h4 lg:text-desktop-h6 order-3 w-full text-neutral-900 max-lg:mt-2 lg:order-none lg:w-auto">
             <PricePair
               amount={amount}
               currency={currency}
@@ -95,7 +95,7 @@ export default function ProductPriceSection({
           discountPercentage > 0 &&
           discountPercentage <= 100 && (
             <span
-              className={`text-mobile-caption lg:text-desktop-caption from-secondary-600 to-secondary-500 shrink-0 rounded-md bg-linear-to-l px-1.5 py-1 text-white order-2 lg:order-none`}
+              className={`text-mobile-caption lg:text-desktop-caption from-secondary-600 to-secondary-500 order-2 shrink-0 rounded-md bg-linear-to-l px-1.5 py-1 text-white lg:order-none`}
             >
               {formatAmount(discountPercentage)}٪ تخفیف
             </span>
@@ -103,15 +103,15 @@ export default function ProductPriceSection({
       </div>
       {(tiers.length > 1 || (amount === null && tiers.length > 0)) && (
         <div
-          className="flex min-w-0 gap-2 overflow-x-auto pb-1 max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-2 lg:gap-2.5 lg:overflow-visible lg:pb-0"
+          className="flex min-w-0 gap-2 overflow-x-auto pb-1 max-lg:[scrollbar-width:none] lg:grid lg:grid-cols-2 lg:gap-2.5 lg:overflow-visible lg:pb-0 max-lg:[&::-webkit-scrollbar]:hidden"
           aria-label="قیمت‌های پلکانی"
         >
           {tiers.map((tier, index) => (
             <div
               key={index}
-              className={`flex min-w-0 flex-col items-end gap-1 rounded-md border border-[#e9e6e1] bg-white p-2 text-left text-[10px] leading-5 text-neutral-800 max-lg:w-max max-lg:shrink-0 ${mobileImportLayout ? "max-lg:min-w-40" : ""}`}
+              className={`flex min-w-0 flex-col items-end gap-4 rounded-md border border-[#e9e6e1] bg-white p-2 text-left text-[10px] leading-5 text-neutral-800 max-lg:w-max max-lg:shrink-0 lg:gap-1 ${mobileImportLayout ? "max-lg:min-w-40" : ""}`}
             >
-              <span className="text-mobile-label-m text-neutral-900 lg:text-desktop-label-m lg:text-neutral-800">
+              <span className="text-mobile-label-m lg:text-desktop-label-m text-neutral-900 lg:text-neutral-800">
                 <PricePair
                   singleLineOnMobile
                   amount={tier.amount}
@@ -124,7 +124,7 @@ export default function ProductPriceSection({
                 (tier.originalToman != null &&
                   tier.amountToman != null &&
                   tier.originalToman > tier.amountToman)) && (
-                <div className="text-mobile-caption text-neutral-800 lg:text-desktop-caption lg:leading-4 lg:text-neutral-700">
+                <div className="text-mobile-caption lg:text-desktop-caption text-neutral-800 lg:leading-4 lg:text-neutral-700">
                   <del className="relative inline-flex no-underline after:pointer-events-none after:absolute after:inset-x-0 after:top-1/2 after:border-t after:border-current [&_*]:text-inherit">
                     <PricePair
                       amount={tier.original ?? null}
@@ -134,7 +134,7 @@ export default function ProductPriceSection({
                   </del>
                 </div>
               )}
-              <span className="text-mobile-caption text-secondary-600 mt-auto self-end lg:text-desktop-caption">
+              <span className="text-mobile-caption text-secondary-600 lg:text-desktop-caption mt-auto self-end">
                 {tier.label || "تعداد از بک دریافت نشده"}
               </span>
             </div>

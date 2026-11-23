@@ -33,19 +33,20 @@ export default function ProductCardContent({
 }) {
   const seller = product.seller;
   return (
-    <div dir="ltr" className="flex min-w-0 flex-1 flex-col">
+    <div dir="ltr" className="flex min-w-0 flex-1 flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-2">
       <h3
         dir="auto"
-        className="line-clamp-2 min-h-12 text-start text-sm leading-6 font-normal text-neutral-700"
+        className="text-desktop-body-s line-clamp-2 min-h-12 text-start leading-6 text-neutral-900"
       >
         {product.title || "—"}
       </h3>
-      <div className="mt-3 flex min-w-0 flex-wrap items-baseline gap-x-1 gap-y-0.5 text-sm leading-6">
-        <bdi className="shrink-0 text-base font-semibold text-neutral-900">
+      <div className="text-desktop-label-l flex min-w-0 flex-wrap items-baseline gap-x-1 gap-y-0.5 leading-6 text-neutral-1000">
+        <bdi className="shrink-0">
           {sourceAmount(amount, product.price.currency)}
         </bdi>
-        <span className="text-neutral-500">≈</span>
-        <span dir="rtl" className="font-semibold text-neutral-900">
+        <span>≈</span>
+        <span dir="rtl">
           {amountToman?.toLocaleString("fa-IR") ?? "—"} تومان
         </span>
       </div>
@@ -53,11 +54,11 @@ export default function ProductCardContent({
         product.price.originalAmount != null &&
         amount != null &&
         product.price.originalAmount > amount && (
-          <del className="mt-1 text-xs leading-4 text-neutral-400">
+          <del className="text-xs leading-4 text-neutral-400">
             {sourceAmount(product.price.originalAmount, product.price.currency)}
           </del>
         )}
-      <div className="mt-3 flex min-w-0 items-center gap-1.5 text-sm leading-6 text-neutral-500">
+      <div className="text-desktop-body-s flex min-w-0 items-center gap-1.5 leading-6 text-neutral-800">
         <Image
           src={factory}
           alt=""
@@ -78,13 +79,14 @@ export default function ProductCardContent({
           />
         )}
       </div>
-      <span className="text-primary-700 mt-auto flex items-center gap-1 pt-4 pb-1 text-base leading-6">
+      </div>
+      <span className="text-desktop-label-m text-primary-600 flex items-center gap-1 leading-6">
         <Image
           src={arrowLeft}
           alt=""
-          width={24}
-          height={24}
-          className="size-6 shrink-0"
+          width={20}
+          height={20}
+          className="size-5 shrink-0"
         />
         {pending ? "در حال دریافت…" : "جزئیات"}
       </span>

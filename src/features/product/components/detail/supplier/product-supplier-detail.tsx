@@ -36,10 +36,10 @@ const ProductSupplierDetail = ({ product }: ProductSupplierDetailProps) => {
     <section
       dir="rtl"
       aria-label="درباره فروشنده"
-      className="flex min-w-0 flex-col gap-3 rounded-lg bg-white px-3 py-4 lg:gap-4 lg:px-4 lg:py-6"
+      className="flex min-w-0 flex-col gap-3 rounded-lg bg-white px-3 py-4 lg:gap-6 lg:px-4 lg:py-6"
     >
-      <div className="flex items-center justify-between gap-2 lg:block lg:border-b lg:border-[#e5e1dc] lg:pb-4">
-        <h2 className="text-xs font-medium text-neutral-900 lg:text-body-lg-medium">
+      <div className="flex items-center justify-between gap-2 lg:block lg:border-b lg:border-[#e5e1dc] lg:pb-0">
+        <h2 className="text-xs font-medium text-neutral-900 lg:text-desktop-label-l">
           درباره فروشنده
         </h2>
         {hasOverview && (

@@ -25,7 +25,6 @@ export function useScrollVideo() {
     let lastFrame = 0;
     let lastSeekAt = -Infinity;
     let layoutDirty = true;
-    let headerHeight = -1;
     let sectionTop = 0;
     let travel = 1;
     let stageHeight = 1;
@@ -37,11 +36,6 @@ export function useScrollVideo() {
     let sourceGeneration = 0;
 
     const measure = () => {
-      const height = header?.getBoundingClientRect().height ?? 0;
-      if (height !== headerHeight) {
-        headerHeight = height;
-        section.style.setProperty("--hero-header-height", height + "px");
-      }
       sectionTop = section.getBoundingClientRect().top + window.scrollY;
       stageHeight = Math.max(1, stage.offsetHeight);
       travel = Math.max(1, section.offsetHeight - stageHeight);
@@ -56,11 +50,7 @@ export function useScrollVideo() {
         ? 0
         : Math.min(
             1,
-            Math.max(
-              0,
-              (window.scrollY + headerHeight - sectionTop - travel) /
-                stageHeight,
-            ),
+            Math.max(0, (window.scrollY - sectionTop - travel) / stageHeight),
           );
       const exit = exitProgress * exitProgress * (3 - 2 * exitProgress);
       if (Math.abs(exit - lastExit) > 0.001 || (exit === 0 && lastExit !== 0)) {
@@ -79,10 +69,7 @@ export function useScrollVideo() {
 
       const progress = reducedMotion.matches
         ? 0
-        : Math.min(
-            1,
-            Math.max(0, (window.scrollY + headerHeight - sectionTop) / travel),
-          );
+        : Math.min(1, Math.max(0, (window.scrollY - sectionTop) / travel));
       const endTime = Math.max(0, video.duration - FRAME_DURATION);
       const rawTarget = progress * endTime;
       // On touch devices track the latest scroll position, without decoding

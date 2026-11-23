@@ -72,7 +72,7 @@ export default function PanelFavorites() {
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
+          <Dialog.Overlay className="fixed inset-0 z-50 modal-backdrop" />
           <Dialog.Content
             dir="rtl"
             className="fixed top-1/2 left-1/2 z-50 max-h-[85vh] w-[min(92vw,420px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg bg-white p-6 shadow-xl"

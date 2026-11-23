@@ -44,7 +44,7 @@ export default function CheckoutDialog({
       onClick={(event) => {
         if (event.target === event.currentTarget) onDismiss();
       }}
-      className={`fixed inset-0 m-auto max-h-[85dvh] overflow-y-auto border-0 p-0 outline-none backdrop:bg-black/40 ${variant === "bare" ? "w-[min(92vw,396px)] bg-transparent shadow-none" : variant === "address" ? "w-[min(94vw,420px)] rounded-lg bg-white shadow-xl" : "w-[min(92vw,520px)] rounded-xl bg-white shadow-xl"}`}
+      className={`fixed inset-0 m-auto max-h-[85dvh] overflow-y-auto border-0 p-0 outline-none modal-dialog-backdrop ${variant === "bare" ? "w-[min(92vw,396px)] bg-transparent shadow-none" : variant === "address" ? "w-[min(94vw,420px)] rounded-lg bg-white shadow-xl" : "w-[min(92vw,520px)] rounded-xl bg-white shadow-xl"}`}
     >
       <div className={variant === "bare" ? "pointer-events-none" : undefined}>
         <div

@@ -34,8 +34,8 @@ export function ProductSourceCard({
       )}
       <Image src={image} alt={title} width={80} height={60} className={`${featured ? "h-14 w-20" : "h-10 w-14"} shrink-0 object-contain lg:hidden`} />
       <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-2 text-right lg:hidden">
-        <h3 className={`${featured ? "text-lg leading-7" : "text-sm leading-6"} font-semibold`}>{title}</h3>
-        <ul className={featured ? "w-full space-y-1 text-base leading-7 text-neutral-700" : "w-full space-y-1 text-xs leading-6 text-neutral-700"}>
+        <h3 className="text-mobile-h6 text-neutral-1000">{title}</h3>
+        <ul className={`text-mobile-body-s w-full space-y-1 text-neutral-900 ${featured ? "leading-7" : "leading-6"}`}>
           {description.map((item) => (
             <li key={item} className="flex items-start gap-2">
               <span aria-hidden="true">•</span>

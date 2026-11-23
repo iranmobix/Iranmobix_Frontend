@@ -3,7 +3,16 @@
 import { ProductSellerTypeApi } from "../../types/api";
 import { ProductSellerTypeFilterOption } from "../../types/domain";
 import Image from "next/image";
+import ProductFilterCheckbox from "./product-filter-checkbox";
 import arrow from "../../assets/arrow.svg";
+import verifiedBadge from "../../assets/seller-verified.svg";
+import selectedBadge from "../../assets/seller-selected.svg";
+import iranmobixLogo from "@/features/header/assets/logo.svg";
+const sellerPresentation = {
+verified: { label: "رسمی (تأیید شده)", icon: verifiedBadge },
+trusted: { label: "منتخب", icon: selectedBadge },
+iranmobix: { label: "ایران موبیکس", icon: iranmobixLogo },
+};
 import { toggleFilterValue } from "../../utils";
 
 type ProductSellerTypeFilterProps = {
@@ -56,13 +65,13 @@ const ProductSellerTypeFilter = ({
                 key={sellerType.value}
                 className="flex cursor-pointer items-center gap-2 py-1.5"
               >
-                <input
-                  type="checkbox"
+                <ProductFilterCheckbox
                   checked={isSelected}
                   onChange={() => handleChange(sellerType.value)}
                 />
 
-                <span className="text-sm">{sellerType.label}</span>
+                <span className="text-desktop-body-s text-neutral-900">{sellerPresentation[sellerType.value].label}</span>
+<Image src={sellerPresentation[sellerType.value].icon} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" aria-hidden="true" />
               </label>
             );
           })}

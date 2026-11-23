@@ -48,7 +48,7 @@ const ProductSort = ({
   return (
     <>
       <div className="mb-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-1.5 lg:hidden">
-        <label className="min-w-0 text-[10px] text-neutral-600">
+        <label className="text-mobile-caption min-w-0 text-neutral-900">
           <span className="mb-1 block">مرتب‌سازی براساس:</span>
           <span className="relative block">
             <select
@@ -58,7 +58,7 @@ const ProductSort = ({
                   ? onRelevanceSort?.()
                   : onChange(event.target.value as ProductSortApi)
               }
-              className="h-7 w-full appearance-none rounded-md border border-primary-300 bg-transparent pr-2 pl-5 text-[11px] text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+              className="h-7 w-full appearance-none rounded-md border border-primary-300 bg-transparent text-mobile-label-m pr-2 pl-5 text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
             >
               {discovery && <option value="relevance">مرتبط‌ترین</option>}
               {options.map((option) => (
@@ -73,7 +73,7 @@ const ProductSort = ({
             />
           </span>
         </label>
-        <label className="min-w-0 text-[10px] text-neutral-600">
+        <label className="text-mobile-caption min-w-0 text-neutral-900">
           <span className="mb-1 block">واحد پول:</span>
           <span className="relative block">
             <select
@@ -81,7 +81,7 @@ const ProductSort = ({
               onChange={(event) =>
                 onCurrencyChange(event.target.value as ProductMobileCurrency)
               }
-              className="h-7 w-full appearance-none rounded-md border border-primary-300 bg-transparent pr-2 pl-5 text-[11px] text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+              className="h-7 w-full appearance-none rounded-md border border-primary-300 bg-transparent text-mobile-label-m pr-2 pl-5 text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
             >
               <option value="source">{sourceCurrencyLabel}</option>
               <option value="IRT">تومان</option>
@@ -96,7 +96,7 @@ const ProductSort = ({
         <button
           type="button"
           onClick={onOpenFilters}
-          className="h-7 rounded-md bg-primary-700 px-2 text-[11px] text-white focus-visible:ring-2 focus-visible:ring-primary-300"
+          className="text-mobile-label-m h-7 rounded-md bg-primary-700 px-2 text-white focus-visible:ring-2 focus-visible:ring-primary-300"
         >
           فیلترها
         </button>

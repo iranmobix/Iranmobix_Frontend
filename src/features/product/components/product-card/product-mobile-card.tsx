@@ -123,12 +123,12 @@ export default function ProductMobileCard({
           rel="noopener noreferrer"
           onClick={openDetails}
           aria-disabled={detailsDisabled || undefined}
-          className="line-clamp-2 text-[10px] leading-4 text-neutral-800 sm:text-xs sm:leading-5"
+          className="text-mobile-caption line-clamp-2 leading-5 text-neutral-900"
         >
           {product.title || "—"}
         </Link>
-        <p className="mt-1.5 flex flex-wrap items-baseline gap-1 text-[10px] leading-4 text-neutral-900">
-          <bdi className="font-semibold">
+        <p className="text-mobile-label-m mt-1.5 flex flex-wrap items-baseline gap-1 leading-5 text-neutral-1000">
+          <bdi>
             {currency === "source"
               ? sourceAmount
               : currency === "IRT"
@@ -136,13 +136,13 @@ export default function ProductMobileCard({
                 : money(price.amountIrr) + " ریال"}
           </bdi>
           {currency === "source" && toman !== null && (
-            <bdi dir="rtl" className="text-[9px] text-neutral-700">
+            <bdi dir="rtl">
               {money(toman)} تومان ≈
             </bdi>
           )}
         </p>
         {product.seller && (
-          <p className="mt-1.5 flex items-center gap-1 text-[9px] text-neutral-600">
+          <p className="text-mobile-caption mt-1.5 flex items-center gap-1 text-neutral-800">
             <Image src={factory} alt="" width={10} height={10} />
             <bdi className="truncate">{product.seller.name}</bdi>
             {product.seller.badges?.includes("verified") && (
@@ -161,7 +161,7 @@ export default function ProductMobileCard({
           onClick={openDetails}
           aria-busy={detailsPending || undefined}
           aria-disabled={detailsDisabled || undefined}
-          className="mt-auto flex w-fit items-center gap-1 pt-2 text-[10px] text-primary-500"
+          className="text-mobile-caption mt-auto flex w-fit items-center gap-1 pt-2 text-primary-600"
         >
           <ArrowLeft size={12} aria-hidden="true" />
           {detailsPending ? "در حال دریافت…" : "جزئیات"}

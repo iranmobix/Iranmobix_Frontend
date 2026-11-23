@@ -1,4 +1,4 @@
-import ProductLoadingIndicator from "../product-loading-indicator";
+import ProductDetailLoadingIndicator from "./product-detail-loading-indicator";
 
 const ProductDetailSkeleton = () => (
   <div
@@ -6,7 +6,7 @@ const ProductDetailSkeleton = () => (
     aria-busy="true"
     className="w-full bg-neutral-50 px-4 pt-8 pb-20 md:px-10"
   >
-    <ProductLoadingIndicator variant="details" announce={false} />
+    <ProductDetailLoadingIndicator />
     <div aria-hidden="true" className="space-y-4 motion-safe:animate-pulse">
       <div className="mb-4 flex items-center justify-between">
         <div className="h-5 w-60 max-w-[65%] rounded bg-neutral-200" />

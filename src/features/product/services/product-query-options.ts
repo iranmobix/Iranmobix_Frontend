@@ -16,8 +16,8 @@ import {
 export const PUBLIC_PRODUCT_CACHE_SCOPE = "public";
 
 export const PRODUCT_CACHE_POLICY = {
-  staleTime: 30_000,
-  gcTime: 5 * 60_000,
+  staleTime: 10 * 60_000,
+  gcTime: 30 * 60_000,
 } as const;
 
 /** Keep loaded catalog pages fresh during a product-detail round trip. */

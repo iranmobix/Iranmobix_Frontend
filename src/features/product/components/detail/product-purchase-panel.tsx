@@ -34,7 +34,7 @@ const formatMoney = (value: number | null | undefined) =>
     ? "—"
     : value.toLocaleString("fa-IR", { maximumFractionDigits: 3 });
 
-function ShippingAmount({
+export function ShippingAmount({
   amount,
   placeholder,
   yuan,

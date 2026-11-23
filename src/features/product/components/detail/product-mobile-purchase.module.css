@@ -1,0 +1,54 @@
+/* Reserve space after the document/footer so the fixed purchase bar hides no content. */
+@media (max-width: 1023px) {
+  :global(body):has(.bar) {
+    padding-bottom: var(
+      --product-mobile-purchase-height,
+      calc(136px + env(safe-area-inset-bottom))
+    );
+  }
+}
+
+.sheet[data-state="open"] {
+  animation: purchase-sheet-enter 220ms ease-out;
+}
+.sheet[data-state="closed"] {
+  animation: purchase-sheet-exit 160ms ease-in;
+}
+.overlay[data-state="open"] {
+  animation: purchase-overlay-enter 180ms ease-out;
+}
+.overlay[data-state="closed"] {
+  animation: purchase-overlay-exit 160ms ease-in;
+}
+@keyframes purchase-sheet-enter {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes purchase-sheet-exit {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes purchase-overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes purchase-overlay-exit {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .overlay {
+    animation: none;
+  }
+}

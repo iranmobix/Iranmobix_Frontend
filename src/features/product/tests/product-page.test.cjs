@@ -26,6 +26,8 @@ function harness(overrides = {}) {
     const localRequire = (name) =>
       Object.hasOwn(overrides, name)
         ? overrides[name]
+        : name.endsWith("product-search-failure-animation")
+          ? { default: () => React.createElement("div", { "data-search-failure-animation": true }) }
         : name === "../../assets/Spinner.svg"
           ? { default: "/Spinner.svg" }
           : name.startsWith(".")
@@ -494,6 +496,7 @@ test("progressive import view renders received sections alongside placeholders w
   '@/features/product/components/detail/product-quantity':{default:()=>null},
   '@/features/product/components/detail/product-comments':{default:({sourceComments})=>React.createElement('section',{'data-comments':true},sourceComments?.map(comment=>comment.text).join(' '))},
   '@/features/product/components/detail/product-purchase-preview':{default:()=>React.createElement('div',{'data-purchase-preview':true})},
+  './product-mobile-seller':{default:({seller,pending})=>React.createElement('section',{'data-mobile-seller':true,'data-pending':pending},seller?.name||'Seller pending')},
   '@/features/product/components/detail/product-detail-hero':{default:({gallery,overview,purchase})=>React.createElement('div',null,gallery,overview,purchase)},
   '@/features/product/components/detail/product-gallery':{default:({product})=>React.createElement('p',null,`Gallery ${product.gallery.length}`)},
   '@/features/product/components/detail/product-specifications':{default:({product})=>React.createElement('p',null,Object.values(product.translatedSpecifications).join(' '))},
@@ -513,6 +516,7 @@ test("progressive import view renders received sections alongside placeholders w
  }
  render(map({...raw,product:{...raw.product,slug:'coffee',price_cny:80}}));
  const full=render(map({...raw,status:'done',next_poll_after_seconds:0,product:{...raw.product,slug:'coffee',price_cny:84.19,gallery:['https://example.com/photo'],key_attributes:{Material:'سرامیک'},seller:{name:'Actual seller'},specifications:{Capacity:'600 ml'},other_sellers:[{slug:'seller-one',fa_title:'Offer'}],related_products:[{slug:'related-one',fa_title:'Related'},{slug:'related-two',fa_title:'Related again'}],comments:[{text:'Backend review'}]}}));
+ assert.ok(full.indexOf('data-mobile-seller')<full.indexOf('600 ml'));
  assert.deepEqual(pricingRequests.slice(-2),[
   ["coffee","marketplace-details",true,true,true],
   ["coffee","marketplace-details",true,false,true],
@@ -972,4 +976,198 @@ test("only an initial catalog error selects the graphic; valid empty results ret
   const render=changes=>renderToStaticMarkup(React.createElement(View,{model:{...model,...changes},options:{}}));
   assert.ok(render({}).includes("data-catalog-unavailable"));
   assert.ok(!render({isError:false,products:[]}).includes("data-catalog-unavailable"));
+});
+
+test("shared product carousel stops at both boundaries and hides unavailable arrows", () => {
+  let previous=false,next=true,options;
+  const scrolls=[];
+  const api={
+    canScrollPrev:()=>previous,canScrollNext:()=>next,
+    scrollPrev:()=>scrolls.push("previous"),scrollNext:()=>scrolls.push("next"),
+  };
+  const h=harness({
+    react:{...React,useId:()=>"bounded-carousel",useCallback:fn=>fn,useSyncExternalStore:(_,snapshot)=>snapshot()},
+    "embla-carousel-react":{default:value=>{options=value;return [()=>{},api];}},
+    "../../product-card/product-card":{default:"mock-card"},
+    window:{matchMedia:()=>({matches:false})},
+  });
+  const products=h.load("../importer/mocks/import-other-sellers.mock").importOtherSellersMock;
+  const Carousel=h.load("components/detail/similar-products/similar-products-carousel").default;
+  const render=()=>Carousel({products}).props.children[1].props.children;
+  let children=render();
+  assert.equal(options.loop,false);
+  assert.equal(options.containScroll,"trimSnaps");
+  assert.equal(options.breakpoints["(min-width: 1024px)"].containScroll,"trimSnaps");
+  assert.equal(options.breakpoints["(min-width: 1024px)"].startIndex,0);
+  assert.equal(children[1],false);
+  assert.ok(children[2]);
+  const key=key=>children[0].props.onKeyDown({key,target:api,currentTarget:api,preventDefault(){}});
+  key("ArrowRight");key("ArrowLeft");
+  assert.deepEqual(scrolls,["next"]);
+  const staleNextButton=children[2];
+  previous=true;next=false;children=render();
+  assert.ok(children[1]);assert.equal(children[2],false);
+  staleNextButton.props.onClick();
+  key("ArrowLeft");key("ArrowRight");
+  assert.deepEqual(scrolls,["next","previous"]);
+  previous=false;children=render();
+  assert.equal(children[1],false);assert.equal(children[2],false);
+});
+
+test("detail breadcrumbs prefer Persian, fall back to English and keep real category links",()=>{
+  const build=harness().load("utils/build-product-detail-breadcrumb").buildProductDetailBreadcrumb;
+  const product={title:"Generic title",englishTitle:"English product",persianTitle:" ",category:{id:1925,name:"دسته محصول"}};
+  let crumbs=build(product);
+  assert.equal(crumbs.at(-1).label,"English product");
+  assert.equal(crumbs[2].href,"/products?category=1925&sort=newest");
+  crumbs=build({...product,persianTitle:" عنوان فارسی "});
+  assert.equal(crumbs.at(-1).label,"عنوان فارسی");
+  assert.equal(build({title:"Existing native title",category:null}).at(-1).label,"Existing native title");
+});
+
+test("progressive import breadcrumbs switch to translated titles without backend-facing messages",()=>{
+  const h=harness(),build=h.load("utils/build-product-detail-breadcrumb").buildProductDetailBreadcrumb;
+  const map=h.load("mappers/marketplace-product-details.mapper").mapMarketplaceProductDetails;
+  const raw={title_en:"English import title",title_fa:"",category:"",slug:"import"};
+  const partial=build(map(raw,false));
+  assert.equal(partial.at(-1).label,"English import title");
+  assert.equal(partial[2].label,"در حال مشخص‌شدن دسته‌بندی…");
+  assert.equal(partial[2].href,undefined);
+  const settled=build(map(raw,true));
+  assert.equal(settled.at(-1).label,"English import title");
+  assert.equal(settled[2].label,"دسته‌بندی مشخص نشده");
+  const translated=build(map({...raw,title_fa:"نام فارسی محصول",category:"کیف دوربین",category_id:1925},false));
+  assert.equal(translated.at(-1).label,"نام فارسی محصول");
+  assert.equal(translated[2].label,"کیف دوربین");
+  assert.equal(translated[2].href,"/products?category=1925&sort=newest");
+  for(const crumbs of [partial,settled,translated]) {
+    assert.ok(crumbs.every(item=>!item.label.includes("از بک")));
+  }
+});
+
+test("mobile specifications show four two-column rows and expand below the table without changing desktop rows",()=>{
+  let expanded=false;
+  const h=harness({react:{...React,useId:()=>"mobile-specifications",useState:()=>[expanded,value=>{expanded=value;}]}});
+  const View=h.load("components/detail/product-specifications").default;
+  const product={translatedSpecifications:Object.fromEntries(Array.from({length:6},(_,i)=>["Spec "+i,"Value "+i]))};
+  const parts=()=>{
+    const tree=View({product}),mobile=tree.props.children[2],desktop=tree.props.children[1];
+    return {tree,mobile,button:mobile.props.children[1],
+      rows:mobile.props.children[0].props.children.props.children[2].props.children[1],
+      desktopRows:desktop.props.children.props.children[2].props.children[1]};
+  };
+  let state=parts();
+  assert.equal(state.rows.length,4);
+  assert.equal(state.desktopRows.length,3);
+  assert.equal(state.rows[0].props.children.length,2);
+  assert.equal(state.rows[0].props.children[0].type,"th");
+  assert.equal(state.rows[0].props.children[0].props.scope,"row");
+  assert.equal(state.button.props["aria-expanded"],false);
+  assert.equal(state.button.props["aria-controls"],"mobile-specifications");
+  state.button.props.onClick();state=parts();
+  assert.equal(state.rows.length,6);
+  assert.equal(state.desktopRows.length,3);
+  assert.equal(state.button.props["aria-expanded"],true);
+  state.button.props.onClick();assert.equal(parts().rows.length,4);
+});
+
+test("mobile specifications omit the expand button for short lists and show a friendly empty message",()=>{
+  const h=harness({react:{...React,useId:()=>"short-specifications",useState:()=>[false,()=>{}]}});
+  const View=h.load("components/detail/product-specifications").default;
+  const short=View({product:{translatedSpecifications:{Material:"Ceramic"}}});
+  assert.equal(short.props.children[2].props.children[1],false);
+  const empty=renderToStaticMarkup(View({product:{translatedSpecifications:{}}}));
+  assert.ok(empty.includes("مشخصاتی برای نمایش ثبت نشده است."));
+});
+
+test("main specifications are desktop-only while keeping their original desktop content",()=>{
+  const h=harness({"next/image":{default:"mock-image"},"../../assets/star.svg":{default:"/star.svg"}});
+  const Content=h.load("components/detail/product-details-content").default;
+  const tree=Content({title:"Product",seller:null,pricing:null,specifications:{Weight:"1kg"}});
+  const main=tree.props.children.at(-1);
+  assert.ok(main.props.className.includes("hidden"));
+  assert.ok(main.props.className.includes("lg:block"));
+});
+
+function mobilePurchaseHarness() {
+  let open=false,method="ground",resetCalls=0,addCalls=0;
+  const pass=({children})=>React.createElement("div",null,children);
+  const h=harness({
+    react:{...React,useRef:()=>({current:null}),useId:()=>"mobile-delivery",useState:()=>[open,value=>{open=value;}],useEffect:()=>{}},
+    "radix-ui":{Dialog:{Root:pass,Trigger:pass,Portal:pass,Overlay:pass,Content:pass,Close:pass,Title:"h2",Description:"p"}},
+    "@/components/ui/button":{Button:"button"},
+    "./product-mobile-purchase.module.css":{default:{bar:"purchase-bar",sheet:"purchase-sheet",overlay:"purchase-overlay"}},
+    "next/image":{default:"mock-image"},
+  });
+  const View=h.load("components/detail/product-mobile-purchase").default;
+  const quantity=React.createElement("input",{"data-quantity":true,readOnly:true,value:1});
+  const submit=React.createElement("button",{onClick:()=>addCalls++},"Real cart submit");
+  const shipping={currency:"TOMAN",
+    land:{china_total_toman:1000,china_total_yuan:20,total_toman:1500,international_shipping_toman:200,insurance_toman:60,clearance_toman:50,iranmobix_services_toman:30},
+    sea:{china_total_toman:1000,china_total_yuan:20,total_toman:1700,international_shipping_toman:400,insurance_toman:60,clearance_toman:50,iranmobix_services_toman:30},
+    air:{commercial:{total_toman:1900},express:{assigned_sales_expert:{name:"Expert",mobile:"09134464043",whatsapp_url:"https://wa.me/989134464043",telegram_url:"https://t.me/expert"}}},
+  };
+  const render=changes=>View({shipping,shippingMethod:method,onShippingMethodChange:value=>{method=value;},quantity,submit,canOpen:true,onResetQuantityEditing:()=>resetCalls++,...changes});
+  const parts=()=>{
+    const root=render(),bar=root.props.children[0],content=root.props.children[1].props.children[1];
+    return {root,bar,content,trigger:bar.props.children.props.children[1],sections:content.props.children[3].props.children[0].props.children};
+  };
+  return {render,parts,quantity,submit,shipping,addCalls:()=>addCalls,resetCalls:()=>resetCalls};
+}
+
+test("mobile purchase opens its sheet without submitting and keeps only the selected shipping option expanded",()=>{
+  const m=mobilePurchaseHarness();
+  assert.equal(m.parts().root.props.open,false);
+  assert.equal(m.parts().trigger.props.children.props.onClick,undefined);
+  m.parts().root.props.onOpenChange(true);
+  assert.equal(m.parts().root.props.open,true);
+  assert.equal(m.addCalls(),0);
+  for(const method of ["sea","commercial_air","air_express","ground"]) {
+    const choice=m.parts().sections.find(section=>section.key===method);
+    choice.props.children[0].props.children[0].props.onChange();
+    const sections=m.parts().sections;
+    assert.equal(sections.filter(section=>Boolean(section.props.children[1])).length,1);
+    assert.equal(sections.find(section=>section.key===method).props.children[0].props.children[0].props.checked,true);
+    const html=renderToStaticMarkup(m.render());
+    assert.equal((html.match(/data-quantity/g)||[]).length,method === "air_express" ? 0 : 1);
+  }
+  m.parts().content.props.children[4].props.children.props.onClick();
+  assert.equal(m.addCalls(),1);
+  m.parts().root.props.onOpenChange(false);
+  assert.equal(m.parts().root.props.open,false);
+  assert.equal(m.resetCalls(),5);
+});
+
+test("mobile air express uses real expert contacts and quote-only delivery instead of a fabricated total",()=>{
+  const m=mobilePurchaseHarness();
+  m.parts().sections.find(section=>section.key==="air_express").props.children[0].props.children[0].props.onChange();
+  const html=renderToStaticMarkup(m.render());
+  assert.ok(html.includes("نیاز به استعلام"));
+  assert.ok(html.includes("tel:09134464043"));
+  assert.ok(html.includes("https://wa.me/989134464043"));
+  assert.ok(html.includes("https://t.me/expert"));
+  const disabled=m.render({canOpen:false}).props.children[0].props.children.props.children[1].props.children;
+  assert.equal(disabled.props.disabled,true);
+});
+
+test("mobile purchase and desktop share one shipping quote and the original quantity and submit slots",()=>{
+  const requests=[],shipping={currency:"TOMAN",land:{total_toman:123}};
+  const h=harness({
+    "../../hooks/use-product-shipping-cost":{useProductShippingCost:(...args)=>{requests.push(args);return {data:shipping,isUpdating:false,isRecalculatingQuantity:false,isError:false,refetch:()=>{}};}},
+    "./product-purchase-panel":{default:"desktop-purchase"},
+    "./product-mobile-purchase":{default:"mobile-purchase"},
+  });
+  const View=h.load("components/detail/product-shipping-purchase-panel").default;
+  const quantity=React.createElement("input",{readOnly:true,value:3}),submit=React.createElement("button",null,"Submit");
+  const props={slug:"camera",quantityValue:3,quantityEditing:false,revision:"stable",quantity,submit,shippingMethod:"sea",mobilePurchase:true};
+  const tree=View(props);
+  assert.equal(requests.length,1);
+  assert.equal(tree.props.children[0].props.className,"hidden lg:block");
+  const desktop=tree.props.children[0].props.children,mobile=tree.props.children[1];
+  assert.equal(desktop.props.shipping,shipping);
+  assert.equal(mobile.props.shipping,shipping);
+  assert.equal(mobile.props.quantity,quantity);
+  assert.equal(mobile.props.submit,submit);
+  assert.equal(mobile.props.shippingMethod,"sea");
+  assert.equal(View({...props,mobilePurchase:false}).type,"desktop-purchase");
 });

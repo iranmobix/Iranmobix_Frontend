@@ -9,9 +9,11 @@ export default function MainLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ReactQueryProvider>
-      <Header />
-      <main>{children}</main>
-      <Footer />
+      <div className="min-h-screen bg-neutral-50">
+        <Header />
+        <main>{children}</main>
+        <Footer />
+      </div>
     </ReactQueryProvider>
   );
 }

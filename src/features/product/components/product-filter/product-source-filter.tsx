@@ -2,6 +2,7 @@
 
 import type { ProductSourceFilterOption } from "../../types/domain";
 import Image from "next/image";
+import ProductFilterCheckbox from "./product-filter-checkbox";
 import arrow from "../../assets/arrow.svg";
 import { toggleFilterValue } from "../../utils";
 
@@ -55,8 +56,7 @@ const ProductSourceFilter = ({
                 key={source.value}
                 className="flex cursor-pointer items-center gap-2 py-1.5"
               >
-                <input
-                  type="checkbox"
+                <ProductFilterCheckbox
                   checked={isSelected}
                   onChange={() => handleChange(source.value)}
                 />

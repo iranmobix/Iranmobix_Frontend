@@ -519,3 +519,11 @@
     animation: product-loading-glow 2s ease-in-out infinite;
   }
 }
+
+/* Shared backdrop for modal overlays and native dialog elements. */
+.modal-backdrop,
+.modal-dialog-backdrop::backdrop {
+  background-color: color-mix(in srgb, var(--neutral-100) 50%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}

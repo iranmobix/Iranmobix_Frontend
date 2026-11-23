@@ -1,13 +1,13 @@
 .hero {
   position: relative;
-  height: calc(340svh - var(--hero-header-height, 120px));
+  height: 340svh;
   background: var(--neutral-50);
 }
 
 .stage {
   position: sticky;
-  top: var(--hero-header-height, 120px);
-  height: calc(100svh - var(--hero-header-height, 120px));
+  top: 0;
+  height: 100svh;
   overflow: hidden;
   background: var(--neutral-50);
 }
@@ -46,12 +46,7 @@
 
 @media (max-width: 1023px) {
   .hero {
-    height: calc(280svh - var(--hero-header-height, 64px));
-  }
-
-  .stage {
-    top: var(--hero-header-height, 64px);
-    height: calc(100svh - var(--hero-header-height, 64px));
+    height: 280svh;
   }
 }
 

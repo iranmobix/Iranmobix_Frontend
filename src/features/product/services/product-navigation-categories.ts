@@ -68,10 +68,12 @@ export const productNavigationCategoriesOptions = () =>
           }),
         ),
       ),
-    staleTime: 10 * 60_000,
-    gcTime: 30 * 60_000,
+    staleTime: Infinity,
+    gcTime: Infinity,
     retry: false,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 
 export function flattenProductCategoryTree(

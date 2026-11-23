@@ -14,13 +14,13 @@ export function CalculatingSection() {
   const { mutate, data, error, isPending, reset } = useCalculateFreight();
 
   return (
-    <section className="flex flex-col gap-4 bg-neutral-100 px-3 py-6 lg:gap-6 lg:px-40 lg:py-16" dir="rtl">
-      <div className="flex flex-col gap-2 lg:gap-4">
-        <h2 className="text-xs font-semibold text-neutral-1000 lg:text-xl">
+    <section className="flex flex-col gap-6 bg-neutral-100 px-4 py-10 lg:gap-6 lg:px-40 lg:py-16" dir="rtl">
+      <div className="flex flex-col gap-3 lg:gap-4">
+        <h2 className="text-mobile-h6 text-neutral-1000 lg:text-xl lg:font-semibold">
           هزینه تقریبی ارسال کالا رو همین حالا محاسبه کن!
         </h2>
 
-        <p className="text-[10px] leading-[18px] text-neutral-900 lg:text-body-lg">
+        <p className="text-mobile-body-s leading-[160%] text-neutral-900 lg:text-body-lg lg:leading-[18px]">
           برای برآورد هزینه خرید و واردات کالا، مشخصات محصول را در این بخش وارد
           کنید تا هزینه تقریبی خرید، حمل و خدمات واردات برای شما محاسبه شود.
         </p>

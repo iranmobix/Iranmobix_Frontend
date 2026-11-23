@@ -21,6 +21,7 @@ type Props = {
   renderLayout?: (slots: {
     quantityValue: number;
     quantityEditing: boolean;
+    onQuantityEditingChange: (editing: boolean) => void;
     options: ReactNode;
     quantity: ReactNode;
     submit: ReactNode;
@@ -89,6 +90,7 @@ export default function ProductPurchaseForm({
         {renderLayout({
           quantityValue: selectedQuantity || 1,
           quantityEditing,
+          onQuantityEditingChange: setQuantityEditing,
           options: (
             <>
               <ProductWarranty

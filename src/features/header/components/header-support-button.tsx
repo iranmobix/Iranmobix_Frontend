@@ -1,13 +1,17 @@
 import support from "../assets/support.svg";
-import Image from "next/image";
+import supportWhite from "../assets/sapport.svg";
+import HeaderThemeIcon from "./header-theme-icon";
 export function HeaderSupportButton() {
   return (
     <button
       type="button"
       className="flex items-center justify-center gap-2 rounded-md py-2.5"
     >
-      <Image src={support} alt="IranMobix" priority />
-      <span className="text-primary-900 xl:text-label-lg text-xs whitespace-nowrap">
+      <HeaderThemeIcon dark={support} light={supportWhite} width={20} />
+      <span
+        data-header-label
+        className="text-desktop-body-m text-neutral-900 whitespace-nowrap"
+      >
         پشتیبانی
       </span>
     </button>

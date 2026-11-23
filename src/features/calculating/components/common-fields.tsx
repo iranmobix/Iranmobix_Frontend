@@ -48,7 +48,7 @@ export function CommonFields() {
         <div className="flex flex-col gap-2">
           <Label htmlFor="freight-shipping">روش حمل</Label>
           <div className="relative">
-            <select {...field} id="freight-shipping" value={field.value ?? ""}
+            <select {...field} id="freight-shipping" value={field.value ?? ""} data-placeholder={!field.value}
               aria-invalid={Boolean(errors.shippingMethod)}
               className="h-10 w-full appearance-none rounded-md border border-neutral-300 bg-white pr-3 pl-10 text-right text-xs text-neutral-800 outline-none focus-visible:border-primary-600 aria-invalid:border-red-500 lg:text-sm">
               <option value="" disabled>انتخاب کنید</option>
@@ -73,7 +73,7 @@ export function CommonFields() {
         <div className="flex flex-col gap-2">
           <Label htmlFor="freight-category">دسته‌بندی</Label>
           <div className="relative">
-            <select {...field} id="freight-category" value={field.value ?? ""}
+            <select {...field} id="freight-category" value={field.value ?? ""} data-placeholder={!field.value}
               disabled={categories.isPending || !categories.data?.length}
               aria-invalid={Boolean(errors.cargoCategory)}
               className="h-10 w-full appearance-none rounded-md border border-neutral-300 bg-white pr-3 pl-10 text-right text-xs text-neutral-800 outline-none focus-visible:border-primary-600 disabled:text-neutral-500 aria-invalid:border-red-500 lg:text-sm">

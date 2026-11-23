@@ -9,7 +9,6 @@ export default function ProductDetailHero({
   overview,
   purchase,
   mobileOverview = false,
-  mobileImportLayout = false,
 }: {
   gallery: ReactNode;
   seller?: ProductDetailSeller | null;
@@ -17,7 +16,6 @@ export default function ProductDetailHero({
   overview: ReactNode;
   purchase: ReactNode;
   mobileOverview?: boolean;
-  mobileImportLayout?: boolean;
 }) {
   return (
     <div
@@ -28,14 +26,13 @@ export default function ProductDetailHero({
         gallery={gallery}
         seller={seller}
         sellerPlaceholder={sellerPlaceholder}
-        mobileImportLayout={mobileImportLayout}
       />
       <div
         className={`${mobileOverview ? "block" : "hidden"} min-w-0 lg:col-start-2 lg:row-start-1 lg:block`}
       >
         {overview}
       </div>
-      <div className="min-w-0 lg:sticky lg:top-[calc(var(--header-height,157px)+20px)] lg:col-start-3 lg:row-start-1">
+      <div className="min-w-0 max-lg:contents lg:sticky lg:top-[calc(var(--header-height,157px)+20px)] lg:col-start-3 lg:row-start-1">
         {purchase}
       </div>
     </div>

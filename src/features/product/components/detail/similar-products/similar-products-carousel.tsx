@@ -20,8 +20,6 @@ type SimilarProductsCarouselProps = {
   wideLayout?: boolean;
 };
 
-const MIN_ITEMS_FOR_LOOP = 7;
-
 function getCardDetailsHref(product: Product | ProductRelatedProduct) {
   if (product.slug.trim()) return getProductDetailsHref(product.slug);
   if (product.source.name !== "alibaba") return undefined;
@@ -39,20 +37,19 @@ const SimilarProductsCarousel = ({
   wideLayout = false,
 }: SimilarProductsCarouselProps) => {
   const id = useId();
-  const hasEnoughProducts = products.length >= MIN_ITEMS_FOR_LOOP;
   const [emblaRef, emblaApi] = useEmblaCarousel({
     direction: "rtl",
     align: "start",
-    loop: hasEnoughProducts,
+    loop: false,
     dragFree: false,
-    containScroll: hasEnoughProducts ? false : "trimSnaps",
+    containScroll: "trimSnaps",
     slidesToScroll: 1,
     breakpoints: {
       "(min-width: 1024px)": {
         // Four full cards, with half of the adjacent card on either side.
         align: (viewSize, slideSize) => (viewSize - 4 * slideSize - 3 * 16) / 2,
-        containScroll: false,
-        startIndex: products.length >= 6 ? 1 : 0,
+        containScroll: "trimSnaps",
+        startIndex: 0,
       },
     },
   });
@@ -79,6 +76,11 @@ const SimilarProductsCarousel = ({
   const scrollState = useSyncExternalStore(subscribe, getSnapshot, () => 0);
 
   const scroll = (direction: "previous" | "next") => {
+    const canScroll =
+      direction === "previous"
+        ? emblaApi?.canScrollPrev()
+        : emblaApi?.canScrollNext();
+    if (!canScroll) return;
     const jump = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (direction === "previous") emblaApi?.scrollPrev(jump);
     else emblaApi?.scrollNext(jump);
@@ -93,9 +95,9 @@ const SimilarProductsCarousel = ({
         className={
           compactMobile
             ? wideLayout
-              ? `text-neutral-1000 mb-3 px-1 text-xs font-medium ${desktopTitleClassName ?? ""}`
-              : `text-neutral-1000 mb-3 px-1 text-xs font-medium ${desktopTitleClassName ?? "lg:text-body-lg-medium lg:mb-6 lg:px-6"}`
-            : "text-body-lg-medium text-neutral-1000 mb-6 px-4 lg:px-6"
+              ? `max-lg:text-mobile-h6 text-neutral-1000 mb-3 px-1 text-xs font-medium lg:text-desktop-label-l lg:text-neutral-900 lg:mb-6 lg:px-0 ${desktopTitleClassName ?? ""}`
+              : `max-lg:text-mobile-h6 text-neutral-1000 mb-3 px-1 text-xs font-medium ${desktopTitleClassName ?? "lg:text-desktop-label-l lg:text-neutral-900 lg:mb-6 lg:px-0"}`
+            : "text-mobile-h6 text-neutral-1000 mb-6 px-4 lg:text-desktop-label-l lg:text-neutral-900 lg:px-0"
         }
       >
         {title}
@@ -155,26 +157,30 @@ const SimilarProductsCarousel = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => scroll("previous")}
-          disabled={!(scrollState & 1)}
-          aria-label="محصولات قبلی"
-          aria-controls={`${id}-viewport`}
-          className={`${compactMobile ? "hidden lg:flex" : "flex"} bg-primary-500 hover:bg-primary-700 focus-visible:ring-primary-300 absolute top-1/2 right-4 z-10 ${wideLayout ? "size-8" : "size-12"} -translate-y-1/2 items-center justify-center rounded-full text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0`}
-        >
-          <ArrowRight size={wideLayout ? 18 : 24} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={() => scroll("next")}
-          disabled={!(scrollState & 2)}
-          aria-label="محصولات بعدی"
-          aria-controls={`${id}-viewport`}
-          className={`${compactMobile ? "hidden lg:flex" : "flex"} bg-primary-500 hover:bg-primary-700 focus-visible:ring-primary-300 absolute top-1/2 left-4 z-10 ${wideLayout ? "size-8" : "size-12"} -translate-y-1/2 items-center justify-center rounded-full text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0`}
-        >
-          <ArrowLeft size={wideLayout ? 18 : 24} aria-hidden="true" />
-        </button>
+        {Boolean(scrollState & 1) && (
+          <button
+            type="button"
+            onClick={() => scroll("previous")}
+            disabled={!(scrollState & 1)}
+            aria-label="محصولات قبلی"
+            aria-controls={`${id}-viewport`}
+            className={`${compactMobile ? "hidden lg:flex" : "flex"} bg-primary-500 hover:bg-primary-700 focus-visible:ring-primary-300 absolute top-1/2 right-4 z-10 ${wideLayout ? "size-8" : "size-12"} -translate-y-1/2 items-center justify-center rounded-full text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0`}
+          >
+            <ArrowRight size={wideLayout ? 18 : 24} aria-hidden="true" />
+          </button>
+        )}
+        {Boolean(scrollState & 2) && (
+          <button
+            type="button"
+            onClick={() => scroll("next")}
+            disabled={!(scrollState & 2)}
+            aria-label="محصولات بعدی"
+            aria-controls={`${id}-viewport`}
+            className={`${compactMobile ? "hidden lg:flex" : "flex"} bg-primary-500 hover:bg-primary-700 focus-visible:ring-primary-300 absolute top-1/2 left-4 z-10 ${wideLayout ? "size-8" : "size-12"} -translate-y-1/2 items-center justify-center rounded-full text-white transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0`}
+          >
+            <ArrowLeft size={wideLayout ? 18 : 24} aria-hidden="true" />
+          </button>
+        )}
       </div>
     </section>
   );

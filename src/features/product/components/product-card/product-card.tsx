@@ -74,12 +74,12 @@ const ProductCard = ({
         onClick={(event) =>
           openCardDetails(event, openDetails, detailsDisabled)
         }
-        className={`${mobileLayout ? "hidden lg:flex" : "flex"} h-full w-full cursor-pointer flex-col overflow-hidden rounded-md bg-white ${compactMobile ? "p-1.5" : "p-4"} transition-shadow duration-300 hover:shadow-[0px_2px_8px_4px_rgba(0,0,0,0.08)] lg:min-h-[440px] lg:rounded-lg lg:p-4 ${
+        className={`${mobileLayout ? "hidden lg:flex" : "flex"} h-full w-full cursor-pointer flex-col overflow-hidden rounded-md bg-white ${compactMobile ? "p-1.5" : "p-4"} transition-shadow duration-300 hover:shadow-[0px_2px_8px_4px_rgba(0,0,0,0.08)] lg:rounded-lg lg:border-0 lg:p-4 ${
           variant === "featured"
             ? "border border-[#d7b848]"
             : variant === "bordered"
               ? "border-primary-100 border"
-              : "lg:border-primary-100 border-0 lg:border"
+              : "border-0"
         }`}
       >
         <ProductCardMedia

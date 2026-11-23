@@ -65,16 +65,16 @@ export function CalculatingForm({ type, onCalculate, isPending, error }: Calcula
     <FormProvider {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex w-full min-w-0 flex-col lg:flex-1 [&_input]:h-10 [&_input]:border-neutral-300 [&_input]:text-xs lg:[&_input]:text-sm [&_label]:text-xs lg:[&_label]:text-sm"
+        className="flex w-full min-w-0 flex-col lg:flex-1 [&_input]:h-10 [&_input]:border-neutral-300 max-lg:[&_input]:text-mobile-label-m max-lg:[&_input]:text-neutral-800 max-lg:[&_input]:placeholder:text-neutral-600 lg:[&_input]:text-sm max-lg:[&_label]:text-desktop-label-m max-lg:[&_label]:text-neutral-900 lg:[&_label]:text-sm max-lg:[&_select]:text-mobile-label-m max-lg:[&_select]:text-neutral-800 max-lg:[&_select[data-placeholder=true]]:text-neutral-600 max-lg:[&_option]:text-neutral-800"
       >
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-x-6 lg:gap-y-5">
+        <div className="grid grid-cols-1 gap-[42px] lg:grid-cols-2 lg:gap-x-6 lg:gap-y-5">
           {type === "cbm" && <CbmFields />}
 
           {type === "dimensions" && <DimensionsFields />}
 
           <CommonFields />
           <Button type="submit" disabled={isPending} aria-busy={isPending}
-            className="h-10 w-full text-xs lg:mt-5 lg:text-sm">
+            className="text-mobile-label-l h-10 w-full text-white lg:mt-5 lg:text-sm">
             {isPending ? "در حال محاسبه..." : "محاسبه"}
           </Button>
         </div>

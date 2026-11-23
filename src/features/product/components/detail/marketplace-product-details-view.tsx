@@ -1,5 +1,7 @@
 "use client";
 
+import ProductMobileSeller from "./product-mobile-seller";
+
 import { useState } from "react";
 import { useProductTomanPricing } from "@/features/product/hooks/use-product-toman-pricing";
 import {
@@ -7,7 +9,7 @@ import {
   type ProductTomanPricing,
 } from "@/features/product/services/product-toman-pricing";
 import Breadcrumb from "@/shared/components/breadcrumb/breadcrumb";
-import { getProductCategoryHref } from "../../utils/product-category-path";
+import { buildProductDetailBreadcrumb } from "../../utils/build-product-detail-breadcrumb";
 import ProductDetailActions from "@/features/product/components/detail/product-detail-actions";
 import ProductDetailHero from "@/features/product/components/detail/product-detail-hero";
 import ProductGallery from "@/features/product/components/detail/product-gallery";
@@ -41,10 +43,10 @@ function SectionPlaceholder({
     <section
       aria-label={title}
       aria-busy={!settled}
-      className="rounded-md border border-neutral-200 bg-white p-4"
+      className="rounded-md border border-neutral-200 bg-white px-2 py-4 lg:px-4 lg:py-6"
     >
       <h2
-        className={`mb-3 text-xs font-medium text-neutral-800 ${titleClassName}`}
+        className={`text-mobile-h6 mb-3 text-neutral-1000 lg:text-desktop-label-l lg:text-neutral-900 lg:mb-6 ${titleClassName}`}
       >
         {title}
       </h2>
@@ -146,30 +148,7 @@ export default function MarketplaceProductDetailsView({
         <div className="min-w-0 [&_nav]:flex-wrap [&_nav]:gap-1">
           <Breadcrumb
             variant="product-detail"
-            items={[
-              { label: "ایران موبیکس", href: "/" },
-              { label: "محصولات", href: "/products" },
-              {
-                label:
-                  product.categoryName ||
-                  (product.settled
-                    ? "دسته‌بندی از بک دریافت نشده"
-                    : "در حال دریافت دسته‌بندی…"),
-                href: product.categoryName
-                  ? getProductCategoryHref(
-                      product.categoryName,
-                      product.categoryId,
-                    )
-                  : undefined,
-              },
-              {
-                label:
-                  product.persianTitle ||
-                  (product.settled
-                    ? "نام فارسی از بک دریافت نشده"
-                    : "در حال دریافت نام فارسی…"),
-              },
-            ]}
+            items={buildProductDetailBreadcrumb(product)}
           />
         </div>
         <div className="flex items-center gap-4">
@@ -204,7 +183,6 @@ export default function MarketplaceProductDetailsView({
         </div>
       )}
       <ProductDetailHero
-        mobileImportLayout
         seller={product.seller}
         sellerPlaceholder={
           !product.settled && (
@@ -260,9 +238,13 @@ export default function MarketplaceProductDetailsView({
         }
         purchase={
           !product.slug && !product.settled ? (
-            <SectionPlaceholder title="هزینه ارسال" settled={false} />
+            <div className="hidden lg:block">
+              <SectionPlaceholder title="هزینه ارسال" settled={false} />
+            </div>
           ) : (
             <ProductShippingPurchasePanel
+              mobilePurchase
+              onResetQuantityEditing={() => setQuantityEditing(false)}
               slug={product.slug}
               productTitle={product.title}
               productCode={product.code}
@@ -296,12 +278,11 @@ export default function MarketplaceProductDetailsView({
           )
         }
       />
-      {product.otherSellers.length > 0 && (
-        <div className="mt-4 min-w-0 lg:mt-6">
-          <ProductOtherSellers products={product.otherSellers} wideLayout />
-        </div>
-      )}
-      <div className="mt-5 space-y-4 [&>section]:lg:h-auto [&>section]:lg:rounded-md [&>section]:lg:p-5">
+      <div className="mt-5 grid grid-cols-1 gap-4 [&>section]:lg:h-auto [&>section]:lg:rounded-md [&>section]:lg:px-4 [&>section]:lg:py-6">
+        <ProductMobileSeller
+          seller={product.seller}
+          pending={!product.settled}
+        />
         {Object.keys(product.translatedSpecifications).length ? (
           <ProductSpecifications product={product} />
         ) : (
@@ -311,6 +292,11 @@ export default function MarketplaceProductDetailsView({
             settled={product.settled}
           />
         )}
+      {product.otherSellers.length > 0 && (
+        <div className="min-w-0 lg:order-first">
+          <ProductOtherSellers products={product.otherSellers} wideLayout />
+        </div>
+      )}
         {product.relatedProducts.length > 0 && (
           <ProductOtherSellers
             products={product.relatedProducts}

@@ -1,0 +1,25 @@
+.header [data-header-label] {
+  transition: color 200ms ease;
+}
+
+.header[data-over-hero="true"] [data-header-label] {
+  color: var(--color-white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header [data-header-label] {
+    transition: none;
+  }
+}
+
+.header [data-header-icon="light"] {
+  display: none;
+}
+
+.header[data-over-hero="true"] [data-header-icon="dark"] {
+  display: none;
+}
+
+.header[data-over-hero="true"] [data-header-icon="light"] {
+  display: block;
+}

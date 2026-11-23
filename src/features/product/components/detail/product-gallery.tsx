@@ -24,7 +24,6 @@ type ProductGalleryProps = {
 };
 export default function ProductGallery({
   product: { gallery },
-  mobileImportLayout = false,
 }: ProductGalleryProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -100,7 +99,7 @@ export default function ProductGallery({
   };
   if (!gallery.length)
     return (
-      <div className="flex aspect-square items-center justify-center rounded-md bg-white text-xs text-neutral-500 lg:aspect-auto lg:h-[260px] xl:h-[276px]">
+      <div className="flex aspect-square items-center justify-center rounded-md bg-white text-xs text-neutral-500 ">
         تصاویر محصول: —
       </div>
     );
@@ -108,10 +107,10 @@ export default function ProductGallery({
   return (
     <div
       dir="rtl"
-      className="flex min-w-0 flex-col [--gallery-thumb-gap:12px] [--gallery-thumb-size:56px] lg:grid lg:h-[calc(4*var(--gallery-thumb-size)_+_3*var(--gallery-thumb-gap))] lg:min-h-0 lg:grid-cols-[var(--gallery-thumb-size)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-[var(--gallery-thumb-gap)] xl:[--gallery-thumb-size:60px]"
+      className="flex min-w-0 flex-col [--gallery-thumb-gap:12px] [--gallery-thumb-size:56px] lg:grid lg:min-h-0 lg:grid-cols-[var(--gallery-thumb-size)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-[var(--gallery-thumb-gap)] xl:[--gallery-thumb-size:60px]"
     >
       <div
-        className={`relative ${mobileImportLayout ? "aspect-square" : "aspect-[6/5]"} min-w-0 overflow-hidden rounded-md bg-[#efeeec] lg:col-start-2 lg:row-start-1 lg:aspect-auto lg:h-full lg:min-h-0`}
+        className="relative aspect-square w-full min-w-0 overflow-hidden rounded-md bg-[#efeeec] lg:col-start-2 lg:row-start-1"
       >
         <button
           type="button"
@@ -162,13 +161,13 @@ export default function ProductGallery({
             </button>
           ))}
       </div>
-      <div className="relative hidden min-w-0 lg:col-start-1 lg:row-start-1 lg:block lg:h-full lg:min-h-0">
+      <div className="relative hidden min-w-0 lg:col-start-1 lg:row-start-1 lg:block lg:min-h-0">
         <div
           ref={thumbnailsRef}
           role="group"
           aria-label="تصاویر محصول؛ برای مشاهده تصاویر بیشتر اسکرول کنید"
           tabIndex={0}
-          className="relative flex h-full min-h-0 min-w-0 [scrollbar-width:none] flex-col gap-[var(--gallery-thumb-gap)] overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden"
+          className="absolute inset-0 flex min-h-0 min-w-0 [scrollbar-width:none] flex-col gap-[var(--gallery-thumb-gap)] overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden"
         >
           {gallery.map((image, index) => (
             <button

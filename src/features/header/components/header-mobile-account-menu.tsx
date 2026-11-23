@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import profileMenu from "../assets/profile menu.svg";
+import notification from "../assets/notification.svg";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, ChevronDown, ClipboardList, Heart, LogOut, MessageCircle, Package, Tickets, UserRound, Wallet } from "lucide-react";
+import { ChevronDown, ClipboardList, Heart, LogOut, MessageCircle, Package, Tickets, UserRound, Wallet } from "lucide-react";
 import { useLogout } from "@/features/auth/hooks/use-logout";
 import { PANEL_NAVIGATION, USER_PANEL_QUERY_KEY } from "@/features/user-panel/constants/user-panel.constants";
 import { userPanelService } from "@/features/user-panel/services/user-panel.service";
@@ -33,9 +36,7 @@ export function HeaderMobileAccountMenu({ onNavigate }: { onNavigate: () => void
     <>
       <details className="group/account">
         <summary className={summaryClass}>
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-primary-100 bg-[#fff4df]">
-            <UserRound size={16} strokeWidth={1.5} className="text-[#e9bb7c]" aria-hidden="true" />
-          </span>
+          <Image src={profileMenu} alt="" width={20} height={20} className="size-5 shrink-0" aria-hidden="true" />
           <span>{name || "حساب کاربری"}</span>
           <ChevronDown size={14} strokeWidth={1.5} aria-hidden="true" className="transition-transform group-open/account:rotate-180" />
         </summary>
@@ -57,7 +58,7 @@ export function HeaderMobileAccountMenu({ onNavigate }: { onNavigate: () => void
       </details>
       <details className="group/notifications">
         <summary className={summaryClass}>
-          <Bell size={17} strokeWidth={1.5} className="text-[#d3af37]" aria-hidden="true" />
+          <Image src={notification} alt="" width={17} height={17} className="size-[17px] shrink-0" aria-hidden="true" />
           اعلان‌ها
           <ChevronDown size={14} strokeWidth={1.5} aria-hidden="true" className="transition-transform group-open/notifications:rotate-180" />
         </summary>

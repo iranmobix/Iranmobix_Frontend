@@ -1,4 +1,5 @@
-import { ArrowRight, CircleAlert, ImageOff, RotateCw } from "lucide-react";
+import ProductSearchFailureAnimation from "../product-search-failure-animation";
+import { ArrowRight, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type ProductDetailsErrorProps = {
@@ -37,21 +38,7 @@ export default function ProductDetailsError({
           <span className="border-primary-100 bg-primary-50 text-primary-600 rounded-full border px-3 py-1 text-[11px]">
             جزئیات محصول
           </span>
-          <div
-            aria-hidden="true"
-            className="relative my-6 flex size-32 items-center justify-center"
-          >
-            <div className="border-primary-200/70 absolute inset-0 rounded-full border border-dashed" />
-            <div className="bg-primary-50 absolute inset-3 rounded-full" />
-            <div className="border-primary-100 text-primary-400 relative flex h-[76px] w-16 -rotate-6 items-center justify-center rounded-xl border bg-white shadow-[0_6px_20px_rgba(73,53,155,0.1)]">
-              <ImageOff size={32} strokeWidth={1.35} />
-            </div>
-            <span className="absolute right-2 bottom-3 flex size-9 items-center justify-center rounded-full border-[3px] border-white bg-[#fcf4dc] text-[#b18d25] shadow-sm">
-              <CircleAlert size={21} strokeWidth={1.6} />
-            </span>
-            <span className="bg-secondary-400 absolute top-6 left-0 size-2 rounded-full motion-safe:animate-pulse" />
-            <span className="bg-primary-200 absolute bottom-3 left-5 size-1.5 rounded-full" />
-          </div>
+          <div className="my-6"><ProductSearchFailureAnimation /></div>
           <h1
             id="product-details-error-title"
             className="text-primary-900 text-lg leading-8 font-semibold sm:text-xl"

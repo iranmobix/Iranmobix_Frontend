@@ -6,6 +6,7 @@ import { getProductDetailsHref } from "@/features/product/utils/product-path";
 import { openProductDetailsTab } from "@/features/product/utils/product-navigation";
 import { Button } from "@/components/ui/button";
 import ProductPage from "@/features/product/components/product-page";
+import ProductSearchFailureAnimation from "@/features/product/components/product-search-failure-animation";
 import ProductGridSkeleton from "@/features/product/components/product-grid/product-grid-skeleton";
 import type { Product } from "@/features/product/types/domain/product.types";
 import { useImportResults } from "../hooks/use-import-results";
@@ -76,6 +77,7 @@ export default function ImportResultsPage({
       {query.isPending && <p role="status">در حال دریافت وضعیت پردازش…</p>}
       {query.isError && (
         <div role="alert">
+          <ProductSearchFailureAnimation />
           <p>دریافت وضعیت ناموفق بود. دوباره بررسی کنید.</p>
           <Button onClick={() => void query.refetch()} disabled={query.isFetching}>
             تلاش مجدد
@@ -83,7 +85,7 @@ export default function ImportResultsPage({
         </div>
       )}
       {job?.status === "failed" && (
-        <p role="alert">{job.error_message || "دریافت محصولات ناموفق بود."}</p>
+        <div role="alert"><ProductSearchFailureAnimation /><p>{job.error_message || "دریافت محصولات ناموفق بود."}</p></div>
       )}
       {job && !job.ready_for_frontend && job.status !== "failed" && job.status !== "done" && (
         <p role="status" className="text-mobile-body-s lg:text-desktop-body-s text-secondary-600">{job.status_label || "در حال دریافت و آماده‌سازی محصولات…"}</p>

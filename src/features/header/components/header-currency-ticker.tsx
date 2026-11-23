@@ -76,7 +76,11 @@ export function HeaderCurrencyTicker() {
             </span>
             <span>
               قیمت {rate.name} ({rate.code}):{" "}
-              {data?.[rate.key].toLocaleString("fa-IR") ?? "—"} تومان
+              {data
+                ? data[rate.key].toLocaleString("fa-IR") + " تومان"
+                : isError
+                  ? "فعلاً در دسترس نیست"
+                  : "در حال دریافت…"}
             </span>
           </p>
         ))}

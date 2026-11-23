@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Popover } from "radix-ui";
-import { ArrowLeft, ChevronDown, ChevronLeft, LayoutGrid } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronLeft,
+  LayoutGrid,
+  Search,
+  X,
+} from "lucide-react";
 import {
   productNavigationCategoriesOptions,
   type ProductCategoryNode,
 } from "@/features/product/services/product-navigation-categories";
 import { getProductCategoryHref } from "@/features/product/utils/product-category-path";
+
+import { filterHeaderCategories } from "../utils/header-category-search";
 
 const categoryHref = (category: ProductCategoryNode) =>
   getProductCategoryHref(category.name, category.id);
@@ -27,7 +36,7 @@ function CategoryBranch({
     <ul className="space-y-1">
       {categories.map((category) => (
         <li key={category.id}>
-          <Link
+          <Link target="_self"
             href={categoryHref(category)}
             prefetch={false}
             onClick={onNavigate}
@@ -61,16 +70,80 @@ export function HeaderProductsMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const contentRef = useRef<HTMLDivElement>(null);
+  const openedByHover = useRef(false);
+
+  const cancelHoverClose = () => {
+    clearTimeout(closeTimer.current);
+    closeTimer.current = undefined;
+  };
+  const openOnHover = (event: PointerEvent) => {
+    if (event.pointerType !== "mouse") return;
+    cancelHoverClose();
+    if (!open) {
+      openedByHover.current = true;
+      setOpen(true);
+    }
+  };
+  const closeAfterHover = (event: PointerEvent) => {
+    if (event.pointerType !== "mouse") return;
+    cancelHoverClose();
+    // Bridge the spacing between the trigger and the portalled panel.
+    closeTimer.current = setTimeout(() => {
+      closeTimer.current = undefined;
+      // Keep the category search usable while it has keyboard focus.
+      if (contentRef.current?.contains(document.activeElement)) return;
+      setOpen(false);
+    }, 250);
+  };
+
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
   const query = useQuery({
     ...productNavigationCategoriesOptions(),
     enabled: open,
   });
-  const categories = query.data ?? [];
+  const allCategories = query.data ?? [];
+  const categories = filterHeaderCategories(allCategories, search);
   const active = categories.find(({ id }) => id === activeId) ?? categories[0];
   const navigate = () => {
+    cancelHoverClose();
     setOpen(false);
+    setSearch("");
     onNavigate?.();
   };
+
+  const searchControl = (
+    <div className="focus-within:ring-primary-300 relative flex w-full items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 focus-within:ring-2 lg:max-w-[280px]">
+      <Search
+        size={16}
+        className="shrink-0 text-neutral-700"
+        aria-hidden="true"
+      />
+      <input
+        type="search"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        aria-label="جست‌وجوی دسته‌بندی"
+        placeholder="جست‌وجوی دسته‌بندی..."
+        className="text-mobile-body-s lg:text-desktop-body-s h-9 w-full min-w-0 bg-transparent text-neutral-900 outline-none placeholder:text-neutral-600 [&::-webkit-search-cancel-button]:appearance-none"
+      />
+      {search && (
+        <button
+          type="button"
+          onClick={() => setSearch("")}
+          aria-label="پاک کردن جست‌وجوی دسته‌بندی"
+          className="hover:text-primary-600 focus-visible:ring-primary-300 flex size-6 shrink-0 items-center justify-center rounded text-neutral-700 focus-visible:ring-2 focus-visible:outline-none"
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
 
   const status = query.isPending ? (
     <div role="status" className="space-y-3 p-4">
@@ -97,8 +170,13 @@ export function HeaderProductsMenu({
       </button>
     </div>
   ) : categories.length === 0 ? (
-    <p className="text-mobile-body-s lg:text-desktop-body-s p-5 text-neutral-800">
-      دسته‌بندی‌ای یافت نشد.
+    <p
+      role="status"
+      className="text-mobile-body-s lg:text-desktop-body-s p-5 text-neutral-800"
+    >
+      {search.trim()
+        ? "دسته‌بندی مطابق جست‌وجوی شما پیدا نشد."
+        : "دسته‌بندی‌ای یافت نشد."}
     </p>
   ) : null;
 
@@ -124,7 +202,7 @@ export function HeaderProductsMenu({
             id="mobile-product-categories"
             className="mb-2 rounded-lg border border-neutral-200 bg-neutral-50 p-2"
           >
-            <Link
+            <Link target="_self"
               href="/products"
               onClick={navigate}
               className={
@@ -133,17 +211,19 @@ export function HeaderProductsMenu({
             >
               مشاهده همه محصولات
             </Link>
+            <div className="mb-2">{searchControl}</div>
             {status ??
               categories.map((category) =>
                 category.children.length ? (
                   <details
+                    open={search.trim() ? true : undefined}
                     key={category.id}
                     className="border-t border-neutral-200"
                   >
                     <summary className="text-mobile-label-m cursor-pointer p-3 leading-6 text-neutral-900">
                       {category.name}
                     </summary>
-                    <Link
+                    <Link target="_self"
                       href={categoryHref(category)}
                       prefetch={false}
                       onClick={navigate}
@@ -173,13 +253,23 @@ export function HeaderProductsMenu({
     );
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        cancelHoverClose();
+        if (nextOpen) openedByHover.current = false;
+        setOpen(nextOpen);
+      }}
+    >
       <Popover.Trigger asChild>
         <button
           type="button"
-          className="text-primary-900 focus-visible:ring-primary-300 flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:outline-none"
+          data-header-label
+          onPointerEnter={openOnHover}
+          onPointerLeave={closeAfterHover}
+          className="text-neutral-900 focus-visible:ring-primary-300 flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:outline-none"
         >
-          <span className="xl:text-label-lg text-xs whitespace-nowrap">
+          <span className="text-desktop-body-m whitespace-nowrap">
             محصولات
           </span>
           <ChevronDown
@@ -191,6 +281,15 @@ export function HeaderProductsMenu({
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
+          ref={contentRef}
+          onPointerEnter={cancelHoverClose}
+          onPointerLeave={closeAfterHover}
+          onOpenAutoFocus={(event) => {
+            if (openedByHover.current) event.preventDefault();
+          }}
+          onCloseAutoFocus={(event) => {
+            if (openedByHover.current) event.preventDefault();
+          }}
           dir="rtl"
           align="start"
           sideOffset={16}
@@ -207,7 +306,8 @@ export function HeaderProductsMenu({
               />
               دسته‌بندی محصولات
             </span>
-            <Link
+            {searchControl}
+            <Link target="_self"
               href="/products"
               onClick={navigate}
               className="text-desktop-body-s text-primary-600 focus-visible:ring-primary-300 flex items-center gap-2 rounded focus-visible:ring-2"
@@ -223,7 +323,7 @@ export function HeaderProductsMenu({
                 className="max-h-[min(65dvh,520px)] space-y-1 overflow-y-auto border-l border-neutral-200 bg-neutral-50 p-3"
               >
                 {categories.map((category) => (
-                  <Link
+                  <Link target="_self"
                     key={category.id}
                     href={categoryHref(category)}
                     prefetch={false}
@@ -249,7 +349,7 @@ export function HeaderProductsMenu({
               <div className="max-h-[min(65dvh,520px)] overflow-y-auto p-6">
                 {active && (
                   <>
-                    <Link
+                    <Link target="_self"
                       href={categoryHref(active)}
                       prefetch={false}
                       onClick={navigate}
@@ -270,7 +370,7 @@ export function HeaderProductsMenu({
                           ))}
                         </div>
                       ) : (
-                        <Link
+                        <Link target="_self"
                           href={categoryHref(active)}
                           prefetch={false}
                           onClick={navigate}

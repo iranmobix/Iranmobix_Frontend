@@ -1,4 +1,5 @@
 "use client";
+import ProductFilterCheckbox from "./product-filter-checkbox";
 
 import { useState } from "react";
 import type { ProductCategoryFilterOption } from "../../types/domain";
@@ -109,36 +110,11 @@ const ProductCategoryFilter = ({
               const isSelected = value.includes(category.id);
 
               return (
-                <button
+                <label
                   key={category.id}
-                  type="button"
-                  onClick={() => handleCategoryToggle(category.id)}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-sm hover:bg-gray-50"
                 >
-                  {/* Custom checkbox */}
-                  <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                      isSelected
-                        ? "border-black bg-black"
-                        : "border-gray-300 bg-white"
-                    }`}
-                  >
-                    {isSelected && (
-                      <svg
-                        viewBox="0 0 12 12"
-                        className="h-3 w-3 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path
-                          d="M2.5 6L5 8.5L9.5 3.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </span>
+                  <ProductFilterCheckbox checked={isSelected} onChange={() => handleCategoryToggle(category.id)} />
 
                   <span
                     className={
@@ -147,7 +123,7 @@ const ProductCategoryFilter = ({
                   >
                     {category.name}
                   </span>
-                </button>
+                </label>
               );
             })}
 

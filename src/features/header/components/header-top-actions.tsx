@@ -2,7 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Bell, UserRound } from "lucide-react";
+import notification from "../assets/notification.svg";
+import notificationWhite from "../assets/notification1.svg";
+import basketWhite from "../assets/basket.svg";
+import HeaderThemeIcon from "./header-theme-icon";
+import profileMenu from "../assets/profile menu.svg";
 import { Popover } from "radix-ui";
 import icons from "../assets/icons.svg";
 import Link from "next/link";
@@ -16,12 +20,12 @@ function LanguageButton({ compact = false }: { compact?: boolean }) {
       variant="secondary"
       aria-label="زبان فارسی"
       className={
-        "border-primary-100 flex shrink-0 items-center justify-center gap-1 rounded-md border p-0 " +
-        (compact ? "h-8 w-9" : "size-11")
+        "border-primary-100 flex shrink-0 items-center justify-center gap-1 rounded-md border p-2 " +
+        (compact ? "min-h-8 min-w-9" : "min-h-11 min-w-11")
       }
     >
       <Image src={icons} alt="" width={14} height={14} />
-      <span className="text-primary-500 text-xs">فا</span>
+      <span className="text-desktop-body-m text-neutral-900">فا</span>
     </Button>
   );
 }
@@ -29,7 +33,7 @@ function LanguageButton({ compact = false }: { compact?: boolean }) {
 export function HeaderTopActions() {
   const accessToken = useAccessToken();
   return (
-    <div className="flex w-[248px] shrink-0 items-center justify-end xl:w-[336px]">
+    <div className="flex min-w-0 items-center justify-end">
       {accessToken ? (
         <div dir="ltr" className="flex h-11 shrink-0 items-center gap-4">
           <LanguageButton compact />
@@ -37,16 +41,9 @@ export function HeaderTopActions() {
             href="/panel"
             aria-label="پنل کاربری"
             title="پنل کاربری"
-            className="border-primary-100 focus-visible:ring-primary-300 flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-white focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-primary-300 flex size-8 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
           >
-            <span className="bg-secondary-100 flex size-7 items-center justify-center rounded-full">
-              <UserRound
-                size={23}
-                strokeWidth={1.5}
-                className="text-secondary-400"
-                aria-hidden="true"
-              />
-            </span>
+            <Image src={profileMenu} alt="" width={32} height={32} className="size-8 shrink-0" aria-hidden="true" />
           </Link>
           <Popover.Root>
             <Popover.Trigger asChild>
@@ -56,7 +53,7 @@ export function HeaderTopActions() {
                 title="اعلان‌ها"
                 className="hover:bg-primary-50 focus-visible:ring-primary-300 flex size-8 items-center justify-center rounded-full text-neutral-900 transition-colors focus-visible:ring-2 focus-visible:outline-none"
               >
-                <Bell size={22} strokeWidth={1.5} aria-hidden="true" />
+                <HeaderThemeIcon dark={notification} light={notificationWhite} width={22} />
               </button>
             </Popover.Trigger>
             <Popover.Portal>
@@ -82,7 +79,7 @@ export function HeaderTopActions() {
         <>
           <Button
             asChild
-            className="bg-primary-500 xl:text-label-lg ml-3 h-11 shrink-0 rounded-md px-3 py-2 text-xs whitespace-nowrap xl:ml-6 xl:px-6"
+            className="bg-primary-500 text-desktop-body-m text-neutral-900 ml-3 h-11 shrink-0 rounded-md px-3 py-2 whitespace-nowrap xl:ml-6 xl:px-6"
           >
             <Link href="/login">ورود/عضویت</Link>
           </Button>
@@ -91,7 +88,7 @@ export function HeaderTopActions() {
       )}
       <span
         aria-hidden="true"
-        className="mr-4 ml-4 h-11 w-px shrink-0 bg-neutral-200 xl:mr-12 xl:ml-9"
+        className="mx-3 h-11 w-px shrink-0 bg-neutral-200 xl:mx-4"
       />
       <Button
         asChild
@@ -100,7 +97,7 @@ export function HeaderTopActions() {
         className="size-11 rounded-full"
       >
         <Link href="/cart" aria-label="سبد خرید">
-          <Image src={vector} alt="" width={22} height={22} />
+          <HeaderThemeIcon dark={vector} light={basketWhite} width={22} />
         </Link>
       </Button>
     </div>

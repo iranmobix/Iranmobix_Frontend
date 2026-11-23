@@ -112,7 +112,7 @@ export function ImportImageSearch({ children }: { children: ReactElement }) {
       <Popover.Portal>
         <div
           aria-hidden="true"
-          className="pointer-events-auto fixed inset-0 z-[80] bg-black/40"
+          className="pointer-events-auto fixed inset-0 z-[80] modal-backdrop"
           onClick={() => changeOpen(false)}
         />
       </Popover.Portal>

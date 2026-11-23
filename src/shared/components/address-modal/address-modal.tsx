@@ -348,7 +348,7 @@ function AddressModalShell({
       onClick={(event) => {
         if (event.target === event.currentTarget) onDismiss();
       }}
-      className="fixed inset-0 m-auto max-h-[85dvh] w-[min(94vw,420px)] overflow-y-auto rounded-lg border-0 bg-white p-0 shadow-xl outline-none backdrop:bg-black/40"
+      className="fixed inset-0 m-auto max-h-[85dvh] w-[min(94vw,420px)] overflow-y-auto rounded-lg border-0 bg-white p-0 shadow-xl outline-none modal-dialog-backdrop"
     >
       <div className="flex flex-row-reverse items-center justify-end gap-1 px-3 pt-3 pb-9 sm:px-5">
         <h2 id={titleId} className="text-sm font-medium text-neutral-900">

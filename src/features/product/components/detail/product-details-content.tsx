@@ -38,10 +38,10 @@ export default function ProductDetailsContent({
   return (
     <section
       dir="rtl"
-      className={`min-w-0 rounded-md bg-white ${mobileImportLayout ? "p-2.5 lg:p-3.5" : "p-3.5"}`}
+      className="min-w-0 rounded-md bg-white px-2 py-4 lg:p-3.5"
     >
       {translatedByAi && (
-        <p className="text-mobile-caption lg:text-desktop-caption mb-2 flex items-center gap-1 text-right font-sans">
+        <p className="text-mobile-caption lg:text-desktop-caption mt-1 mb-3 flex items-center gap-1 text-right font-sans">
           <Image
             src={translationStar}
             alt=""
@@ -50,7 +50,7 @@ export default function ProductDetailsContent({
             className="size-[11px] shrink-0"
             aria-hidden="true"
           />
-          <span className="from-secondary-600 to-primary-500 bg-linear-to-r bg-clip-text text-transparent">
+          <span className="from-secondary-600 to-primary-500 bg-linear-to-r bg-clip-text py-1 leading-6 text-transparent">
             ترجمه شده توسط هوش مصنوعی
           </span>
         </p>
@@ -136,7 +136,7 @@ export default function ProductDetailsContent({
           {options}
         </div>
       )}
-      <div className="border-t border-neutral-200 pt-4">
+      <div className="hidden border-t border-neutral-200 pt-4 lg:block">
         <h2 className="mb-3 text-xs font-medium text-neutral-800">
           مشخصات اصلی
         </h2>

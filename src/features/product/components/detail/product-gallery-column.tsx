@@ -8,12 +8,10 @@ export default function ProductGalleryColumn({
   gallery,
   seller,
   sellerPlaceholder,
-  mobileImportLayout = false,
 }: {
   gallery: ReactNode;
   seller?: ProductDetailSeller | null;
   sellerPlaceholder?: ReactNode;
-  mobileImportLayout?: boolean;
 }) {
   const columnRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -56,10 +54,8 @@ export default function ProductGalleryColumn({
       ref={columnRef}
       className="min-w-0 lg:sticky lg:top-[var(--gallery-sticky-top,173px)] lg:col-start-1 lg:row-start-1 lg:self-start"
     >
-      <div className="min-w-0">{gallery}</div>
-      <div
-        className={mobileImportLayout ? "hidden shrink-0 lg:block" : "shrink-0"}
-      >
+      <div className="min-w-0 max-lg:px-2 max-lg:py-4">{gallery}</div>
+      <div className="hidden shrink-0 lg:block">
         {seller ? <ProductSellerCard seller={seller} /> : sellerPlaceholder}
       </div>
     </div>

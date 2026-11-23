@@ -15,8 +15,8 @@ const ProductReview = ({ product }: ProductReviewProps) => {
   const review = product.description.review;
 
   return (
-    <section className="flex w-full flex-col gap-6 rounded-md bg-white px-6 py-8">
-      <h2 className="text-body-lg-medium text-neutral-1000">
+    <section className="flex w-full flex-col gap-6 rounded-md bg-white px-2 py-4 lg:px-4 lg:py-6">
+      <h2 className="text-mobile-h6 text-neutral-1000 lg:text-desktop-label-l lg:text-neutral-900">
         نقد و بررسی محصول
       </h2>
 

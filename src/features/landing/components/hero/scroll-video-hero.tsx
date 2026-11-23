@@ -9,6 +9,7 @@ export function ScrollVideoHero() {
   return (
     <section
       ref={sectionRef}
+      data-landing-hero
       aria-label="مسیر واردات کالا از چین و امارات"
       className={styles.hero}
     >

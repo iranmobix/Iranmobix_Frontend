@@ -17,7 +17,7 @@ const ProductOtherSellers = ({
 }: ProductOtherSellersProps) =>
   products.length === 0 ? null : (
     <section
-      className={`min-w-0 rounded-lg bg-white px-2 py-4 lg:px-4 lg:pb-6 ${title == null ? "lg:pt-0" : "lg:pt-6"}`}
+      className="min-w-0 rounded-lg bg-white px-2 py-4 lg:px-4 lg:py-6"
     >
       <SimilarProductsCarousel
         products={products}
@@ -27,7 +27,7 @@ const ProductOtherSellers = ({
         title={title ?? "دیگر فروشندگان این کالا"}
         desktopTitleClassName={
           title == null
-            ? "lg:text-desktop-h6 lg:mb-0 lg:px-0 lg:py-6"
+            ? "lg:text-desktop-label-l lg:text-neutral-900 lg:mb-6 lg:px-0"
             : undefined
         }
       />

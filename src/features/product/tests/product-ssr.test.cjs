@@ -24,6 +24,7 @@ function harness(fetchResponse, renderClient = false) {
   };
   function load(file) {
     let absolute = path.resolve(base, file);
+    if (absolute.endsWith(".json")) return JSON.parse(fs.readFileSync(absolute, "utf8"));
     if (fs.existsSync(absolute + ".ts")) absolute += ".ts";
     else if (fs.existsSync(absolute + ".tsx")) absolute += ".tsx";
     else absolute = path.join(absolute, "index.ts");

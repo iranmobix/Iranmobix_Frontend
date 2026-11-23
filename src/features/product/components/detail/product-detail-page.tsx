@@ -1,5 +1,7 @@
 "use client";
 
+import ProductMobileSeller from "./product-mobile-seller";
+
 import { useProduct } from "../../hooks";
 import { useState, type ReactNode } from "react";
 import type { AddToCartShippingMethod } from "@/features/cart/types/api/cart-payload.types";
@@ -115,6 +117,7 @@ function CatalogProductDetails({
           notices,
           quantityValue,
           quantityEditing,
+          onQuantityEditingChange,
         }) => (
           <ProductDetailHero
             seller={product.seller}
@@ -129,6 +132,8 @@ function CatalogProductDetails({
             }
             purchase={
               <ProductShippingPurchasePanel
+                mobilePurchase
+                onResetQuantityEditing={() => onQuantityEditingChange(false)}
                 slug={product.slug}
                 productTitle={product.persianTitle || product.title}
                 productCode={product.productCode}
@@ -152,14 +157,15 @@ function CatalogProductDetails({
       />
       <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-10 lg:grid-cols-2 lg:gap-6">
         {product.otherSellers.length > 0 && (
-          <div className="min-w-0 lg:col-span-2">
+          <div className="min-w-0 max-lg:order-3 lg:col-span-2">
             <ProductOtherSellers products={product.otherSellers} />
           </div>
         )}
+        <div className="max-lg:order-1 lg:contents"><ProductMobileSeller seller={product.seller} /></div>
         {/* Product Specifications */}
         <div
           id="product-specifications"
-          className="min-w-0 scroll-mt-[calc(var(--header-height,157px)+24px)] lg:col-span-2 [&>section]:lg:h-auto [&>section]:lg:rounded-md [&>section]:lg:p-6"
+          className="max-lg:order-2 min-w-0 scroll-mt-[calc(var(--header-height,157px)+24px)] lg:col-span-2 [&>section]:lg:h-auto [&>section]:lg:rounded-md [&>section]:lg:px-4 [&>section]:lg:py-6"
         >
           <ProductSpecifications product={product} />
         </div>
@@ -167,24 +173,24 @@ function CatalogProductDetails({
         {product.seller && (
           <div
             id="product-supplier"
-            className="min-w-0 scroll-mt-[calc(var(--header-height,157px)+24px)] lg:col-span-2"
+            className="hidden min-w-0 scroll-mt-[calc(var(--header-height,157px)+24px)] lg:col-span-2 lg:block"
           >
             <ProductSupplierDetail product={product} />
           </div>
         )}
         {/* Full Width Section */}
-        <div className="min-w-0 lg:col-span-2">
+        <div className="max-lg:order-5 min-w-0 lg:col-span-2">
           <ProductReview product={product} />
         </div>
 
         <div
           id="product-related"
-          className="min-w-0 scroll-mt-[calc(var(--header-height,157px)+24px)] lg:col-span-2"
+          className="max-lg:order-4 min-w-0 scroll-mt-[calc(var(--header-height,157px)+24px)] lg:col-span-2"
         >
           <SimilarProducts product={product} />
         </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 lg:col-span-2 lg:grid-cols-[7fr_3fr]">
+        <div className="max-lg:order-6 grid min-w-0 grid-cols-1 gap-4 lg:col-span-2 lg:grid-cols-[7fr_3fr]">
           <div>
             <ProductComments key={product.slug} product={product} />
           </div>

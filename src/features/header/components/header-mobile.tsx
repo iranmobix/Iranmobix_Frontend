@@ -2,7 +2,8 @@
 import { useEffect } from "react";
 import { Dialog } from "radix-ui";
 import { Menu } from "lucide-react";
-import Image from "next/image";
+import basketWhite from "../assets/basket.svg";
+import HeaderThemeIcon from "./header-theme-icon";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import ImportHeaderInput from "@/features/importer/components/import-header-input";
@@ -51,7 +52,7 @@ export function HeaderMobile() {
           </button>
         </Dialog.Trigger>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/40 lg:hidden" />
+          <Dialog.Overlay className="fixed inset-0 z-[60] modal-backdrop lg:hidden" />
           <Dialog.Content
             dir="rtl"
             className="fixed top-0 right-0 bottom-0 z-[61] w-[min(85vw,320px)] overflow-y-auto bg-white px-4 py-3 shadow-xl lg:hidden"
@@ -69,7 +70,7 @@ export function HeaderMobile() {
         aria-label="سبد خرید"
         className="relative flex h-[38px] w-7 shrink-0 items-center justify-center rounded focus-visible:ring-2 focus-visible:ring-primary-300"
       >
-        <Image src={vector} alt="" width={26} height={25} />
+        <HeaderThemeIcon dark={vector} light={basketWhite} width={26} height={25} />
         {cart && cart.itemCount > 0 && (
           <span
             className="absolute top-0 -right-1 flex min-w-3.5 items-center justify-center rounded-full bg-[#d3ad26] px-0.5 text-[9px] leading-[14px] text-white"

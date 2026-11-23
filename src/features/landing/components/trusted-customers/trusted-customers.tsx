@@ -3,7 +3,7 @@ import { TrustedCustomersSlider } from "./trusted-customers-slider";
 
 export function TrustedCustomers() {
   return (
-    <section className="w-full bg-neutral-100 pb-8 lg:pb-24">
+    <section className="w-full bg-neutral-100 py-8 lg:pt-0 lg:pb-24">
       <div className="container mx-auto flex flex-col items-center justify-center gap-4 lg:gap-12">
         <TrustedCustomersHeader />
         <TrustedCustomersSlider />

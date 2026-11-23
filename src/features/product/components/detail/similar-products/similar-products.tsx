@@ -7,7 +7,7 @@ type SimilarProductsProps = {
 
 const SimilarProducts = ({ product }: SimilarProductsProps) => {
   return (
-    <section className="flex w-full rounded-lg bg-white px-2 py-4 lg:rounded-none lg:px-0 lg:py-8">
+    <section className="flex w-full rounded-lg bg-white px-2 py-4 lg:rounded-none lg:px-4 lg:py-6">
       <SimilarProductsCarousel
         products={product.relatedProducts}
         compactMobile

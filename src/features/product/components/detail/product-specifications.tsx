@@ -1,6 +1,6 @@
 "use client";
 import { useId, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { ProductDetail } from "../../types/domain/product-detail.types";
 
 type ProductSpecificationsProps = {
@@ -11,29 +11,21 @@ const ProductSpecifications = ({ product }: ProductSpecificationsProps) => {
   const [expanded, setExpanded] = useState(false);
   const id = useId();
   const specifications = Object.entries(product.translatedSpecifications);
+  const visibleSpecifications = expanded
+    ? specifications
+    : specifications.slice(0, 4);
   const columnLength = Math.ceil(specifications.length / 2);
   const rows = specifications
     .slice(0, columnLength)
     .map((entry, index) => [entry, specifications[index + columnLength]]);
 
   return (
-    <section className="flex h-auto flex-col gap-3 rounded-md bg-white px-3 py-4 lg:gap-4 lg:px-4 lg:py-5">
+    <section className="flex h-auto flex-col gap-4 rounded-md bg-white px-2 py-4 lg:gap-6 lg:px-4 lg:py-6">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-neutral-1000 lg:text-desktop-label-l text-xs font-medium lg:text-neutral-900">
-          جدول مشخصات
+        <h2 className="text-mobile-h6 text-neutral-1000 lg:text-desktop-label-l lg:text-neutral-900">
+          <span className="lg:hidden">مشخصات محصول</span>
+          <span className="hidden lg:inline">جدول مشخصات</span>
         </h2>
-        {specifications.length > 4 && (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            aria-expanded={expanded}
-            aria-controls={id}
-            className="text-primary-500 focus-visible:ring-primary-300 flex items-center gap-0.5 rounded text-[10px] focus-visible:ring-2 lg:hidden"
-          >
-            {expanded ? "مشاهده کمتر" : "مشاهده بیشتر"}
-            <ChevronLeft size={12} />
-          </button>
-        )}
       </div>
 
       <div className="hidden overflow-hidden rounded-md lg:block" dir="rtl">
@@ -65,29 +57,64 @@ const ProductSpecifications = ({ product }: ProductSpecificationsProps) => {
           </tbody>
         </table>
       </div>
-      <div id={id} className="flex flex-1 flex-col gap-0 lg:hidden">
-        {specifications.length === 0 && (
-          <p className="text-sm text-neutral-500">—</p>
-        )}
-        {specifications.map(([key, value], index) => (
-          <div
-            key={key}
-            className={`${!expanded && index >= 4 ? "hidden lg:grid" : "grid"} grid-cols-[30%_10%_60%] items-start border-b border-neutral-200 last:border-b-0 lg:border-b-0`}
+      <div className="lg:hidden">
+        <div
+          id={id}
+          className="overflow-hidden rounded-md border border-neutral-200"
+          dir="rtl"
+        >
+          <table className="w-full table-fixed border-collapse">
+            <caption className="sr-only">مشخصات محصول</caption>
+            <colgroup>
+              <col className="w-[36%]" />
+              <col className="w-[64%]" />
+            </colgroup>
+            <tbody>
+              {visibleSpecifications.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className="text-mobile-body-s px-2 py-4 text-neutral-800"
+                  >
+                    مشخصاتی برای نمایش ثبت نشده است.
+                  </td>
+                </tr>
+              )}
+              {visibleSpecifications.map(([key, value]) => (
+                <tr
+                  key={key}
+                  className="border-b border-neutral-200 last:border-b-0"
+                >
+                  <th
+                    scope="row"
+                    className="text-mobile-body-s border-l border-neutral-200 px-2 py-4 text-right align-middle leading-5 font-normal break-words text-neutral-800"
+                  >
+                    {key}
+                  </th>
+                  <td className="text-mobile-body-s px-2 py-4 text-right align-middle leading-5 break-words text-neutral-900">
+                    {value?.trim() || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {specifications.length > 4 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
+            aria-controls={id}
+            className="text-mobile-label-m text-primary-600 focus-visible:ring-primary-300 mx-auto mt-4 flex items-center gap-1 rounded focus-visible:ring-2 focus-visible:outline-none"
           >
-            {/* Key */}
-            <span className="lg:text-body-md py-3 text-right text-[11px] text-neutral-600 lg:py-4">
-              {key}
-            </span>
-
-            {/* Gap */}
-            <div />
-
-            {/* Value */}
-            <span className="lg:text-body-md min-w-0 py-3 text-center text-[11px] break-words text-neutral-900 lg:border-b lg:border-neutral-200 lg:py-4 lg:text-right">
-              {value?.trim() || "—"}
-            </span>
-          </div>
-        ))}
+            {expanded ? "مشاهده کمتر" : "مشاهده بیشتر"}
+            <ChevronDown
+              size={16}
+              aria-hidden="true"
+              className={expanded ? "rotate-180" : undefined}
+            />
+          </button>
+        )}
       </div>
     </section>
   );

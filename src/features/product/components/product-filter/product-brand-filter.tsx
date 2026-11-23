@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import ProductFilterCheckbox from "./product-filter-checkbox";
 import { Search } from "lucide-react";
 import type { ProductBrandFilterOption } from "../../types/domain";
 import arrow from "../../assets/arrow.svg";
@@ -95,8 +96,7 @@ const ProductBrandFilter = ({
                   key={brand.id}
                   className="flex cursor-pointer items-center gap-2 py-1.5"
                 >
-                  <input
-                    type="checkbox"
+                  <ProductFilterCheckbox
                     checked={isSelected}
                     onChange={() => handleChange(brand.id)}
                   />

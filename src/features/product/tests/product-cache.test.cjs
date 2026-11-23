@@ -441,7 +441,8 @@ test("returning to a fresh catalog restores every loaded page without a backend 
   const {productListQueryOptions,PRODUCT_LIST_CACHE_POLICY,productDetailQueryOptions} = h.options();
   assert.equal(PRODUCT_LIST_CACHE_POLICY.staleTime,5*60_000);
   assert.equal(PRODUCT_LIST_CACHE_POLICY.gcTime,30*60_000);
-  assert.equal(productDetailQueryOptions("watch").staleTime,30_000);
+  assert.equal(productDetailQueryOptions("watch").staleTime,10*60_000);
+  assert.equal(productDetailQueryOptions("watch").gcTime,30*60_000);
   const queryClient = client(t);
   const options = productListQueryOptions({brands:[2,1]});
   const first = new InfiniteQueryObserver(queryClient,options);
