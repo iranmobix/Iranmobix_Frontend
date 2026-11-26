@@ -16,8 +16,8 @@ export function useArticles() {
 
     // -----------------------------
     // 2. Retry strategy (production-safe)
-    retry: (failureCount, error: any) => {
-      if (error?.message?.includes("not found")) return false;
+    retry: (failureCount, error: Error) => {
+      if (error.message.includes("not found")) return false;
       return failureCount < 2;
     },
 

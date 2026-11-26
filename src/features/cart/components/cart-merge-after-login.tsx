@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useCartMergeFlow } from "../hooks/use-cart-merge-flow";
@@ -27,8 +28,6 @@ export default function CartMergeAfterLogin({
       </div>
     );
   return (
-    <p role="status" className="text-center text-sm">
-      {isPending ? "در حال انتقال سبد خرید…" : "در حال ورود به حساب…"}
-    </p>
+<PageLoading title={isPending ? "در حال انتقال سبد خرید" : "در حال ورود به حساب"} description="لطفاً کمی صبر کنید؛ پس از تکمیل این مرحله به صفحه موردنظر منتقل می‌شوید." />
   );
 }

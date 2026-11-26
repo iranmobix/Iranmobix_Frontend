@@ -163,7 +163,7 @@ test("cursor pages stay in one infinite cache and preserve filters and source", 
   assert.equal(calls.length, 2);
   assert.equal(calls[0].query.cursor, undefined);
   assert.equal(calls[1].query.cursor, "next");
-  assert.equal(calls[1].query.brands[0], 3);
+  assert.equal(calls[1].query.brands[0], "3");
   assert.equal(calls[1].source, "api");
   assert.equal(observer.getCurrentResult().data.pages.length, 2);
   assert.equal(observer.getCurrentResult().hasNextPage, false);
@@ -422,11 +422,12 @@ test("changing catalog filters aborts the old read while the new read remains ac
     options({ brands: [1] }),
   );
   const stop = observer.subscribe(() => {});
+  t.after(() => { stop(); observer.destroy(); });
   observer.setOptions(options({ brands: [2] }));
   assert.equal(flights.length, 2);
   assert.equal(flights[0].signal.aborted, true);
   assert.equal(flights[1].signal.aborted, false);
-  assert.equal(flights[1].query.brands[0], 2);
+  assert.equal(flights[1].query.brands[0], "2");
   stop();
   observer.destroy();
   assert.equal(flights[1].signal.aborted, true);

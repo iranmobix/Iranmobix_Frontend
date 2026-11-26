@@ -1,3 +1,5 @@
+import { mapStorefrontCard } from "../../product/mappers/storefront-card.mapper";
+import { isCompleteImageResult } from "../utils/image-result-validation";
 import type { Product, ProductDataIssue } from "@/features/product/types/domain/product.types";
 import { importProductSchema, type DiscoveredCandidate, type ImportedProduct } from "../schemas/importer.schema";
 import type { ImportJobResponse } from "../types/importer.type";
@@ -45,6 +47,7 @@ export function mapImportJobResults(job: ImportJobResponse): {
   const anonymousItems = new Set<JobItem>();
 
   for (const item of ordered) {
+    if (job.import_type === "image" && !isCompleteImageResult(item)) continue;
     const url = sourceUrl(item);
     const actualMatch = url ? actualByUrl.get(url) : undefined;
     const selected = actualMatch ?? item;
@@ -61,6 +64,12 @@ export function mapImportJobResults(job: ImportJobResponse): {
     if (seen.has(key)) continue;
     seen.add(key);
 
+    if (job.import_type === "image" || "price_in_china_cny" in selected) {
+      const product = mapStorefrontCard(selected);
+      if (requested.length === 0) requested.push(product);
+      else suggested.push(product);
+      continue;
+    }
     const fallbackId = -(requested.length + suggested.length + 1);
     const raw = selected as Record<string, unknown>;
     const catalogCard = raw.catalog_card && typeof raw.catalog_card === "object"
@@ -78,7 +87,7 @@ export function mapImportJobResults(job: ImportJobResponse): {
         return [{ image_url: (image as Record<string, unknown>).image_url as string, is_primary: (image as Record<string, unknown>).is_primary === true }];
       return [];
     });
-    const imageUrl = [raw.image_url, raw.main_image, catalogCard.images && Array.isArray(catalogCard.images) ? (catalogCard.images[0] as Record<string, unknown> | undefined)?.image_url : null]
+    const imageUrl = [raw.primary_image, raw.image_url, raw.main_image, catalogCard.images && Array.isArray(catalogCard.images) ? (catalogCard.images[0] as Record<string, unknown> | undefined)?.image_url : null]
       .find((value): value is string => typeof value === "string" && value.length > 0);
     if (!normalizedImages.length && imageUrl) normalizedImages.push({ image_url: imageUrl, is_primary: true });
     const supplier = Array.isArray(combined.suppliers) && combined.suppliers[0] && typeof combined.suppliers[0] === "object"
@@ -90,17 +99,17 @@ export function mapImportJobResults(job: ImportJobResponse): {
     const snapshot = raw.price_snapshot && typeof raw.price_snapshot === "object"
       ? raw.price_snapshot as Record<string, unknown>
       : {};
-    const minimumPrice = [raw.min_price, raw.price_cny, offer.price_cny, catalogCard.min_price]
+    const minimumPrice = [raw.price_in_china_cny, raw.min_price, raw.price_cny, offer.price_cny, catalogCard.min_price]
       .find((value) => (typeof value === "number" || (typeof value === "string" && value.trim())) && Number.isFinite(Number(value)) && Number(value) >= 0);
     const candidateData = {
       ...combined,
       ...safeFields,
       id: parsed.success ? parsed.data.id : fallbackId,
       slug: [raw.slug, catalogCard.slug].find((value): value is string => typeof value === "string" && Boolean(value.trim())) ?? `discovered-${job.id}-${-fallbackId}`,
-      title: typeof combined.title === "string" ? combined.title : "",
+      title: [raw.fa_title, raw.en_title, combined.title].find((value): value is string => typeof value === "string" && Boolean(value.trim())) ?? "",
       source_url: url,
       source: typeof combined.source === "string" && combined.source ? combined.source : sourceName(url),
-      currency: typeof combined.currency === "string" ? combined.currency : typeof snapshot.currency === "string" ? snapshot.currency : "",
+      currency: typeof combined.currency === "string" ? combined.currency : "price_in_china_cny" in raw ? "CNY" : typeof snapshot.currency === "string" ? snapshot.currency : "",
       min_price: minimumPrice == null ? null : String(minimumPrice),
       images: normalizedImages,
       best_offer: offer,

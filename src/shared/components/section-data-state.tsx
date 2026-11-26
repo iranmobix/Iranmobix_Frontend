@@ -1,4 +1,5 @@
-import { CloudOff, LoaderCircle, MessageSquare } from "lucide-react";
+import PageLoading from "./page-loading";
+import { CloudOff, MessageSquare } from "lucide-react";
 
 type SectionDataStateProps = {
   kind?: "loading" | "empty" | "error";
@@ -13,25 +14,18 @@ export function SectionDataState({
   description,
   onRetry,
 }: SectionDataStateProps) {
-  const Icon =
-    kind === "loading"
-      ? LoaderCircle
-      : kind === "error"
-        ? CloudOff
-        : MessageSquare;
+  if (kind === "loading") return <PageLoading title={title} description={description} className="rounded-xl border border-neutral-200 bg-white px-5 lg:px-8" />;
+  const Icon = kind === "error" ? CloudOff : MessageSquare;
   return (
     <div
       role={kind === "error" ? "alert" : "status"}
-      aria-busy={kind === "loading"}
+
       className="flex w-full flex-col items-center gap-3 rounded-xl border border-neutral-200 bg-white px-5 py-8 text-center lg:px-8 lg:py-12"
     >
       <span className="bg-primary-50 text-primary-500 flex size-12 items-center justify-center rounded-full">
         <Icon
           size={24}
           aria-hidden="true"
-          className={
-            kind === "loading" ? "motion-safe:animate-spin" : undefined
-          }
         />
       </span>
       <p className="text-mobile-label-l lg:text-desktop-label-l text-neutral-1000">

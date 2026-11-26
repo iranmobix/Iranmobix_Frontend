@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -135,7 +136,7 @@ export default function PanelOrdersList({ orders }: { orders: PanelOrder[] }) {
               {selected.code === MISSING_VALUE ? (
                 <p>جزئیات سفارش: بدون مقدار از سمت بک‌اند</p>
               ) : detailQuery.isPending ? (
-                <p role="status">در حال دریافت جزئیات سفارش…</p>
+                <PageLoading title="در حال دریافت جزئیات سفارش…" description="اطلاعات سفارش شما در حال دریافت است." />
               ) : detailQuery.isError ? (
                 <div role="alert" className="flex items-center justify-between gap-3">
                   <span>دریافت جزئیات سفارش ناموفق بود.</span>

@@ -1,3 +1,4 @@
+import { PRODUCT_LIST_ENDPOINT, productListRequestQuery } from "../utils/product-list-request";
 import { httpGet } from "@/shared/api";
 
 import type { ProductListQuery } from "../types/api/product-list-query.types";
@@ -9,8 +10,8 @@ class ProductApi {
     query?: ProductListQuery,
     signal?: AbortSignal,
   ): Promise<unknown> {
-    const response = await httpGet<unknown>("/api/catalog/products/", {
-      params: query,
+    const response = await httpGet<unknown>(PRODUCT_LIST_ENDPOINT, {
+      params: productListRequestQuery(query),
       signal,
       headers: { Authorization: false },
       withCredentials: false,

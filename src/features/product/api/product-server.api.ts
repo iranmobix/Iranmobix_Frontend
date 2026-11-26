@@ -1,10 +1,11 @@
+import { PRODUCT_LIST_ENDPOINT, productListRequestQuery } from "../utils/product-list-request";
 import "server-only";
 import type { ProductListQuery } from "../types/api/product-list-query.types";
 import { getProductDetailApiPath } from "../utils/product-path";
 
 async function getPublicProduct(
   path: string,
-  query?: ProductListQuery,
+  query?: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<unknown> {
   signal?.throwIfAborted();
@@ -36,7 +37,7 @@ export const productServerApi = {
   getCategories: (signal?: AbortSignal) =>
     getPublicProduct("/api/product/categories/", undefined, signal),
   getProducts: (query?: ProductListQuery, signal?: AbortSignal) =>
-    getPublicProduct("/api/catalog/products/", query, signal),
+    getPublicProduct(PRODUCT_LIST_ENDPOINT, productListRequestQuery(query), signal),
   getProductDetail: (slug: string, signal?: AbortSignal) =>
     getPublicProduct(getProductDetailApiPath(slug), undefined, signal),
 };

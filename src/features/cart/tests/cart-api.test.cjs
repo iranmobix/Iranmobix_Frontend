@@ -65,6 +65,7 @@ function harness(overrides = {}) {
       fs.existsSync(candidate),
     );
     if (!resolved) throw Error("Unresolved " + filename);
+    if (resolved.endsWith(".module.css")) return { item: "cart-item" };
     if (resolved.endsWith(".svg"))
       return { src: "/test.svg", width: 18, height: 18 };
     if (cache.has(resolved)) return cache.get(resolved).exports;
@@ -2529,7 +2530,7 @@ test("gateway redirects support GET fields and a hidden POST form without exposi
 });
 
 test("desktop and mobile product cards open details in a new tab without intercepting nested controls", () => {
-  const h=harness({render:true});
+  const h=harness({render:true,modules:{"../product-display-currency":{useProductDisplayCurrency:()=>({rates:null,liveConversion:false})}}});
   const opens=[];
   global.window.open=(...args)=>{opens.push(args);return null;};
   const raw=h.load("../product/mock/product-list.mock").productListMock;
@@ -2618,7 +2619,7 @@ test("storefront cart renders China and delivered prices without inventing missi
   assert.equal((html.match(/<button[^>]*disabled=""/g)||[]).length,3);
   const enriched=h.load("mappers/cart-display.mapper").mapCartForDisplay({...raw,items:[{...raw.items[0],id:27,quantity:2,shipping_method:"sea"}]});
   const editable=renderToStaticMarkup(React.createElement(h.load("components/cart-item").default,{item:enriched.items[0],onQuantityChange:()=>{},onRemove:()=>{}}));
-  assert.ok(editable.includes("روش حمل: دریایی"));
+  assert.ok(editable.replace(/<[^>]*>/g, "").includes("روش حمل: دریایی"));
   assert.equal((editable.match(/<button[^>]*disabled=""/g)||[]).length,0);
 });
 
@@ -3135,6 +3136,7 @@ test("online payment delegates gateway selection to backend for direct redirects
     idempotent_replay:false,next_action:{type:"connect_online_gateway"},online_payment:session,
   })});
   const {gateway_code,...input}=onlineCheckoutInput();
+  assert.equal(typeof gateway_code, "string");
   const result=await h.load("services/online-payment.service").startOnlinePayment(input);
   assert.equal(result.paymentId,42);
   assert.equal(h.requests.length,1);
@@ -3146,6 +3148,7 @@ test("online fallback session also lets backend choose without fetching gateway 
     order:{id:30},payment_type:"online",idempotent_replay:false,next_action:{type:"connect_online_gateway"},
   }});
   const {gateway_code,...input}=onlineCheckoutInput();
+  assert.equal(typeof gateway_code, "string");
   const result=await h.load("services/online-payment.service").startOnlinePayment(input);
   assert.equal(result.paymentId,42);
   assert.equal(h.requests.length,2);
@@ -3167,9 +3170,74 @@ test("online hook requires no gateway discovery and preserves redirect and sessi
   const hook=h.load("hooks/use-online-payment").useOnlinePayment;
   hook("test-order","session");
   const {gateway_code,...input}=onlineCheckoutInput();
+  assert.equal(typeof gateway_code, "string");
   await options.mutationFn(input);
   assert.deepEqual(saved,[42,"test-order","session"]);
   assert.equal(redirect.url,"https://gateway.example/pay");
   assert.equal(h.requests.length,0);
   await assert.rejects(()=>options.mutationFn({...input,tracking_code:"other-order"}));
+});
+
+test("cart shipping options come from the server and render an accessible controlled selector", () => {
+  const h = harness({render: true});
+  const cart = h.load("mappers/cart-display.mapper").mapCartForDisplay({
+    items: [{id: 27, quantity: 2, fa_title: "Watch", shipping_method: "sea"}],
+    pay_detail: {},
+    shipping_methods: [{code: "ground", label: "Land from server"}, {code: "sea", label: "Sea from server"}],
+  });
+  assert.deepEqual(cart.shippingMethods, [{code: "ground", label: "Land from server"}, {code: "sea", label: "Sea from server"}]);
+  const React = require("react");
+  const {renderToStaticMarkup} = require("react-dom/server");
+  const Component = h.load("components/cart-item").default;
+  const props = {item: cart.items[0], shippingMethods: cart.shippingMethods, onShippingMethodChange: () => {}, onRemove: () => {}, onQuantityChange: () => {}};
+  const html = renderToStaticMarkup(React.createElement(Component, props));
+  assert.match(html, /<button[^>]*role="combobox"/);
+  assert.ok(html.includes("Sea from server"));
+  const changes = [];
+  const selector = h.load("components/cart-shipping-select").default({options: cart.shippingMethods, value: "sea", label: "Sea from server", accessibleLabel: "Shipping", onChange: (code) => changes.push(code)});
+  selector.props.onValueChange("ground");
+  selector.props.onValueChange("sea");
+  selector.props.onValueChange("unsupported");
+  assert.deepEqual(changes, ["ground"]);
+  const disabled = renderToStaticMarkup(React.createElement(Component, {...props, disabled: true}));
+  assert.match(disabled, /<button[^>]*disabled=""/);
+});
+
+test("cart shipping PATCH preserves current quantity and rejects missing quantity or unsupported updates", async () => {
+  const h = harness();
+  const service = h.load("services/cart.service").cartService;
+  for (const shipping_method of ["ground", "sea", "commercial_air", "air_express"]) {
+    await service.updateItem({itemId: "27", payload: {quantity: 3, shipping_method}});
+    assert.equal(h.requests.at(-1).method, "PATCH");
+    assert.deepEqual(h.requests.at(-1).body, {quantity: 3, shipping_method});
+  }
+  const count = h.requests.length;
+  await assert.rejects(service.updateItem({itemId: "27", payload: {shipping_method: "sea"}}));
+  await assert.rejects(service.updateItem({itemId: "27", payload: {quantity: 3, shipping_method: "unsupported"}}));
+  await assert.rejects(service.updateItem({itemId: "27", payload: {}}));
+  assert.equal(h.requests.length, count);
+});
+
+test("mobile cart payment bar uses the delivered total and preserves submission availability", () => {
+  const h = harness({render: true});
+  const React = require("react");
+  const {renderToStaticMarkup} = require("react-dom/server");
+  const Component = h.load("components/cart-mobile-payment").default;
+  const props = {
+    paymentDetails: {iranTotalToman: "631150"},
+    totals: {quantity: 3, originalSubtotal: "100", discount: "0", shipping: null, total: "1"},
+    currency: "TOMAN", onContinue: () => {},
+  };
+  const html = renderToStaticMarkup(React.createElement(Component, props));
+  assert.ok(html.includes("631,150 تومان"));
+  assert.ok(html.includes("bg-white/40"));
+  assert.ok(html.includes("border-white"));
+  assert.ok(html.includes("جزئیات پرداخت"));
+  assert.ok(html.includes("ثبت اولیه"));
+  assert.doesNotMatch(html, /<button[^>]*disabled=""/);
+  const pending = renderToStaticMarkup(React.createElement(Component, {...props, isSubmitting: true}));
+  assert.match(pending, /<button[^>]*disabled=""[^>]*aria-busy="true"/);
+  assert.ok(pending.includes("در حال ثبت اولیه"));
+  const failed = renderToStaticMarkup(React.createElement(Component, {...props, error: "Submission failed"}));
+  assert.match(failed, /role="alert"[^>]*>Submission failed/);
 });

@@ -8,7 +8,8 @@ import type {
 } from "../types/domain/cart.types";
 import { getCartFieldNote } from "../utils/cart-data-issues";
 
-type CartSummaryProps = {
+export type CartSummaryProps = {
+  idPrefix?: string;
   items?: ReadonlyArray<Pick<ServerCartItem, "shippingMethod">>;
   paymentDetails?: CartPaymentDetails;
   dataIssues?: CartDataIssue[];
@@ -57,6 +58,7 @@ function SummaryPrice({
 }
 
 const CartSummary = ({
+  idPrefix = "cart",
   items = [],
   totals,
   currency,
@@ -98,11 +100,11 @@ const CartSummary = ({
   return (
     <aside
       dir="rtl"
-      aria-labelledby="cart-payment-title"
+      aria-labelledby={idPrefix + "-payment-title"}
       className="h-fit overflow-hidden rounded-lg bg-white"
     >
       <h2
-        id="cart-payment-title"
+        id={idPrefix + "-payment-title"}
         className="text-mobile-h6 lg:text-desktop-h6 text-neutral-1000 px-4 pt-8 pb-8"
       >
         جزئیات پرداخت
@@ -181,7 +183,7 @@ const CartSummary = ({
           }
           aria-busy={isSubmitting}
           aria-describedby={
-            unavailableReason ? "cart-checkout-unavailable" : undefined
+            unavailableReason ? idPrefix + "-checkout-unavailable" : undefined
           }
           className="text-mobile-label-l lg:text-desktop-label-l disabled:bg-primary-700 h-12 w-full rounded-lg px-4 text-white!"
         >
@@ -189,7 +191,7 @@ const CartSummary = ({
         </Button>
         {unavailableReason && (
           <p
-            id="cart-checkout-unavailable"
+            id={idPrefix + "-checkout-unavailable"}
             className="text-mobile-caption lg:text-desktop-caption text-secondary-600 leading-6"
           >
             {unavailableReason}

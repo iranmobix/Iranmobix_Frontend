@@ -14,18 +14,13 @@ export default function ProductKeySpecifications({
   const entries = Object.entries(specifications)
     .filter(([, value]) => value?.trim())
     .slice(0, MAX_SPECIFICATIONS);
-  const placeholders = pending ? MAX_SPECIFICATIONS - entries.length : 0;
-
-  if (!entries.length && !placeholders)
-    return (
-      <p className="text-xs text-neutral-500">مشخصات از بک دریافت نشده است.</p>
-    );
+  const placeholders = MAX_SPECIFICATIONS - entries.length;
 
   return (
     <>
       <dl
         dir="rtl"
-        aria-busy={placeholders > 0 || undefined}
+        aria-busy={(pending && placeholders > 0) || undefined}
         className="grid grid-cols-3 gap-x-4 gap-y-7 rounded-lg border border-[#e7e4df] bg-white px-1 py-4 sm:px-2 sm:py-5"
       >
         {entries.map(([label, value]) => (
@@ -45,7 +40,7 @@ export default function ProductKeySpecifications({
             </dd>
           </div>
         ))}
-        {Array.from({ length: placeholders }, (_, index) => (
+        {Array.from({ length: placeholders }, (_, index) => pending ? (
           <div key={index} aria-hidden="true" className={cellClassName}>
             <dt className="mb-2 flex h-5 items-center motion-safe:animate-pulse">
               <span className="h-2.5 w-2/3 rounded-full bg-neutral-200" />
@@ -54,9 +49,14 @@ export default function ProductKeySpecifications({
               <span className="h-3 w-4/5 rounded-full bg-neutral-300" />
             </dd>
           </div>
+        ) : (
+          <div key={"empty-" + index} className={cellClassName}>
+            <dt className="mb-2 text-xs leading-5 text-neutral-600">—</dt>
+            <dd className="text-xs leading-6 text-neutral-800">—</dd>
+          </div>
         ))}
       </dl>
-      {placeholders > 0 && (
+      {pending && placeholders > 0 && (
         <p
           role="status"
           className="text-mobile-caption lg:text-desktop-caption mt-2 flex items-center gap-2 text-neutral-800"

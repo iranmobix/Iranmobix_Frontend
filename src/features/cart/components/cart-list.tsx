@@ -1,5 +1,5 @@
 import type { CartItem as CartItemData } from "../types/domain/cart-preview.types";
-import type { ServerCartItem } from "../types/domain/cart.types";
+import type { CartShippingOption, ServerCartItem } from "../types/domain/cart.types";
 import CartItem from "./cart-item";
 
 type CartListProps = {
@@ -7,12 +7,16 @@ type CartListProps = {
   items: readonly (CartItemData | ServerCartItem)[];
   onQuantityChange?: (id: string, quantity: number) => void;
   onRemove?: (id: string) => void;
+  shippingMethods?: CartShippingOption[];
+  onShippingMethodChange?: (id: string, method: CartShippingOption["code"], quantity: number) => void;
 };
 
 const CartList = ({
   items,
   onQuantityChange,
   onRemove,
+  shippingMethods,
+  onShippingMethodChange,
   disabled,
 }: CartListProps) => (
   <section
@@ -30,6 +34,8 @@ const CartList = ({
         <li key={"displayId" in item ? item.displayId ?? item.id : item.id}>
           <CartItem
             item={item}
+            shippingMethods={shippingMethods}
+            onShippingMethodChange={onShippingMethodChange ? (method) => onShippingMethodChange(item.id, method, item.quantity) : undefined}
             disabled={disabled}
             onQuantityChange={
               onQuantityChange

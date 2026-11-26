@@ -40,6 +40,7 @@ export const productListItemSchema: z.ZodType<ProductListItemApi> = z.object({
   title: z.string(),
   short_title: z.string(),
   short_description: z.string(),
+  final_price_iran: optionalProductAmountSchema,
   image: z
     .string()
     .nullable()
@@ -207,6 +208,10 @@ const detailSeller = seller.extend({
 const relatedProduct = z.object({
   slug,
   title: z.string(),
+  fa_title: z.string().nullish(),
+  en_title: z.string().nullish(),
+  title_fa: z.string().nullish(),
+  title_en: z.string().nullish(),
   short_description: z.string(),
   image: z
     .string()
@@ -243,6 +248,9 @@ export const productDetailResponseSchema: z.ZodType<ProductDetailApiResponse> =
       translated_by_ai: z.boolean().nullish(),
       weight_kg: z.union([z.number(), z.string()]).nullish().catch(null),
       key_attributes: z.record(z.string(), z.unknown()).nullish().catch(null),
+      single_package_size: z.string().nullish().catch(null),
+      cbm: z.union([z.number(), z.string()]).nullish().catch(null),
+      specifications: z.record(z.string(), z.unknown()).nullish().catch(null),
       short_description: z.string(),
       price: productDetailPriceSchema,
       brand: brand.nullable(),
@@ -311,6 +319,9 @@ export const productDetailResponseSchema: z.ZodType<ProductDetailApiResponse> =
     translated_specifications: z.record(z.string(), z.string()),
     weight_kg: z.union([z.number(), z.string()]).nullish().catch(null),
     key_attributes: z.record(z.string(), z.unknown()).nullish().catch(null),
+      single_package_size: z.string().nullish().catch(null),
+      cbm: z.union([z.number(), z.string()]).nullish().catch(null),
+      specifications: z.record(z.string(), z.unknown()).nullish().catch(null),
     related_products: z.array(relatedProduct),
     other_sellers: z.array(relatedProduct),
     comment_summary: z.string().nullable(),

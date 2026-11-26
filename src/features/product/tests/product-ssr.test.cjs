@@ -140,7 +140,7 @@ test("server catalog serializes public filters and never forwards credentials or
   assert.equal(h.requests.length, 1);
   const { url, config } = h.requests[0];
   assert.equal(url.origin, "http://public-backend.test:8000");
-  assert.equal(url.pathname, "/api/catalog/products/");
+  assert.equal(url.pathname, "/api/products/");
   assert.equal(url.searchParams.get("brands"), "1,2");
   assert.equal(url.searchParams.get("min_price"), "0");
   assert.equal(url.searchParams.get("in_iranmobix_inventory"), "false");
@@ -309,7 +309,7 @@ test("server product transport preserves encoded slugs and supports cancellation
 
 test("both product routes wrap their existing client page in hydrated server data", async () => {
   const h = harness((url) =>
-    ok(url.pathname.includes("catalog") ? listFixture() : detailFixture()),
+    ok(url.pathname === "/api/products/" ? listFixture() : detailFixture()),
   );
   const listRoute = h.load("../../app/(main)/products/page");
   const listElement = await listRoute.default({
@@ -485,4 +485,29 @@ test("category name differences and missing categories do not produce a 404", as
   const direct = await route({searchParams:Promise.resolve({category:"1925",sort:"newest",category_name:"outdated name"})});
   assert.equal(direct.props.children[0], undefined);
   assert.equal(direct.props.state.queries[0].queryKey.at(-1).category[0], 1925);
+});
+
+test("image_job products route skips catalog fetching and only search results are noindex", async () => {
+  const h=harness(()=>assert.fail("image job must not fetch the catalog or categories"));
+  const route=h.load("../../app/(main)/products/page");
+  const page=await route.default({searchParams:Promise.resolve({image_job:"10789",sort:"newest"})});
+  assert.equal(page.props.jobId,"10789");assert.equal(page.props.imageSearch,true);assert.equal(h.requests.length,0);
+  const meta=await route.generateMetadata({searchParams:Promise.resolve({image_job:"10789"})});
+  assert.equal(meta.robots.index,false);assert.equal(meta.robots.follow,true);
+  const regular=await route.generateMetadata({searchParams:Promise.resolve({})});
+  assert.equal(regular.robots,undefined);
+  await assert.rejects(route.default({searchParams:Promise.resolve({image_job:"bad"})}),/not-found/);
+});
+
+test("search_job route skips catalog fetching, retains input and marks discovery results noindex", async () => {
+  const h = harness(() => { throw new Error("Must not fetch catalog"); });
+  const route = h.load("../../app/(main)/products/page");
+  const page = await route.default({searchParams: Promise.resolve({search_job: "10801", search_input: "headphones"})});
+  assert.equal(page.props.jobId, "10801");
+  assert.equal(page.props.discoverySearch, true);
+  assert.equal(page.props.searchQuery, "headphones");
+  const meta = await route.generateMetadata({searchParams: Promise.resolve({search_job: "10801"})});
+  assert.equal(meta.robots.index, false);
+  assert.equal(h.requests.length, 0);
+  await assert.rejects(route.default({searchParams: Promise.resolve({search_job: "invalid"})}), /not-found/);
 });

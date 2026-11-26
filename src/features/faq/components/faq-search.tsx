@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 
 import { useFaqController } from "../hooks/useFaqController";
 
@@ -12,7 +13,7 @@ export function FaqSearch() {
     <section>
       <FaqSearchInput value={query} onChange={setQuery} />
 
-      {isLoading ? <p>Loading...</p> : <FaqList faqs={faqs} />}
+      {isLoading ? <PageLoading title="در حال دریافت پرسش‌های متداول" description="پاسخ پرسش‌های شما در حال دریافت هستند." /> : <FaqList faqs={faqs} />}
     </section>
   );
 }

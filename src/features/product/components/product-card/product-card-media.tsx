@@ -1,3 +1,6 @@
+import alibaba from "../../assets/alibaba.svg";
+import sourceLink from "../../assets/link.svg";
+import { isAlibabaSource } from "../../utils/is-alibaba-source";
 import Image from "next/image";
 import type { Product } from "../../types/domain";
 import plus from "../../assets/plus.svg";
@@ -6,8 +9,10 @@ import ProductSource from "./product-source";
 type ProductCardMediaProps = {
   product: Pick<Product, "image" | "title" | "source"> & {
     colors?: Product["colors"];
+    price?: { hasDiscount: boolean; discountPercentage: number | null };
   };
   showColors?: boolean;
+  listingLayout?: boolean;
   sizes?: string;
   compactMobile?: boolean;
   compactDesktop?: boolean;
@@ -48,6 +53,7 @@ const glassBase = `
 const ProductCardMedia = ({
   product,
   showColors = true,
+  listingLayout = false,
   compactMobile = false,
   compactDesktop = false,
   sizes = "(max-width: 640px) 80vw, 260px",
@@ -92,6 +98,21 @@ const ProductCardMedia = ({
         </span>
       )}
       {/* Source */}
+      {listingLayout ? (
+        <div dir="ltr" className="absolute top-1 left-1 z-10 flex items-center gap-1">
+          {product.source.url && (
+            <a href={product.source.url} target="_blank" rel="noopener noreferrer" aria-label="سایت مرجع" className="flex size-8 items-center justify-center rounded-lg border border-white bg-white/70">
+              <Image src={isAlibabaSource(product.source.name, product.source.url) ? alibaba : sourceLink} alt="" width={24} height={24} />
+            </a>
+          )}
+          {product.price?.hasDiscount && product.price.discountPercentage != null && product.price.discountPercentage > 0 && (
+            <span dir="rtl" className="text-desktop-caption rounded-lg bg-secondary-300 px-2 py-2 text-white">
+              {product.price.discountPercentage.toLocaleString("fa-IR")}٪ تخفیف
+            </span>
+          )}
+        </div>
+      ) : (
+
       <div
         className={
           compactDesktop
@@ -109,6 +130,8 @@ const ProductCardMedia = ({
           compactDesktop={compactDesktop}
         />
       </div>
+
+      )}
 
       {/* Colors */}
       {hasMultipleColors && (

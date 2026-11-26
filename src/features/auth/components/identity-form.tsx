@@ -1,7 +1,7 @@
 "use client";
 
 import LoginFormHeader from "./login-form-header";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
@@ -16,7 +16,7 @@ type IdentityFormProps = {
 export function IdentityForm({ onSuccess, loading }: IdentityFormProps) {
   const {
     register,
-    watch,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({
@@ -28,7 +28,7 @@ export function IdentityForm({ onSuccess, loading }: IdentityFormProps) {
 
   const userType: UserType = "real";
 
-  const identifier = watch("identifier");
+  const identifier = useWatch({ control, name: "identifier" });
 
   const submit = handleSubmit((data) => {
     const mobile = data.identifier.startsWith("+98")

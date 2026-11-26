@@ -9,6 +9,7 @@ import search from "@/features/header/assets/search.svg";
 import camera from "@/features/header/assets/camera.svg";
 import {
   createDiscoverPayload,
+  isDirectProductUrl,
   isDiscoverUrlInput,
   importerService,
   ProductImportError,
@@ -45,10 +46,10 @@ export default function ImportHeaderInput({
     lock.current = true;
     setPending(true);
     try {
-      if ("source_url" in payload) {
+      if (isDirectProductUrl(payload.input)) {
         // Open the loading/details route during the submit gesture, before any API request.
         const tab = window.open(
-          singleProductImportPath(payload.source_url),
+          singleProductImportPath(payload.input),
           "_blank",
         );
         if (!tab)
@@ -63,6 +64,7 @@ export default function ImportHeaderInput({
         openTab: () => window.open("about:blank", "_blank"),
         navigate: (path) => router.push(path),
         payload,
+        resultsPath: (jobId) => "/products?" + new URLSearchParams({ search_job: String(jobId), search_input: payload.input }).toString(),
       });
     } catch (error) {
       setError(

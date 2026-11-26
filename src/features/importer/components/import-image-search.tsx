@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Popover } from "radix-ui";
 import { Image as ImageIcon, LoaderCircle, X } from "lucide-react";
 import { useImportImage } from "../hooks/use-import-image";
+import { imageSearchResultsPath } from "../utils/image-search-navigation";
 import { runImportSearch } from "../services/import-search-navigation";
 import {
   ProductImportError,
@@ -81,6 +82,7 @@ export function ImportImageSearch({ children }: { children: ReactElement }) {
     request.current = controller;
     try {
       await runImportSearch({
+        resultsPath: imageSearchResultsPath,
         request: () =>
           upload.mutateAsync({ image: file, signal: controller.signal }),
         openTab: () => window.open("about:blank", "_blank"),

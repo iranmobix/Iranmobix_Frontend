@@ -1,3 +1,9 @@
+.bar,
+.sheet {
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+}
+
 /* Reserve space after the document/footer so the fixed purchase bar hides no content. */
 @media (max-width: 1023px) {
   :global(body):has(.bar) {

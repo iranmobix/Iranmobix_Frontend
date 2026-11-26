@@ -38,8 +38,8 @@ type ProductFilterProps = {
   priceMax: number;
 
   brands: ProductBrandFilterOption[];
-  selectedBrands: number[];
-  onBrandsChange: (brands: number[]) => void;
+  selectedBrands: (string | number)[];
+  onBrandsChange: (brands: (string | number)[]) => void;
 
   sellerTypes: ProductSellerTypeFilterOption[];
   selectedSellerTypes: ProductSellerTypeApi[];

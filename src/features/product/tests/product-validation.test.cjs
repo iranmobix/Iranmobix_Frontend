@@ -35,6 +35,7 @@ function harness(response) {
       module,
       exports: module.exports,
       structuredClone,
+      URL,
       URLSearchParams,
       setTimeout,
       clearTimeout,
@@ -364,14 +365,14 @@ test("list and detail forward the exact cancellation signal through service to H
   const controller = new AbortController();
   const h = harness((url, config) => {
     requests.push({ url, config });
-    return url.includes("catalog") ? listFixture() : detailFixture();
+    return url === "/api/products/" ? listFixture() : detailFixture();
   });
   const service = h.load("services/product.service").productService;
   await service.getProducts({ brands: [1] }, "api", controller.signal);
   await service.getProductDetail("watch/a b", "api", controller.signal);
   assert.equal(requests[0].config.signal, controller.signal);
   assert.equal(requests[0].config.params.brands[0], 1);
-  assert.equal(requests[0].url, "/api/catalog/products/");
+  assert.equal(requests[0].url, "/api/products/");
   assert.equal(requests[1].config.signal, controller.signal);
   assert.equal(requests[1].url, "/api/product/watch%2Fa%20b/");
   assert.equal(requests[1].config.headers.Authorization, false);
@@ -496,4 +497,134 @@ test("optional card fields still reject malformed values when supplied",()=>{
   }
   const card=listFixture().results[0];card.guarantee={available:"yes"};
   assert.equal(schema.safeParse(card).success,false);
+});
+
+test("list cards retain the explicit Iran price separately from converted China prices", () => {
+  const map = harness().load("mappers/product-list.mapper").mapProductListItem;
+  const raw = listFixture().results[0];
+  for (const value of [undefined, null, "", "0", "1234500"]) {
+    const card = map({...raw, final_price_iran:value});
+    assert.equal(card.price.finalPriceIranToman, value === "0" ? 0 : value === "1234500" ? 1234500 : null);
+    assert.equal(card.price.amountIrr, map(raw).price.amountIrr);
+  }
+});
+
+test("related and seller offer titles prefer Persian, fall back to English and update on later snapshots", () => {
+  const map = harness().load("mappers/marketplace-product-details.mapper").mapMarketplaceProductDetails;
+  const card = {slug:"offer",fa_title:"  ",en_title:"English offer"};
+  const pending = {title_en:"Parent",other_sellers:[card],related_products:[card]};
+  const first = map(pending,false);
+  assert.equal(first.otherSellers[0].title,"English offer");
+  assert.equal(first.relatedProducts[0].title,"English offer");
+  const translated = {...card,fa_title:"عنوان فارسی"};
+  const next = map({...pending,other_sellers:[translated],related_products:[translated]},false);
+  assert.equal(next.otherSellers[0].title,"عنوان فارسی");
+  assert.equal(next.relatedProducts[0].title,"عنوان فارسی");
+  assert.equal(first.relatedProducts[0].title,"English offer");
+});
+
+test("native detail related cards retain Persian and English title fields", () => {
+  const raw = detailFixture();
+  const item = {...raw.related_products[0],title:"Legacy title",title_fa:" ",title_en:"English title"};
+  raw.related_products=[item];raw.other_sellers=[item];
+  const map = harness().load("mappers/product-detail.mapper").mapProductDetail;
+  const english = map(raw);
+  assert.equal(english.relatedProducts[0].title,"English title");
+  assert.equal(english.otherSellers[0].title,"English title");
+  const translated={...item,title_fa:"عنوان فارسی"};
+  const persian=map({...raw,related_products:[translated],other_sellers:[translated]});
+  assert.equal(persian.relatedProducts[0].title,"عنوان فارسی");
+  assert.equal(persian.otherSellers[0].title,"عنوان فارسی");
+});
+
+const storefrontCard = (overrides = {}) => ({
+  slug:"sample-card",primary_image:"https://example.com/product.jpg",
+  source_url:"https://www.alibaba.com/product-detail/Sample_1600000000000.html",
+  en_title:"English title",fa_title:"عنوان فارسی",seller_name:"Supplier",
+  seller_url:"",alibaba_verified:true,iranmobix_verified:true,
+  price_in_china_cny:"25.19",price_in_china_toman:"1080903",final_price_iran:"164252229",
+  ...overrides,
+});
+
+test("compact storefront list maps both China prices and the independent Iran total", () => {
+  const map=harness().load("mappers/product-list-result.mapper").mapProductListResult;
+  const raw={count:62,next:"https://product-service:8000/api/products/?page=2&page_size=3",previous:null,results:[storefrontCard()]};
+  const result=map(raw,{limit:3});
+  const card=result.products[0];
+  assert.equal(card.title,"عنوان فارسی");assert.equal(card.price.amount,25.19);
+  assert.equal(card.price.amountIrr,10809030);assert.equal(card.price.finalPriceIranToman,164252229);
+  assert.equal(card.image,raw.results[0].primary_image);assert.equal(card.source.name,"alibaba");
+  assert.equal(card.seller.badges.join(","),"verified,trusted");
+  assert.equal(result.nextCursor,"2");assert.equal(result.limit,3);
+  assert.equal(result.count,62);assert.equal(result.filters.categories.length,0);
+});
+
+test("compact cards keep stable IDs across pages and translations, with missing Iran price hidden", () => {
+  const map=harness().load("mappers/storefront-card.mapper").mapStorefrontCard;
+  const english=map(storefrontCard({fa_title:" ",final_price_iran:null}));
+  const persian=map(storefrontCard());
+  assert.equal(english.title,"English title");assert.equal(persian.title,"عنوان فارسی");
+  assert.equal(english.id,persian.id);assert.ok(Number.isSafeInteger(english.id));assert.ok(english.id<0);
+  assert.notEqual(map(storefrontCard({slug:"other-card"})).id,english.id);
+  assert.equal(english.price.finalPriceIranToman,null);
+  assert.equal(map(storefrontCard({price_in_china_cny:"0",price_in_china_toman:"0",final_price_iran:"0"})).price.finalPriceIranToman,0);
+  assert.equal(map(storefrontCard({price_in_china_cny:"",price_in_china_toman:null,final_price_iran:""})).price.amount,null);
+});
+
+test("numbered pagination stops at the end and ignores internal next URL hosts", async () => {
+  const h=harness();const map=h.load("mappers/product-list-result.mapper").mapProductListResult;
+  const request=h.load("utils/product-list-request").productListRequestQuery;
+  const first=map({count:2,next:"https://product-service:8000/api/products/?page=2",previous:null,results:[storefrontCard()]});
+  const next=request({cursor:first.nextCursor,sort:"price_asc",limit:60,search:"watch",sources:["alibaba"]});
+  assert.equal(next.page,2);assert.equal(next.page_size,60);assert.equal(next.sort,"cheapest");
+  assert.equal(next.cursor,undefined);assert.equal(next.limit,undefined);assert.equal(next.search,"watch");
+  assert.equal(next.sources[0],"alibaba");
+  const last=map({count:2,next:null,previous:"/api/products/?page=1",results:[]},{cursor:"2"});
+  assert.equal(last.nextCursor,null);assert.equal(last.previousCursor,"1");
+  const repeated=map({count:2,next:"/api/products/?page=2",previous:null,results:[]},{cursor:"2"});
+  assert.equal(repeated.nextCursor,null);
+  assert.throws(()=>map({count:2,next:"/api/products/?page=oops",previous:null,results:[]}));
+});
+
+test("new product requests translate sorting and use only the public products endpoint", async () => {
+  const calls=[];const h=harness((url,config)=>{calls.push({url,config});return {count:0,next:null,previous:null,results:[]};});
+  await h.load("services/product.service").productService.getProducts({cursor:"3",limit:24,sort:"price_desc",search:"watch"});
+  assert.equal(calls[0].url,"/api/products/");assert.equal(calls[0].config.params.page,3);
+  assert.equal(calls[0].config.params.page_size,24);assert.equal(calls[0].config.params.sort,"expensive");
+  assert.equal(calls[0].config.withCredentials,false);
+});
+
+test("pagination links without a page parameter represent the first page", () => {
+  const map=harness().load("mappers/product-list-result.mapper").mapProductListResult;
+  const page=map({count:62,next:"/api/products/?page=3&page_size=3",previous:"https://product-service:8000/api/products/?page_size=3&sort=newest",results:[]},{cursor:"2",limit:3});
+  assert.equal(page.previousCursor,"1");assert.equal(page.nextCursor,"3");
+});
+
+test("storefront metadata supplies all backend brand, source and seller options instead of deriving one page", () => {
+  const map=harness().load("mappers/product-list-result.mapper").mapProductListResult;
+  const result=map({count:1,next:null,previous:null,results:[storefrontCard()],filters:{
+    brands:[{value:"Ason",label:"Ason"},{value:"سایر برندها",label:"سایر برندها"}],
+    sources:[{value:"iranmobix",label:"محصولات ایران‌موبیکس"},{value:"alibaba",label:"Alibaba"}],
+    seller_types:[{value:"alibaba_verified",label:"تأیید شده علی‌بابا"},{value:"iranmobix_verified",label:"منتخب ایران‌موبیکس"}],
+  }});
+  assert.equal(result.filters.brands[0].id,"Ason");
+  assert.equal(result.filters.brands[1].id,"سایر برندها");
+  assert.equal(result.filters.brands[1].name,"سایر برندها");
+  assert.equal(result.filters.sources.length,2);
+  assert.equal(result.filters.sellerTypes[0].value,"verified");
+  assert.equal(result.filters.sellerTypes[1].value,"trusted");
+  assert.equal(result.filters.categories.length,0);
+});
+
+test("text brands survive URLs and seller selection becomes actual boolean API filters", () => {
+  const h=harness();
+  const parse=h.load("utils/product-query").parseProductQuery;
+  const selected=parse(new URLSearchParams("brands=Ason,OEM%2FODM&seller_types=verified,trusted&sort=newest"));
+  assert.equal(selected.brands.join(","),"Ason,OEM/ODM");
+  const request=h.load("utils/product-list-request").productListRequestQuery(selected);
+  assert.equal(request.brands.join(","),"Ason,OEM/ODM");
+  assert.equal(request.alibaba_verified,true);assert.equal(request.iranmobix_verified,true);
+  assert.equal(request.seller_types,undefined);
+  const clear=h.load("utils/product-list-request").productListRequestQuery({});
+  assert.equal(clear.alibaba_verified,undefined);assert.equal(clear.iranmobix_verified,undefined);
 });

@@ -46,7 +46,7 @@ export function HeaderMobile() {
           <button
             type="button"
             aria-label="باز کردن منو"
-            className="flex size-[38px] shrink-0 items-center justify-center rounded-md bg-primary-500 text-white focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:outline-none"
+            className="flex size-[38px] shrink-0 items-center justify-center rounded-md bg-primary-600 text-white focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:outline-none"
           >
             <Menu size={23} strokeWidth={1.6} aria-hidden="true" />
           </button>

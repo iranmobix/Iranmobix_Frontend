@@ -13,7 +13,6 @@ function normalizeCategories(dto: CategoryApiResponse[]) {
 export async function getCategories() {
   try {
     const dto = await fetchCategories();
-    console.log(dto);
     return normalizeCategories(dto);
   } catch (error) {
     console.error("Failed to fetch categories", error);

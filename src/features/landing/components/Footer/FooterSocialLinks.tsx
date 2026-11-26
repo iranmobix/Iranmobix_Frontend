@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { RiLinkedinFill } from "@remixicon/react";
 import whatsapp from "../../assets/Footer/phoneFooter.svg";
 import telegram from "../../assets/Footer/telegramFooter.svg";
 import instagram from "@/features/sales-experts/assets/instagram.svg";
@@ -8,7 +7,6 @@ const socialItems = [
   { id: "whatsapp", label: "واتساپ", icon: whatsapp },
   { id: "telegram", label: "تلگرام", icon: telegram },
   { id: "instagram", label: "اینستاگرام", icon: instagram },
-  { id: "linkedin", label: "لینکدین", icon: null },
 ] as const;
 
 export type FooterSocialLinksProps = {
@@ -31,7 +29,7 @@ export function FooterSocialLinks({
     >
       {socialItems.map(({ id, label, icon }) => {
         const href = socialLinks[id];
-        const content = icon ? (
+        const content = (
           <Image
             src={icon}
             alt=""
@@ -39,8 +37,6 @@ export function FooterSocialLinks({
             height={large ? 28 : 24}
             className={large ? "size-7" : "size-6"}
           />
-        ) : (
-          <RiLinkedinFill size={large ? 28 : 24} aria-hidden="true" />
         );
         return (
           <li key={id}>

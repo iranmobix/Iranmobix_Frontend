@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
@@ -61,7 +62,7 @@ export default function CheckoutOnlineReturn({
           ) : (
             <>
               {result.isPending && (
-                <p role="status">در حال بررسی و تأیید پرداخت از بک…</p>
+                <PageLoading title="در حال دریافت نتیجه پرداخت" description="نتیجه پرداخت شما در حال بررسی است؛ لطفاً این صفحه را نبندید." />
               )}
               {result.isError && (
                 <p role="alert" className="text-red-500">

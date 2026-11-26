@@ -7,8 +7,12 @@ import { openProductDetailsTab } from "@/features/product/utils/product-navigati
 import { Button } from "@/components/ui/button";
 import ProductPage from "@/features/product/components/product-page";
 import ProductSearchFailureAnimation from "@/features/product/components/product-search-failure-animation";
+import ProductDetailLoadingIndicator from "@/features/product/components/detail/product-detail-loading-indicator";
+import ProductDetailsError from "@/features/product/components/detail/product-details-error";
 import ProductGridSkeleton from "@/features/product/components/product-grid/product-grid-skeleton";
 import type { Product } from "@/features/product/types/domain/product.types";
+import { isImportJobReadyForResults } from "../utils/import-job-state";
+import { imageSearchProductPath } from "../utils/image-search-navigation";
 import { useImportResults } from "../hooks/use-import-results";
 import { importCandidateRequestSchema } from "../schemas/importer.schema";
 import type { DiscoverProductPayload } from "../types/importer.type";
@@ -17,17 +21,21 @@ export default function ImportResultsPage({
   jobId,
   searchQuery,
   sourceUrl,
+  imageSearch = false,
+  discoverySearch = false,
 }: {
   jobId: string;
   searchQuery?: string;
   sourceUrl?: string;
+  imageSearch?: boolean;
+  discoverySearch?: boolean;
 }) {
   const router = useRouter();
   const discoverPayload = useMemo<DiscoverProductPayload | null>(
-    () => searchQuery ? { query: searchQuery } : sourceUrl ? { source_url: sourceUrl } : null,
+    () => searchQuery ? { input: searchQuery } : sourceUrl ? { input: sourceUrl } : null,
     [searchQuery, sourceUrl],
   );
-  const { query, grouped, detailsPath, hasNextPage, fetchNextPage, isFetchingNextPage, isNextPageError, isWaitingForResults } = useImportResults(jobId, discoverPayload);
+  const { query, grouped, detailsPath, hasNextPage, fetchNextPage, isFetchingNextPage, isNextPageError, isWaitingForResults } = useImportResults(jobId, discoverPayload, { imageSearch, discoverySearch });
   useEffect(() => {
     if (detailsPath && !query.isError) router.replace(detailsPath);
   }, [detailsPath, query.isError, router]);
@@ -35,6 +43,7 @@ export default function ImportResultsPage({
   const candidateCount = grouped.requested.length + grouped.suggested.length;
   const [detailsError, setDetailsError] = useState("");
   const getProductDetailsLink = (product: Product): string | undefined => {
+    if (imageSearch || discoverySearch || job?.import_type === "image") return imageSearchProductPath(product.source.url);
     const candidate = grouped.candidatesByProductId.get(product.id);
     if (!candidate) return getProductDetailsHref(product.slug);
     const url = candidate.source_url || product.source.url || candidate.import_payload?.url;
@@ -58,11 +67,38 @@ export default function ImportResultsPage({
     setDetailsError("");
     openProductDetailsTab(href);
   };
-  if (detailsPath && !query.isError) return <ProductGridSkeleton />;
-  if (job?.status === "done" && !query.isError && candidateCount > 0) {
+  const isImageSearch = imageSearch || job?.import_type === "image";
+  const isListingSearch = isImageSearch || discoverySearch;
+  const emptyImageResults = isListingSearch && isImportJobReadyForResults(job) && candidateCount === 0;
+  if (isListingSearch && (query.isError || job?.status === "failed" || emptyImageResults)) {
+    return (
+      <ProductDetailsError
+        label={isImageSearch ? "جست‌وجو با عکس" : "جست‌وجوی محصولات"}
+        title={emptyImageResults ? "محصولی پیدا نشد" : isImageSearch ? "جست‌وجوی تصویری موفق نبود" : "جست‌وجوی محصولات موفق نبود"}
+        message={job?.error_message || (emptyImageResults ? (isImageSearch ? "لطفاً با عکس واضح‌تری دوباره جست‌وجو کنید." : "لطفاً نام دقیق‌تر کالا یا لینک دیگری را جست‌وجو کنید.") : "دریافت نتایج جست‌وجو ممکن نشد. لطفاً دوباره تلاش کنید.")}
+        onRetry={() => void query.refetch()}
+        isRetrying={query.isFetching}
+        onBack={() => router.push("/products")}
+      />
+    );
+  }
+  if (isListingSearch && (query.isPending || !job || !isImportJobReadyForResults(job))) {
+    return (
+      <main dir="rtl" role="status" aria-busy="true" className="flex min-h-[60vh] items-center justify-center bg-neutral-50 px-4 py-8">
+        <ProductDetailLoadingIndicator
+          title="در حال جست‌وجوی محصولات"
+          description={isImageSearch ? "محصولات مشابه عکس شما در حال دریافت و آماده‌سازی هستند؛ لطفاً کمی صبر کنید." : "محصولات مرتبط با جست‌وجوی شما در حال دریافت و آماده‌سازی هستند؛ لطفاً کمی صبر کنید."}
+        />
+      </main>
+    );
+  }
+  if (query.isPending || (detailsPath && !query.isError)) return <ProductGridSkeleton />;
+  if ((job?.status === "done" || (isListingSearch && isImportJobReadyForResults(job))) && !query.isError && candidateCount > 0) {
     return (
       <ProductPage
-        discoveryProducts={{ requested: grouped.requested, suggested: grouped.suggested }}
+        {...(isListingSearch
+          ? { importedProducts: [...grouped.requested, ...grouped.suggested] }
+          : { discoveryProducts: { requested: grouped.requested, suggested: grouped.suggested } })}
         onProductDetailsClick={openProductDetails}
         getProductDetailsLink={getProductDetailsLink}
         discoveryError={detailsError}
@@ -70,6 +106,8 @@ export default function ImportResultsPage({
       />
     );
   }
+
+  if (!query.isError && job?.import_type === "image" && !isImportJobReadyForResults(job) && job.status !== "failed") return <ProductGridSkeleton />;
 
   return (
     <main dir="rtl" className="mx-auto min-h-[60vh] max-w-[1440px] space-y-6 bg-neutral-50 px-5 py-8">

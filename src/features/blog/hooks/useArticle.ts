@@ -18,9 +18,9 @@ export function useArticle(slug: string) {
 
     // -----------------------------
     // 2. Retry strategy (production-safe)
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: Error) => {
       // اگر 404 بود retry نکن
-      if (error?.message?.includes("not found")) return false;
+      if (error.message.includes("not found")) return false;
 
       return failureCount < 2;
     },

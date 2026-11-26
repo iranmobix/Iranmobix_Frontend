@@ -32,7 +32,7 @@ export function filterImportedProducts(
         p.title.toLowerCase().includes(query.search.toLowerCase())) &&
       (!query.sources?.length || query.sources.includes(p.source.name)) &&
       (!query.brands?.length ||
-        Boolean(p.brand && query.brands.includes(p.brand.id))) &&
+        Boolean(p.brand && query.brands.some((brand) => String(brand) === String(p.brand?.id)))) &&
       (!query.in_iranmobix_inventory || p.inIranMobixInventory) &&
       (!query.min_price ||
         (p.price.amountIrr !== null &&

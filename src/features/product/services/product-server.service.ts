@@ -15,7 +15,7 @@ export const productServerService: ProductService = {
       throw new Error("Server product reads require the public API");
     const response = await productServerApi.getProducts(query, signal);
     signal?.throwIfAborted();
-    return mapProductListResult(response);
+    return mapProductListResult(response, query);
   },
   async getProductDetail(slug, source = "api", signal) {
     if (source !== "api")

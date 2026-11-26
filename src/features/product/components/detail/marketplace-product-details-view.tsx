@@ -1,5 +1,7 @@
 "use client";
 
+import ProductMobileGalleryControls from "./product-mobile-gallery-controls";
+
 import ProductMobileSeller from "./product-mobile-seller";
 
 import { useState } from "react";
@@ -144,7 +146,7 @@ export default function MarketplaceProductDetailsView({
       dir="rtl"
       className="mx-auto w-full max-w-[1680px] bg-neutral-50 px-2.5 pt-5 pb-20 sm:px-6 lg:px-8"
     >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 lg:mb-3">
         <div className="min-w-0 [&_nav]:flex-wrap [&_nav]:gap-1">
           <Breadcrumb
             variant="product-detail"
@@ -152,7 +154,7 @@ export default function MarketplaceProductDetailsView({
           />
         </div>
         <div className="flex items-center gap-4">
-          <ProductDetailActions slug={product.slug} title={product.title} />
+          <div className="hidden lg:block"><ProductDetailActions slug={product.slug} title={product.title} /></div>
           <ProductCurrencyLabel />
         </div>
       </div>
@@ -194,7 +196,9 @@ export default function MarketplaceProductDetailsView({
         mobileOverview
         gallery={
           product.gallery.length ? (
-            <ProductGallery product={product} mobileImportLayout />
+            <ProductGallery product={product} mobileImportLayout mobileControls={
+              <ProductMobileGalleryControls slug={product.slug} title={product.title} source="alibaba" url={product.officialUrl} />
+            } />
           ) : (
             <SectionPlaceholder
               title="تصاویر محصول"

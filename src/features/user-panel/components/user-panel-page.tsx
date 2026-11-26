@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,22 +38,7 @@ export default function UserPanelPage({ initialSection = "account" }: { initialS
   const [notice, setNotice] = useState("");
 
   if (isPending)
-    return (
-      <div
-        role="status"
-        aria-busy="true"
-        className="mx-auto min-h-[70vh] max-w-7xl bg-neutral-50 px-4 py-8"
-      >
-        <span className="sr-only">در حال دریافت اطلاعات حساب...</span>
-        <div
-          aria-hidden="true"
-          className="grid gap-4 motion-safe:animate-pulse lg:grid-cols-[240px_minmax(0,1fr)]"
-        >
-          <div className="h-96 rounded-lg bg-white" />
-          <div className="h-[640px] rounded-lg bg-white" />
-        </div>
-      </div>
-    );
+    return <PageLoading title="در حال دریافت اطلاعات حساب" description="اطلاعات پنل کاربری شما در حال آماده‌سازی است؛ لطفاً کمی صبر کنید." className="mx-auto min-h-[70vh] max-w-7xl bg-neutral-50 px-4" />;
   if (isError || !account)
     return (
       <div

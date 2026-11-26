@@ -10,14 +10,11 @@ type BreadcrumbProps = {
   variant?: "default" | "product-detail";
 };
 
-const Breadcrumb = ({ items, variant = "default" }: BreadcrumbProps) => {
-  const productDetail = variant === "product-detail";
-  const typography = productDetail
-    ? "text-mobile-caption lg:text-desktop-body-s"
-    : "text-sm";
-  const itemColor = productDetail ? "text-neutral-800" : "text-neutral-500";
-  const currentColor = productDetail ? "text-neutral-900" : "text-neutral-1000";
-  const separatorColor = productDetail ? itemColor : "text-neutral-400";
+const Breadcrumb = ({ items }: BreadcrumbProps) => {
+  const typography = "text-mobile-caption lg:text-desktop-body-m";
+  const itemColor = "text-neutral-700";
+  const currentColor = "text-neutral-800";
+  const separatorColor = itemColor;
   return (
     <nav aria-label="مسیر صفحه" className="flex items-center gap-2">
       {items.map((item, index) => {
@@ -38,7 +35,7 @@ const Breadcrumb = ({ items, variant = "default" }: BreadcrumbProps) => {
             ) : (
               <span
                 aria-current={isLastItem ? "page" : undefined}
-                className={`${typography} ${isLastItem ? `${currentColor} font-medium` : itemColor}`}
+                className={`${typography} ${isLastItem ? `${currentColor}` : itemColor}`}
               >
                 {item.label}
               </span>

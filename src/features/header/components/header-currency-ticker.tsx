@@ -37,7 +37,7 @@ export function HeaderCurrencyTicker() {
     };
   }, []);
   return (
-    <div className="w-full bg-[#292052] text-white">
+    <div className="w-full bg-primary-800 text-white">
       <div
         dir="rtl"
         aria-label="قیمت ارزها به تومان"

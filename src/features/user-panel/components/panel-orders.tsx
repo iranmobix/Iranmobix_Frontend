@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import Image from "next/image";
 import { Search, X } from "lucide-react";
@@ -158,10 +159,7 @@ export default function PanelOrders() {
         className="flex-1 outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
       >
         {ordersQuery.isPending ? (
-          <div role="status" className="space-y-3 py-8">
-            <span className="sr-only">در حال دریافت سفارشات…</span>
-            <div className="h-28 rounded bg-neutral-50 motion-safe:animate-pulse" />
-          </div>
+          <PageLoading title="در حال دریافت سفارش‌ها" description="فهرست سفارش‌های شما در حال آماده‌سازی است." />
         ) : ordersQuery.isError ? (
           <div
             role="alert"

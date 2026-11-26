@@ -20,7 +20,7 @@ export function HeaderTop() {
           نمونه واردات
         </p>
       </div>
-      <div className="flex min-w-0 -translate-x-[30px] justify-center">
+      <div className="flex min-w-0 -translate-x-[clamp(0px,calc((100vw_-_1280px)_/_4),30px)] justify-center">
         <ImportHeaderInput />
       </div>
       <HeaderTopActions />

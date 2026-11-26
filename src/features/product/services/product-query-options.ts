@@ -30,13 +30,14 @@ export function normalizeProductListQuery(
   query: ProductListQuery = {},
 ): ProductListQuery {
   const result: ProductListQuery = { sort: query.sort ?? "newest" };
-  for (const key of ["search", "min_price", "max_price"] as const) {
-    if (query[key] !== undefined && query[key] !== "") result[key] = query[key];
+  for (const key of ["search", "min_price", "max_price", "currency", "display_currency", "ordering", "rating", "min_rating", "ids", "exclude_ids", "slug", "source", "source_url", "title"] as const) {
+    if (query[key] !== undefined && query[key] !== "") Object.assign(result, { [key]: query[key] });
   }
-  for (const key of ["category", "brands"] as const) {
+  for (const key of ["category"] as const) {
     if (query[key]?.length)
       result[key] = [...new Set(query[key])].sort((a, b) => a - b);
   }
+  if (query.brands?.length) result.brands = [...new Set(query.brands.map(String))].sort();
   if (query.sources?.length)
     result.sources = [...new Set(query.sources)].sort();
   if (query.seller_types?.length)
@@ -44,6 +45,10 @@ export function normalizeProductListQuery(
   if (query.in_iranmobix_inventory !== undefined)
     result.in_iranmobix_inventory = query.in_iranmobix_inventory;
   if (query.limit !== undefined) result.limit = query.limit;
+  if (query.page_size !== undefined) result.page_size = query.page_size;
+  for (const key of ["has_battery", "has_magnet", "ready_only", "alibaba_verified", "iranmobix_verified"] as const) {
+    if (query[key] !== undefined) result[key] = query[key];
+  }
   return result;
 }
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-this-alias -- Preserve observer instances in the DOM test harness. */
 /* eslint-disable @typescript-eslint/no-require-imports -- Exercise progressive reveal with isolated viewport boundaries. */
 const {test}=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),ts=require("typescript");
 function setup({reduced=false,supported=true,positions=[1200,1300,1400]}={}) {

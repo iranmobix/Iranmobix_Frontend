@@ -1,8 +1,12 @@
 "use client";
 
+import { getCommercialAirCost } from "../../utils/product-commercial-air-cost";
 import { useEffect, useId, useRef, useState } from "react";
 import { Dialog } from "radix-ui";
 import { X } from "lucide-react";
+import Image from "next/image";
+import chinaFlag from "../../assets/china.svg";
+import iranFlag from "../../assets/iran.svg";
 import { RiPhoneFill, RiWhatsappFill, RiTelegramFill } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,17 +95,18 @@ export default function ProductMobilePurchase({
   const isAir =
     shippingMethod === "commercial_air" || shippingMethod === "air_express";
   const isExpress = shippingMethod === "air_express";
-  const chinaToman =
+  const commercial = getCommercialAirCost(shipping);
+  const chinaToman = shippingMethod === "commercial_air" ? commercial.chinaToman :
     cost?.china_total_toman ??
     shipping?.land?.china_total_toman ??
     shipping?.sea?.china_total_toman;
-  const chinaYuan =
+  const chinaYuan = shippingMethod === "commercial_air" ? commercial.chinaYuan :
     cost?.china_total_yuan ??
     shipping?.land?.china_total_yuan ??
     shipping?.sea?.china_total_yuan;
   const total =
     shippingMethod === "commercial_air"
-      ? shipping?.air?.commercial?.total_toman
+      ? commercial.total
       : cost?.total_toman;
   const expert =
     shipping?.air?.express?.assigned_sales_expert ??
@@ -137,7 +142,7 @@ export default function ProductMobilePurchase({
     <Dialog.Root open={open} onOpenChange={setSheetOpen}>
       <div
         ref={barRef}
-        className={`${styles.bar} fixed inset-x-0 bottom-0 z-[60] bg-white px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] inset-shadow-[0_1px_0] inset-shadow-neutral-200 lg:hidden`}
+        className={`${styles.bar} fixed inset-x-0 bottom-0 z-[60] border border-white bg-white/40 px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] inset-shadow-[0_1px_0] inset-shadow-white/40 lg:hidden`}
         dir="rtl"
       >
         <div className="mx-auto flex max-w-xl flex-col gap-4">
@@ -146,7 +151,8 @@ export default function ProductMobilePurchase({
             className="text-mobile-caption space-y-4 leading-5 text-neutral-800"
           >
             <div className="flex min-h-5 flex-wrap items-baseline gap-1">
-              <dt className="text-mobile-body-s text-neutral-800">
+              <dt className="text-mobile-body-s flex items-center gap-2 text-neutral-800">
+                <Image src={chinaFlag} alt="چین" width={16} height={16} className="size-4 shrink-0" />
                 قیمت در چین:
               </dt>
               <dd className="text-mobile-label-m text-neutral-800">
@@ -158,7 +164,8 @@ export default function ProductMobilePurchase({
               </dd>
             </div>
             <div className="flex min-h-5 flex-wrap items-baseline gap-1">
-              <dt className="text-mobile-body-m text-neutral-900">
+              <dt className="text-mobile-body-m flex items-center gap-2 text-neutral-900">
+                <Image src={iranFlag} alt="ایران" width={16} height={16} className="size-4 shrink-0" />
                 قیمت تحویل در ایران:
               </dt>
               <dd className="text-mobile-label-l text-neutral-900">
@@ -182,7 +189,7 @@ export default function ProductMobilePurchase({
         />
         <Dialog.Content
           dir="rtl"
-          className={`${styles.sheet} fixed inset-x-0 bottom-0 z-[81] mx-auto flex max-h-[calc(100dvh-12px)] w-full max-w-xl flex-col rounded-t-2xl bg-white px-3 pt-2 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-xl outline-none lg:hidden`}
+          className={`${styles.sheet} fixed inset-x-0 bottom-0 z-[81] mx-auto flex max-h-[calc(100dvh-12px)] w-full max-w-xl flex-col rounded-t-2xl bg-white/40 px-3 pt-2 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-xl outline-none lg:hidden`}
         >
           <div
             aria-hidden="true"

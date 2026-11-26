@@ -1,0 +1,76 @@
+@media (max-width: 1023px) {
+  .item {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 8px;
+    row-gap: 16px;
+  }
+
+  .item [data-cart-slot="identity"],
+  .item [data-cart-slot="description"],
+  .item [data-cart-slot="pricing"],
+  .item [data-cart-slot="price-list"] {
+    display: contents;
+  }
+
+  .item [data-cart-slot="image"] {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .item [data-cart-slot="title"] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .item [data-cart-slot="china"] {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .item [data-cart-slot="delivery"] {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  .item [data-cart-slot="seller"] {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+
+  .item [data-cart-slot="options"] {
+    grid-column: 1 / -1;
+    grid-row: 6;
+  }
+
+  .item [data-cart-slot="shipping"] {
+    grid-column: 1;
+    grid-row: 7;
+    align-self: center;
+    margin-top: 0;
+  }
+
+  .item [data-cart-slot="controls"] {
+    grid-column: 2;
+    grid-row: 7;
+    align-self: center;
+    max-width: 160px;
+  }
+
+  .item [data-cart-slot="remove"] {
+    position: absolute;
+    top: 16px;
+    left: 0;
+  }
+
+  .item [data-cart-slot="availability"] {
+    grid-column: 1 / -1;
+    grid-row: 8;
+  }
+
+  .item [data-cart-slot="issues"] {
+    grid-column: 1 / -1;
+    grid-row: 9;
+  }
+}

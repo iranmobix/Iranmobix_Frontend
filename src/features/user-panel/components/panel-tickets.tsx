@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search } from "lucide-react";
@@ -112,9 +113,7 @@ export default function PanelTickets() {
         </p>
       )}
       {query.isPending ? (
-        <p role="status" className="py-20 text-center text-xs">
-          در حال دریافت تیکت‌ها…
-        </p>
+        <PageLoading title="در حال دریافت تیکت‌ها…" description="درخواست‌های پشتیبانی شما در حال دریافت هستند." />
       ) : query.isError ? (
         <div
           role="alert"

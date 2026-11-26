@@ -1,5 +1,7 @@
 "use client";
 
+import ProductMobileGalleryControls from "./product-mobile-gallery-controls";
+
 import ProductMobileSeller from "./product-mobile-seller";
 
 import { useProduct } from "../../hooks";
@@ -9,6 +11,8 @@ import type { ProductDetail } from "../../types/domain/product-detail.types";
 import MarketplaceProductDetailsView from "./marketplace-product-details-view";
 import { useProductTomanPricing } from "../../hooks/use-product-toman-pricing";
 import ProductDetailSkeleton from "./product-detail-skeleton";
+import ProductDetailsError from "./product-details-error";
+import { useRouter } from "next/navigation";
 import ProductDataFeedback from "../product-data-feedback";
 import ProductComments from "./product-comments";
 import ProductGallery from "./product-gallery";
@@ -32,6 +36,7 @@ type ProductDetailPageProps = {
 };
 
 const ProductDetailPage = ({ slug }: ProductDetailPageProps) => {
+  const router = useRouter();
   const {
     data: product,
     isPending,
@@ -51,9 +56,26 @@ const ProductDetailPage = ({ slug }: ProductDetailPageProps) => {
       onUseApi={useApiData}
     />
   );
-  if (isError)
-    return <div className="bg-neutral-50 px-10 py-8">{feedback}</div>;
-  if (!product) return <p className="p-8">اطلاعات محصول: —</p>;
+  if (isError || !product)
+    return (
+      <>
+        <div className="lg:hidden">
+          <ProductDetailsError
+            message="دریافت اطلاعات محصول انجام نشد. لطفاً دوباره تلاش کنید."
+            onRetry={useApiData}
+            onBack={() => router.push("/products")}
+            isRetrying={isFetching}
+          />
+        </div>
+        <div className="hidden lg:block">
+          {isError ? (
+            <div className="bg-neutral-50 px-10 py-8">{feedback}</div>
+          ) : (
+            <p className="p-8">اطلاعات محصول: —</p>
+          )}
+        </div>
+      </>
+    );
   if ("kind" in product) {
     return <MarketplaceProductDetailsView product={product} />;
   }
@@ -96,13 +118,13 @@ function CatalogProductDetails({
   return (
     <div className="mx-auto w-full max-w-[1680px] bg-[#f6f5f3] px-2.5 pt-4 pb-20 sm:px-6 lg:px-8 lg:pt-5 xl:px-8">
       {feedback}
-      <div className="mb-3 flex items-center justify-between lg:mb-4">
+      <div className="mb-6 flex items-center justify-between lg:mb-4">
         <div className="min-w-0 [&_nav]:flex-wrap [&_nav]:gap-1 lg:[&_nav]:gap-2">
           <Breadcrumb items={breadcrumbItems} variant="product-detail" />
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <ProductDetailActions slug={product.slug} title={product.title} />
+          <div className="hidden lg:block"><ProductDetailActions slug={product.slug} title={product.title} /></div>
           <ProductCurrencyLabel currency={product.price.currency} />
         </div>
       </div>
@@ -122,7 +144,9 @@ function CatalogProductDetails({
           <ProductDetailHero
             seller={product.seller}
             mobileOverview
-            gallery={<ProductGallery product={product} />}
+            gallery={<ProductGallery product={product} mobileControls={
+              <ProductMobileGalleryControls slug={product.slug} title={product.persianTitle || product.title} source={product.source} url={product.officialUrl} />
+            } />}
             overview={
               <ProductDetailOverview
                 product={product}

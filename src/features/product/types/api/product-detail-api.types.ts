@@ -6,6 +6,9 @@ export interface ProductDetailApiResponse {
   product: ProductDetailApi;
   weight_kg?: number | string | null;
   key_attributes?: Record<string, unknown> | null;
+  single_package_size?: string | null;
+  cbm?: number | string | null;
+  specifications?: Record<string, unknown> | null;
   primary_image: string;
   gallery: ProductImageApi[];
   colors: ProductColorApi[];
@@ -32,6 +35,9 @@ export interface ProductDetailApi {
   translated_by_ai?: boolean | null;
   weight_kg?: number | string | null;
   key_attributes?: Record<string, unknown> | null;
+  single_package_size?: string | null;
+  cbm?: number | string | null;
+  specifications?: Record<string, unknown> | null;
   short_description: string;
   price: ProductPriceDetailApi;
   brand: ProductBrandApi | null;
@@ -105,6 +111,10 @@ export interface ProductPriceRangeDetailApi {
 
 export interface ProductRelatedProductApi {
   slug: string;
+  fa_title?: string | null;
+  en_title?: string | null;
+  title_fa?: string | null;
+  title_en?: string | null;
   title: string;
   short_description: string;
   image: string;

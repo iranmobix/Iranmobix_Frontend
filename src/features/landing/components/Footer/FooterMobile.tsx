@@ -10,9 +10,9 @@ export function FooterMobile() {
       <Image
         src={logo}
         alt="ایران موبیکس"
-        width={104}
-        height={64}
-        className="h-16 w-26 object-contain"
+        width={144}
+        height={88}
+        className="h-[88px] w-36 object-contain"
       />
       <p className="text-mobile-body-s mt-2 text-center leading-6 text-neutral-50">
         کارگو واردات از چین و امارات

@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import Image from "next/image";
 import { Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,7 @@ export default function PanelComments() {
         دیدگاه‌ها
       </h1>
       {query.isPending ? (
-        <p role="status" className="py-20 text-center text-xs">
-          در حال دریافت دیدگاه‌ها…
-        </p>
+        <PageLoading title="در حال دریافت دیدگاه‌ها…" description="دیدگاه‌های شما در حال آماده‌سازی هستند." />
       ) : query.isError ? (
         <div
           role="alert"

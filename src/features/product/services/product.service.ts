@@ -27,7 +27,7 @@ export const productService: ProductService = {
       source === "mock" ? mockProductApi : productApi
     ).getProducts(query, signal);
     signal?.throwIfAborted();
-    return mapProductListResult(response);
+    return mapProductListResult(response, query);
   },
   async getProductDetail(slug, source = "api", signal) {
     signal?.throwIfAborted();

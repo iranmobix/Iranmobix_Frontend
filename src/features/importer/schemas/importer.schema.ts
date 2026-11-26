@@ -106,7 +106,7 @@ export const importJobSchema = z
       pagination: z.object({
         has_more: z.boolean().optional(),
         next_cursor: z.string().nullish(),
-      }).passthrough().optional(),
+      }).passthrough().nullish(),
     }).passthrough().optional(),
   })
   .passthrough();

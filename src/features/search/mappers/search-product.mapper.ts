@@ -35,38 +35,3 @@ function getPrimaryImage(
     null
   );
 }
-
-// elastic text builder
-function buildSearchText(product: any) {
-  return [
-    product.title,
-    product.original_description,
-    product.short_description?.intro,
-    product.source,
-    product?.specifications?.Model,
-  ]
-    .filter(Boolean)
-    .join(" ");
-}
-
-// tags builder
-function buildTags(product: any) {
-  const specs = product?.specifications || {};
-
-  return Object.values(specs)
-    .filter(Boolean)
-    .flatMap((v: any) =>
-      typeof v === "string" ? v.split(",") : []
-    );
-}
-
-// ranking
-function getBoost(product: any) {
-  let boost = 1;
-
-  if (product.rating > 4.5) boost += 0.5;
-  if (product.review_count > 100) boost += 0.3;
-  if (product.source === "alibaba") boost += 0.1;
-
-  return boost;
-}

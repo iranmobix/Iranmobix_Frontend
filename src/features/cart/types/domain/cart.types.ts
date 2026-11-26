@@ -94,7 +94,13 @@ export interface ServerCartItem {
   issues: string[];
   updatedAt: string;
 }
+export type CartShippingOption = {
+  code: "ground" | "sea" | "air_express" | "commercial_air";
+  label: string;
+};
+
 export interface ServerCart {
+  shippingMethods?: CartShippingOption[];
   storefront?: boolean;
   paymentDetails?: CartPaymentDetails;
   dataIssues?: CartDataIssue[];

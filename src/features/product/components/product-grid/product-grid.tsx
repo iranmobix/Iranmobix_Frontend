@@ -42,7 +42,7 @@ const ProductGrid = ({
   );
 
   return (
-    <section className="grid grid-cols-1 gap-3 lg:grid-cols-[repeat(auto-fill,minmax(240px,1fr))] lg:gap-4">
+    <section className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(240px,1fr))] lg:gap-4">
       {products.map((product) => renderProduct(product))}
     </section>
   );

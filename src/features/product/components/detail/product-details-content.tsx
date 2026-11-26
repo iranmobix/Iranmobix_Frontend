@@ -77,19 +77,19 @@ export default function ProductDetailsContent({
         </p>
       )}
       <div
-        className={`text-mobile-caption lg:text-desktop-body-s mt-4 min-w-0 items-center justify-between gap-x-3 border-b border-neutral-200 pb-4 text-neutral-800 ${mobileImportLayout ? "grid grid-cols-[minmax(0,1fr)_auto] gap-y-5 lg:flex lg:flex-wrap lg:gap-y-2" : "flex flex-wrap gap-y-2"}`}
+        className={`text-mobile-caption lg:text-desktop-body-s mt-4 min-w-0 items-center justify-between gap-x-2 lg:gap-x-3 border-b border-neutral-200 pb-4 text-neutral-800 grid grid-cols-[minmax(0,1fr)_auto] gap-y-2 lg:flex lg:flex-wrap lg:gap-y-2`}
       >
         <p
-          className={`flex min-w-0 items-center gap-1 ${mobileImportLayout ? "order-2 lg:order-none" : ""}`}
+          className="flex min-w-0 items-center gap-1 max-lg:justify-self-start max-lg:rounded-lg max-lg:border max-lg:border-secondary-100 max-lg:px-2 max-lg:py-1"
         >
           <span className="max-lg:text-mobile-body-s shrink-0">کد محصول:</span>
-          <bdi className="max-lg:text-mobile-label-m min-w-0 break-words text-neutral-900 lg:font-medium">
+          <bdi className="max-lg:text-mobile-label-m min-w-0 break-words text-neutral-900 max-lg:truncate max-lg:whitespace-nowrap max-lg:break-normal lg:font-medium">
             {productCode?.trim() || missingProductCodeText}
           </bdi>
         </p>
         {hasRating ? (
           <div
-            className={`flex shrink-0 items-center gap-1.5 ${mobileImportLayout ? "order-1 col-span-2 justify-self-start lg:order-none" : ""}`}
+            className="flex shrink-0 items-center gap-1.5 max-lg:justify-self-end max-lg:rounded-lg max-lg:border max-lg:border-secondary-100 max-lg:px-2 max-lg:py-1"
             aria-label={`امتیاز فروشنده: ${rating} از ۵`}
           >
             <span>{rating.toLocaleString("fa-IR")}</span>
@@ -125,9 +125,9 @@ export default function ProductDetailsContent({
           />
         ) : null}
         {mobileImportLayout ? (
-          <div className="order-3 justify-self-end lg:contents">{source}</div>
+          <div className="order-3 hidden lg:contents">{source}</div>
         ) : (
-          source
+          <div className="hidden lg:contents">{source}</div>
         )}
       </div>
       <div className="py-4">{pricing}</div>

@@ -26,8 +26,12 @@ function harness(overrides = {}) {
     const localRequire = (name) =>
       Object.hasOwn(overrides, name)
         ? overrides[name]
+        : name.endsWith("product-detail-loading-indicator") || name.endsWith("product-details-error")
+          ? { default: name.split("/").at(-1) }
         : name.endsWith("product-search-failure-animation")
           ? { default: () => React.createElement("div", { "data-search-failure-animation": true }) }
+        : name === "../../assets/china.svg" || name === "../../assets/iran.svg"
+          ? { default: "/" + name.split("/").at(-1) }
         : name === "../../assets/Spinner.svg"
           ? { default: "/Spinner.svg" }
           : name.startsWith(".")
@@ -461,7 +465,7 @@ test("submitting a product URL opens the new detail loading tab immediately with
   "./import-image-search":{ImportImageSearch:"mock-image-search"},
   "@/components/ui/input":{Input:"mock-input"},
   "@/features/header/assets/search.svg":{},"@/features/header/assets/camera.svg":{},
-  "../services/importer.service":{createDiscoverPayload:value=>({source_url:value}),isDiscoverUrlInput:()=>true,
+  "../services/importer.service":{createDiscoverPayload:value=>({input:value}),isDiscoverUrlInput:()=>true,isDirectProductUrl:()=>true,
     importerService:{discover:()=>assert.fail("URL import must not call discover")},ProductImportError:Error},
   "../services/import-search-navigation":{runImportSearch:()=>assert.fail("URL import must not use legacy result navigation")},
   "@/shared/api":{httpPost:()=>assert.fail("POST belongs to the destination tab"),httpGet:()=>assert.fail("GET belongs to the destination tab")},
@@ -496,10 +500,11 @@ test("progressive import view renders received sections alongside placeholders w
   '@/features/product/components/detail/product-quantity':{default:()=>null},
   '@/features/product/components/detail/product-comments':{default:({sourceComments})=>React.createElement('section',{'data-comments':true},sourceComments?.map(comment=>comment.text).join(' '))},
   '@/features/product/components/detail/product-purchase-preview':{default:()=>React.createElement('div',{'data-purchase-preview':true})},
+  './product-mobile-gallery-controls':{default:()=>null},
   './product-mobile-seller':{default:({seller,pending})=>React.createElement('section',{'data-mobile-seller':true,'data-pending':pending},seller?.name||'Seller pending')},
   '@/features/product/components/detail/product-detail-hero':{default:({gallery,overview,purchase})=>React.createElement('div',null,gallery,overview,purchase)},
   '@/features/product/components/detail/product-gallery':{default:({product})=>React.createElement('p',null,`Gallery ${product.gallery.length}`)},
-  '@/features/product/components/detail/product-specifications':{default:({product})=>React.createElement('p',null,Object.values(product.translatedSpecifications).join(' '))},
+  '@/features/product/components/detail/product-specifications':{default:({product})=>React.createElement('p',{'data-full-specifications':true},Object.values(product.translatedSpecifications).join(' '))},
   '@/features/product/components/detail/supplier/product-supplier-detail':{default:({product})=>React.createElement('p',null,product.seller.name)},
   '@/features/product/components/detail/product-detail-source':{default:()=>null},
   '@/features/product/components/detail/supplier/SupplierIdentity':{default:({seller})=>React.createElement('p',null,seller.name)},
@@ -516,7 +521,7 @@ test("progressive import view renders received sections alongside placeholders w
  }
  render(map({...raw,product:{...raw.product,slug:'coffee',price_cny:80}}));
  const full=render(map({...raw,status:'done',next_poll_after_seconds:0,product:{...raw.product,slug:'coffee',price_cny:84.19,gallery:['https://example.com/photo'],key_attributes:{Material:'سرامیک'},seller:{name:'Actual seller'},specifications:{Capacity:'600 ml'},other_sellers:[{slug:'seller-one',fa_title:'Offer'}],related_products:[{slug:'related-one',fa_title:'Related'},{slug:'related-two',fa_title:'Related again'}],comments:[{text:'Backend review'}]}}));
- assert.ok(full.indexOf('data-mobile-seller')<full.indexOf('600 ml'));
+ assert.ok(full.indexOf('data-mobile-seller')<full.indexOf('data-full-specifications'));
  assert.deepEqual(pricingRequests.slice(-2),[
   ["coffee","marketplace-details",true,true,true],
   ["coffee","marketplace-details",true,false,true],
@@ -1096,6 +1101,8 @@ function mobilePurchaseHarness() {
     react:{...React,useRef:()=>({current:null}),useId:()=>"mobile-delivery",useState:()=>[open,value=>{open=value;}],useEffect:()=>{}},
     "radix-ui":{Dialog:{Root:pass,Trigger:pass,Portal:pass,Overlay:pass,Content:pass,Close:pass,Title:"h2",Description:"p"}},
     "@/components/ui/button":{Button:"button"},
+    "../../assets/china.svg":{default:"/china.svg"},
+    "../../assets/iran.svg":{default:"/iran.svg"},
     "./product-mobile-purchase.module.css":{default:{bar:"purchase-bar",sheet:"purchase-sheet",overlay:"purchase-overlay"}},
     "next/image":{default:"mock-image"},
   });
@@ -1170,4 +1177,160 @@ test("mobile purchase and desktop share one shipping quote and the original quan
   assert.equal(mobile.props.submit,submit);
   assert.equal(mobile.props.shippingMethod,"sea");
   assert.equal(View({...props,mobilePurchase:false}).type,"desktop-purchase");
+});
+
+test("image cards always open the single-link import route even when the listing already has a slug", () => {
+  const opens=[];
+  const card={...product(1),source:{name:"alibaba",label:"Alibaba",url:"https://www.alibaba.com/product-detail/Fan_1600000000000.html"}};
+  const grouped={requested:[card],suggested:[],candidatesByProductId:new Map(),candidateJobIdsByProductId:new Map()};
+  const h=harness({
+    react:{...React,useMemo:fn=>fn(),useEffect:()=>{},useState:()=>["",()=>{}]},
+    "next/navigation":{useRouter:()=>({replace:()=>assert.fail("image search must not redirect before selection")})},
+    "../hooks/use-import-results":{useImportResults:()=>({query:{data:{status:"processing",import_type:"image",ready_for_frontend:true}},grouped,hasNextPage:false})},
+    "@/features/product/components/product-page":{default:"mock-product-page"},
+    "@/features/product/components/product-grid/product-grid-skeleton":{default:"mock-skeleton"},
+    "@/features/product/utils/product-path":harness().load("utils/product-path"),
+    "@/features/product/utils/product-navigation":{openProductDetailsTab:href=>opens.push(href)},
+    "@/components/ui/button":{Button:"button"},
+  });
+  const element=h.load("../importer/components/import-results-page").default({jobId:"10789",imageSearch:true});
+  assert.equal(element.props.importedProducts.length,1);
+  assert.equal(element.props.discoveryProducts,undefined);
+  const href=element.props.getProductDetailsLink(card);
+  assert.equal(new URL(href,"https://front.test").pathname,"/imports/single");
+  assert.equal(new URL(href,"https://front.test").searchParams.get("url"),card.source.url);
+  element.props.onProductDetailsClick(card);assert.deepEqual(opens,[href]);
+});
+
+test("applying, sorting and clearing filters preserves the image search job", () => {
+  const urls=[];const search=new URLSearchParams("image_job=10789&category=1925");
+  const h=harness({
+    react:{...React,useMemo:fn=>fn(),useCallback:fn=>fn,useEffect:()=>{},useRef:value=>({current:value}),useState:value=>[value,()=>{}]},
+    "next/navigation":{useRouter:()=>({replace:url=>urls.push(url)}),usePathname:()=>"/products",useSearchParams:()=>search},
+  });
+  const state=h.load("hooks/use-product-query").useProductQuery();
+  state.applyQuery();state.setSort("price_asc");state.resetQuery();
+  assert.equal(urls.length,3);
+  for(const url of urls) assert.equal(new URL(url,"https://front.test").searchParams.get("image_job"),"10789");
+  assert.equal(new URL(urls[2],"https://front.test").searchParams.has("category"),false);
+});
+
+test("main specifications prioritize weight, package and CBM before attributes and specification fallback", () => {
+  const build = harness().load("utils/build-main-specifications").buildMainSpecifications;
+  const result = build("1.05", {Material: "Ceramic", Feature: "Reusable", Weight: "99", single_package_size: "duplicate"}, {
+    singlePackageSize: "10.0 × 10.0 × 10.0 cm", cbm: 0.001,
+    specifications: {Material: "Duplicate", Color: "Black", Extra: "Ignored"},
+  });
+  assert.deepEqual(Object.keys(result), ["وزن", "ابعاد بسته‌بندی", "حجم بسته (CBM)", "Material", "Feature", "Color"]);
+  assert.equal(result["وزن"], "1.05 کیلوگرم");
+  assert.equal(result["حجم بسته (CBM)"], "0.001 مترمکعب");
+  assert.equal(result["ابعاد بسته‌بندی"], "10.0 × 10.0 × 10.0 cm");
+  const partial = build(null, {Material: "Bamboo", Empty: ""}, {specifications: {Color: "Black", Feature: "Reusable", Shape: "Round", Origin: "CN", Model: "A", Extra: "No"}});
+  assert.equal(Object.keys(partial).length, 6);
+  assert.equal(partial.Extra, undefined);
+  assert.equal(build(0, {}, {cbm: "0"})["وزن"], "0 کیلوگرم");
+  assert.equal(build(-1, {}, {cbm: -1})["وزن"], undefined);
+});
+
+test("main specification card always reserves six cells after processing completes", () => {
+  const View = harness().load("components/detail/product-key-specifications").default;
+  for (const specifications of [{}, {Material: "Bamboo"}]) {
+    const html = renderToStaticMarkup(React.createElement(View, {specifications, pending: false}));
+    assert.equal((html.match(/<dt\b/g) || []).length, 6);
+    assert.equal((html.match(/<dd\b/g) || []).length, 6);
+    assert.doesNotMatch(html, /aria-busy|role="status"|animate-pulse/);
+  }
+});
+
+test("commercial_air is authoritative for China and Iran prices, including null delivery costs", async () => {
+  const raw = {currency: "TOMAN",
+    commercial_air: {clearance_toman: "0", iranmobix_services_toman: "0", insurance_toman: "0", china_total_yuan: "178.81", china_total_toman: "7882000", international_shipping_toman: null, total_toman: null, rate_per_kg_yuan: "98", billable_weight_kg: null, shipping_yuan: null, assigned_sales_expert: null},
+    land: {china_total_toman: "1234", china_total_yuan: "22"},
+    air: {commercial: {total_toman: "9999"}},
+  };
+  const service = harness({"@/shared/api": {httpGet: async () => raw}}).load("services/product-shipping-cost");
+  const shipping = await service.productShippingCostOptions("camera", 1).queryFn({signal: new AbortController().signal});
+  assert.equal(shipping.commercial_air.rate_per_kg_yuan, 98);
+  assert.equal(shipping.commercial_air.total_toman, null);
+  const resolve = harness().load("utils/product-commercial-air-cost").getCommercialAirCost;
+  assert.equal(resolve(shipping).chinaToman, 7882000);
+  assert.equal(resolve(shipping).chinaYuan, 178.81);
+  assert.equal(resolve(shipping).total, null);
+  const mobile = mobilePurchaseHarness();
+  const html = renderToStaticMarkup(mobile.render({shipping, shippingMethod: "commercial_air"}));
+  assert.match(html, /۷٬۸۸۲٬۰۰۰/);
+  assert.doesNotMatch(html, /۹٬۹۹۹|۱٬۲۳۴/);
+  shipping.commercial_air.total_toman = 0;
+  assert.equal(resolve(shipping).total, 0);
+});
+
+test("text and category submissions use discover and keep the original input in the results tab", async () => {
+  for (const input of ["wireless headphones", "https://www.alibaba.com/catalog/headphones.html", "https://supplier.en.alibaba.com/"]) {
+    const requests = [], errors = [], calls = [];
+    let stateIndex = 0;
+    const service = harness({"@/shared/api": {}}).load("../importer/services/importer.service");
+    const h = harness({
+      react: {...React, useRef: () => ({current:false}), useState: () => [stateIndex++ === 0 ? input : "", value => errors.push(value)]},
+      "next/navigation": {useRouter: () => ({push: () => {}})},
+      "next/image": {default:"mock-image"}, "radix-ui": {Popover:{Trigger:"mock-trigger"}},
+      "./import-image-search": {ImportImageSearch:"mock-image-search"}, "@/components/ui/input": {Input:"mock-input"},
+      "@/features/header/assets/search.svg": {}, "@/features/header/assets/camera.svg": {},
+      "../services/importer.service": {...service, importerService:{discover: payload => {requests.push(payload); return Promise.resolve({job_id:10801});}}},
+      "../services/import-search-navigation": {runImportSearch: async options => {calls.push(options); await options.request();}},
+      "@/shared/api": {},
+      window: {open: () => assert.fail("only the navigation helper opens discovery tabs")},
+    });
+    const Header = h.load("../importer/components/import-header-input").default;
+    const form = Header({}).props.children[0].props.children;
+    await form.props.onSubmit({preventDefault(){}});
+    assert.deepEqual(JSON.parse(JSON.stringify(requests)), [{input}]);
+    const route = new URL(calls[0].resultsPath(10801), "https://front.test");
+    assert.equal(route.pathname, "/products");
+    assert.equal(route.searchParams.get("search_job"), "10801");
+    assert.equal(route.searchParams.get("search_input"), input);
+    assert.equal(errors.some(value => typeof value === "string" && value.trim()), false);
+  }
+});
+
+test("discovery results reuse the product list and import a chosen card by its original URL", () => {
+  const source = "https://www.alibaba.com/product-detail/Watch_123.html";
+  const card = {...product(1), slug:"watch", source:{name:"alibaba",label:"Alibaba",url:source}};
+  const opens = [];
+  const h = harness({
+    react:{...React,useMemo:fn=>fn(),useEffect:()=>{},useState:()=>["",()=>{}]},
+    "next/navigation":{useRouter:()=>({replace:()=>assert.fail("discovery must keep the result list")})},
+    "../hooks/use-import-results":{useImportResults:()=>({
+      query:{data:{id:10801,status:"processing",ready_for_frontend:true,listing_search:true,import_type:"search"},isError:false,isPending:false},
+      grouped:{requested:[card],suggested:[],candidatesByProductId:new Map(),candidateJobIdsByProductId:new Map()},
+    })},
+    "@/features/product/components/product-page":{default:"shared-product-page"},
+    "@/features/product/components/product-grid/product-grid-skeleton":{default:"mock-skeleton"},
+    "@/features/product/utils/product-path":harness().load("utils/product-path"),
+    "@/features/product/utils/product-navigation":{openProductDetailsTab:path=>opens.push(path)},
+    "@/components/ui/button":{Button:"button"},
+  });
+  const page = h.load("../importer/components/import-results-page").default({jobId:"10801",discoverySearch:true});
+  assert.equal(page.type,"shared-product-page");
+  assert.equal(page.props.importedProducts.length,1);
+  assert.equal(page.props.discoveryProducts,undefined);
+  const href=page.props.getProductDetailsLink(card);
+  assert.equal(new URL(href,"https://front.test").pathname,"/imports/single");
+  assert.equal(new URL(href,"https://front.test").searchParams.get("url"),source);
+  page.props.onProductDetailsClick(card);
+  assert.deepEqual(opens,[href]);
+});
+
+test("discovery filtering and reset retain both the job and its original input", () => {
+  const urls=[], search=new URLSearchParams("search_job=10801&search_input=headphones&category=1925");
+  const h=harness({
+    react:{...React,useMemo:fn=>fn(),useCallback:fn=>fn,useEffect:()=>{},useRef:value=>({current:value}),useState:value=>[value,()=>{}]},
+    "next/navigation":{useRouter:()=>({replace:url=>urls.push(url)}),usePathname:()=>"/products",useSearchParams:()=>search},
+  });
+  const state=h.load("hooks/use-product-query").useProductQuery();
+  state.applyQuery();state.setSort("price_asc");state.resetQuery();
+  for(const url of urls) {
+    const params=new URL(url,"https://front.test").searchParams;
+    assert.equal(params.get("search_job"),"10801");
+    assert.equal(params.get("search_input"),"headphones");
+  }
 });

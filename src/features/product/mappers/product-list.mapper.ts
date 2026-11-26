@@ -49,7 +49,10 @@ export const mapProductListItem = (input: unknown): Product => {
       value: color.value,
     })),
 
-    price: mapPrice(product.price),
+    price: {
+      ...mapPrice(product.price),
+      finalPriceIranToman: parseOptionalProductAmount(product.final_price_iran, "final_price_iran"),
+    },
 
     brand: product.brand
       ? {

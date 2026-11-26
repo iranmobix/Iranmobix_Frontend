@@ -1,0 +1,11 @@
+.bar,
+.sheet {
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+}
+
+@media (max-width: 1023px) {
+  :global(body):has(.bar) {
+    padding-bottom: var(--cart-mobile-payment-height, calc(280px + env(safe-area-inset-bottom)));
+  }
+}

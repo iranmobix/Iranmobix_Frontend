@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useState } from "react";
 import { Dialog } from "radix-ui";
 import { Heart, X } from "lucide-react";
@@ -28,9 +29,7 @@ export default function PanelFavorites() {
         {notice}
       </p>
       {query.isPending ? (
-        <p role="status" className="py-20 text-center text-xs">
-          در حال دریافت مورد علاقه‌ها…
-        </p>
+        <PageLoading title="در حال دریافت مورد علاقه‌ها…" description="محصولات مورد علاقه شما در حال آماده‌سازی هستند." />
       ) : query.isError ? (
         <div
           role="alert"

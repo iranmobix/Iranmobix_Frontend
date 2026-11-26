@@ -22,7 +22,7 @@ export interface AddToCartInput {
 
 export interface UpdateCartItemInput {
   itemId: string;
-  payload: { quantity: number };
+  payload: { quantity: number; shipping_method?: AddToCartShippingMethod };
 }
 export interface RemoveCartItemInput {
   itemId: string;

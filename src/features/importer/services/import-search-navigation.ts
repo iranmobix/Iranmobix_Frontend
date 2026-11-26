@@ -7,6 +7,7 @@ type SearchNavigation = {
   navigate: (path: string) => void;
   payload?: DiscoverSearchPayload;
   signal?: AbortSignal;
+  resultsPath?: (jobId: number) => string;
 };
 
 /** Invoke directly from a trusted click/submit, before awaiting the API (not file change/drop). */
@@ -16,6 +17,7 @@ export async function runImportSearch({
   navigate,
   payload,
   signal,
+  resultsPath,
 }: SearchNavigation) {
   if (signal?.aborted) return;
   const tab = openTab();
@@ -37,12 +39,12 @@ export async function runImportSearch({
       );
     const search = payload
       ? new URLSearchParams(
-          "query" in payload
+          "input" in payload ? { input: payload.input } : "query" in payload
             ? { query: payload.query }
             : { source_url: payload.source_url },
         )
       : null;
-    const path = `/imports/${job.job_id}${search ? `?${search.toString()}` : ""}`;
+    const path = resultsPath?.(job.job_id) ?? `/imports/${job.job_id}${search ? `?${search.toString()}` : ""}`;
     if (tab.closed) navigate(path);
     else tab.location.replace(path);
   } catch (error) {

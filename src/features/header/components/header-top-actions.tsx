@@ -33,9 +33,10 @@ function LanguageButton({ compact = false }: { compact?: boolean }) {
 export function HeaderTopActions() {
   const accessToken = useAccessToken();
   return (
-    <div className="flex min-w-0 items-center justify-end">
+    <div className="flex w-full max-w-[clamp(296px,calc(10vw_+_194px),336px)] min-w-0 items-center justify-between">
+      <div className="flex min-w-0 shrink-0 items-center gap-[clamp(4px,calc(2vw_-_16px),12px)]">
       {accessToken ? (
-        <div dir="ltr" className="flex h-11 shrink-0 items-center gap-4">
+        <div dir="ltr" className="flex h-11 shrink-0 items-center gap-[clamp(8px,calc(2vw_-_12px),16px)]">
           <LanguageButton compact />
           <Link
             href="/panel"
@@ -79,22 +80,22 @@ export function HeaderTopActions() {
         <>
           <Button
             asChild
-            className="bg-primary-500 text-desktop-body-m text-neutral-900 ml-3 h-11 shrink-0 rounded-md px-3 py-2 whitespace-nowrap xl:ml-6 xl:px-6"
+            className="bg-primary-600 text-desktop-body-m text-white h-11 shrink-0 rounded-md px-3 py-2 whitespace-nowrap xl:px-6"
           >
             <Link href="/login">ورود/عضویت</Link>
           </Button>
           <LanguageButton />
         </>
       )}
-      <span
-        aria-hidden="true"
-        className="mx-3 h-11 w-px shrink-0 bg-neutral-200 xl:mx-4"
-      />
+      </div>
+      <span aria-hidden="true" className="flex min-w-4 flex-1 justify-center xl:min-w-6">
+        <span className="h-11 w-px bg-neutral-200" />
+      </span>
       <Button
         asChild
         variant="ghost"
         size="icon"
-        className="size-11 rounded-full"
+        className="size-11 shrink-0 rounded-full"
       >
         <Link href="/cart" aria-label="سبد خرید">
           <HeaderThemeIcon dark={vector} light={basketWhite} width={22} />

@@ -10,7 +10,7 @@ export interface ProductCategoryFilterOption {
 }
 
 export interface ProductBrandFilterOption {
-  id: number;
+  id: string | number;
   name: string;
   logo: string | null;
 }

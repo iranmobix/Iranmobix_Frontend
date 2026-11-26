@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type MouseEvent,
+  type ReactNode,
   type TouchEvent,
 } from "react";
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
@@ -21,9 +22,11 @@ import {
 type ProductGalleryProps = {
   product: Pick<ProductDetail, "gallery" | "source" | "officialUrl">;
   mobileImportLayout?: boolean;
+  mobileControls?: ReactNode;
 };
 export default function ProductGallery({
   product: { gallery },
+  mobileControls,
 }: ProductGalleryProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -44,6 +47,13 @@ export default function ProductGallery({
         selectedIndex,
       ) as HTMLElement | null;
       if (!selected || !container.clientHeight) return;
+      if (!window.matchMedia("(min-width: 1024px)").matches) {
+        const image = selected.getBoundingClientRect();
+        const track = container.getBoundingClientRect();
+        const delta = image.left < track.left ? image.left - track.left : image.right > track.right ? image.right - track.right : 0;
+        if (delta) container.scrollBy({ left: delta, behavior: "auto" });
+        return;
+      }
       const top = selected.offsetTop;
       const bottom = top + selected.offsetHeight;
       if (top < container.scrollTop) container.scrollTop = top;
@@ -160,14 +170,15 @@ export default function ProductGallery({
               )}
             </button>
           ))}
+        {mobileControls}
       </div>
-      <div className="relative hidden min-w-0 lg:col-start-1 lg:row-start-1 lg:block lg:min-h-0">
+      <div className="relative mt-3 min-w-0 lg:col-start-1 lg:row-start-1 lg:mt-0 lg:block lg:min-h-0">
         <div
           ref={thumbnailsRef}
           role="group"
           aria-label="تصاویر محصول؛ برای مشاهده تصاویر بیشتر اسکرول کنید"
           tabIndex={0}
-          className="absolute inset-0 flex min-h-0 min-w-0 [scrollbar-width:none] flex-col gap-[var(--gallery-thumb-gap)] overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden"
+          className="relative flex min-h-0 min-w-0 touch-pan-x touch-pinch-zoom flex-row gap-[var(--gallery-thumb-gap)] overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] lg:absolute lg:inset-0 lg:touch-pan-y lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain [&::-webkit-scrollbar]:hidden"
         >
           {gallery.map((image, index) => (
             <button
@@ -176,13 +187,13 @@ export default function ProductGallery({
               onClick={() => setSelectedId(image.id)}
               aria-label={`نمایش تصویر ${index + 1}`}
               aria-pressed={selectedIndex === index}
-              className={`focus-visible:ring-primary-400 relative aspect-square w-full shrink-0 overflow-hidden rounded-md border bg-[#efeeec] transition-colors focus-visible:ring-2 focus-visible:ring-inset ${selectedIndex === index ? "border-primary-400" : "hover:border-primary-200 border-transparent"}`}
+              className={`focus-visible:ring-primary-400 relative aspect-square w-[calc((100%-36px)/4)] shrink-0 overflow-hidden rounded-xl border bg-[#efeeec] lg:w-full lg:rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-inset ${selectedIndex === index ? "border-primary-500 lg:border-primary-400" : "border-neutral-200 hover:border-primary-200 lg:border-transparent"}`}
             >
               <Image
                 src={image.url}
                 alt=""
                 fill
-                sizes="60px"
+                sizes="(max-width: 1023px) calc((100vw - 56px) / 4), 60px"
                 className="object-contain"
               />
             </button>
@@ -200,7 +211,7 @@ export default function ProductGallery({
                   ? "اسکرول تصاویر کوچک به بالا"
                   : "اسکرول تصاویر کوچک به پایین"
               }
-              className={`focus-visible:ring-primary-400 absolute left-1/2 z-20 flex size-[22px] -translate-x-1/2 items-center justify-center rounded-full border border-white/70 bg-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.75),rgba(255,255,255,0.1)_55%,rgba(255,255,255,0.4))] text-[#141121] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_1px_4px_rgba(0,0,0,0.16)] backdrop-blur-[1px] transition-colors hover:bg-white/50 focus-visible:ring-2 focus-visible:outline-none ${direction === -1 ? "top-1" : "bottom-1"}`}
+              className={`focus-visible:ring-primary-400 absolute left-1/2 z-20 hidden size-[22px] lg:flex -translate-x-1/2 items-center justify-center rounded-full border border-white/70 bg-white/30 bg-[linear-gradient(135deg,rgba(255,255,255,0.75),rgba(255,255,255,0.1)_55%,rgba(255,255,255,0.4))] text-[#141121] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_1px_4px_rgba(0,0,0,0.16)] backdrop-blur-[1px] transition-colors hover:bg-white/50 focus-visible:ring-2 focus-visible:outline-none ${direction === -1 ? "top-1" : "bottom-1"}`}
             >
               {direction === -1 ? (
                 <ArrowUp size={14} strokeWidth={3} aria-hidden="true" />
@@ -209,6 +220,19 @@ export default function ProductGallery({
               )}
             </button>
           ))}
+        {gallery.length > 4 && (
+          <div className="pointer-events-none absolute inset-0 lg:hidden">
+            {([-1, 1] as const).map((direction) => (
+              <button key={direction} type="button"
+                onClick={() => changeImage(direction)}
+                aria-label={direction === -1 ? "تصاویر کوچک قبلی" : "تصاویر کوچک بعدی"}
+                disabled={direction === -1 ? selectedIndex === 0 : selectedIndex === gallery.length - 1}
+                className={`pointer-events-auto absolute top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-white/40 text-neutral-1000 shadow-sm backdrop-blur-[20px] disabled:invisible ${direction === -1 ? "right-1" : "left-1"}`}>
+                {direction === -1 ? <ArrowRight size={20} aria-hidden="true" /> : <ArrowLeft size={20} aria-hidden="true" />}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {isModalOpen && (
         <ProductGalleryModal

@@ -157,7 +157,10 @@ export const removeCartItemSchema = z.object({
   itemId: z.string().regex(/^[1-9]\d*$/),
 }) satisfies z.ZodType<RemoveCartItemInput>;
 export const updateCartItemSchema = removeCartItemSchema.extend({
-  payload: z.object({ quantity: count.positive() }),
+  payload: z.object({
+    quantity: count.positive(),
+    shipping_method: z.enum(["ground", "sea", "air_express", "commercial_air"]).optional(),
+  }),
 }) satisfies z.ZodType<UpdateCartItemInput>;
 
 export const submitOrderSchema = z

@@ -1,3 +1,4 @@
+import { getProductCardTitle } from "../utils/product-card-title";
 import { buildMainSpecifications } from "../utils/build-main-specifications";
 import type {
   ProductCommentCollectionApi,
@@ -28,7 +29,7 @@ function mapRelatedProduct(
 ): ProductRelatedProduct {
   return {
     slug: product.slug,
-    title: product.title,
+    title: getProductCardTitle(product),
     shortDescription: product.short_description,
     image: product.image,
     price: mapProductDetailPrice(product.price),
@@ -160,17 +161,19 @@ export const mapProductDetail = (
 
     /* Specifications */
     translatedSpecifications: { ...response.translated_specifications },
-    ...(product.key_attributes !== undefined ||
-    response.key_attributes !== undefined ||
-    product.weight_kg !== undefined ||
-    response.weight_kg !== undefined
-      ? {
-          mainSpecifications: buildMainSpecifications(
-            product.weight_kg ?? response.weight_kg,
-            product.key_attributes ?? response.key_attributes,
-          ),
-        }
-      : {}),
+    mainSpecifications: buildMainSpecifications(
+      product.weight_kg ?? response.weight_kg,
+      product.key_attributes ?? response.key_attributes,
+      {
+        singlePackageSize: product.single_package_size ?? response.single_package_size,
+        cbm: product.cbm ?? response.cbm,
+        specifications: {
+          ...response.translated_specifications,
+          ...response.specifications,
+          ...product.specifications,
+        },
+      },
+    ),
 
     /* Related Products */
     relatedProducts: response.related_products.map(mapRelatedProduct),

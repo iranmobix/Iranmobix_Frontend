@@ -21,6 +21,7 @@ type ProductCardProps = {
   product: Product | ProductRelatedProduct;
   variant?: ProductCardVariant;
   mobileLayout?: boolean;
+  sharedMobileCard?: boolean;
   discoveryMobile?: boolean;
   mobileCurrency?: ProductMobileCurrency;
   compactMobile?: boolean;
@@ -35,6 +36,7 @@ const ProductCard = ({
   product,
   variant = "default",
   mobileLayout = false,
+  sharedMobileCard = false,
   discoveryMobile = false,
   mobileCurrency = "source",
   compactMobile = false,
@@ -57,7 +59,7 @@ const ProductCard = ({
 
   return (
     <>
-      {mobileLayout && "id" in product && (
+      {(mobileLayout || sharedMobileCard) && (
         <ProductMobileCard
           product={product}
           discoveryMobile={discoveryMobile}
@@ -67,6 +69,7 @@ const ProductCard = ({
           detailsPending={detailsPending}
           detailsDisabled={detailsDisabled}
           featured={variant === "featured"}
+          bordered={sharedMobileCard && variant === "bordered"}
           dataIssues={dataIssues}
         />
       )}
@@ -74,7 +77,7 @@ const ProductCard = ({
         onClick={(event) =>
           openCardDetails(event, openDetails, detailsDisabled)
         }
-        className={`${mobileLayout ? "hidden lg:flex" : "flex"} h-full w-full cursor-pointer flex-col overflow-hidden rounded-md bg-white ${compactMobile ? "p-1.5" : "p-4"} transition-shadow duration-300 hover:shadow-[0px_2px_8px_4px_rgba(0,0,0,0.08)] lg:rounded-lg lg:border-0 lg:p-4 ${
+        className={`${mobileLayout || sharedMobileCard ? "hidden lg:flex" : "flex"} h-full w-full cursor-pointer flex-col overflow-hidden rounded-md bg-white ${compactMobile ? "p-1.5" : "p-4"} transition-shadow duration-300 hover:shadow-[0px_2px_8px_4px_rgba(0,0,0,0.08)] lg:rounded-lg ${sharedMobileCard && variant === "bordered" ? "lg:border lg:border-primary-50" : "lg:border-0"} lg:p-4 ${
           variant === "featured"
             ? "border border-[#d7b848]"
             : variant === "bordered"
@@ -86,6 +89,8 @@ const ProductCard = ({
           product={product}
           compactMobile={compactMobile}
           compactDesktop
+          listingLayout={mobileLayout}
+          showColors={!mobileLayout}
         />
 
         {/* Content */}
@@ -114,6 +119,7 @@ const ProductCard = ({
               amount={amount}
               amountToman={amountToman}
               pending={detailsPending}
+              listingLayout={mobileLayout}
             />
           </div>
           <div className="flex min-w-0 flex-1 flex-col lg:hidden">

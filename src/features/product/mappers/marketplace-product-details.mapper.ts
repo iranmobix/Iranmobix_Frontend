@@ -1,3 +1,4 @@
+import { getProductCardTitle } from "../utils/product-card-title";
 import { buildMainSpecifications } from "../utils/build-main-specifications";
 import type { ProductDetailSeller } from "../types/domain/product-detail-seller.types";
 import type { Product } from "../types/domain/product.types";
@@ -95,7 +96,7 @@ function mapProductCards(value: unknown): Product[] {
       {
         id: index + 1,
         slug,
-        title: importText(raw.fa_title),
+        title: getProductCardTitle(raw),
         image: httpUrl(raw.primary_image),
         officialUrl,
         source: { name: "alibaba", label: "علی‌بابا", url: officialUrl },
@@ -152,6 +153,7 @@ export function mapMarketplaceProductDetails(
   const mainSpecifications = buildMainSpecifications(
     raw.weight_kg,
     raw.key_attributes,
+    { singlePackageSize: raw.single_package_size, cbm: raw.cbm, specifications: raw.specifications },
   );
   const otherSellers = mapProductCards(raw.other_sellers);
   const relatedProducts = mapProductCards(raw.related_products);

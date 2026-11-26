@@ -1,6 +1,5 @@
 "use client";
 
-import { FaqList } from "@/features/faq/components/faq-list";
 import { FaqSearch } from "@/features/faq/components/faq-search";
 
 export default function FaqPage() {

@@ -5,15 +5,17 @@ function harness(query={}) {
   const root=path.resolve(__dirname,"../../.."),cache=new Map();
   function load(file) {
     const base=path.resolve(root,file),full=[base,base+".ts",base+".tsx"].find(p=>fs.existsSync(p));
+    if(full.endsWith(".json"))return JSON.parse(fs.readFileSync(full,"utf8"));
     if(cache.has(full))return cache.get(full).exports;
     const loaded={exports:{}};cache.set(full,loaded);
     const source=ts.transpileModule(fs.readFileSync(full,"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2020,esModuleInterop:true}}).outputText;
     const localRequire=name=>{
+      if(name==="react")return {...React,useState:initial=>[initial,()=>{}]};
       if(name==="../hooks/use-sales-experts")return {useSalesExperts:()=>query};
       if(name==="./SalesExpertCard")return {SalesExpertCard:({expert})=>React.createElement("div",{"data-expert":expert.id},expert.full_name)};
       if(name==="@/components/ui/button")return {Button:({children,...props})=>React.createElement("button",props,children)};
       if(name==="next/link")return {__esModule:true,default:({children,...props})=>React.createElement("a",props,children)};
-      if(name==="next/image")return {__esModule:true,default:({src,priority,...props})=>React.createElement("img",{...props,src:typeof src==="string"?src:src.src})};
+      if(name==="next/image")return {__esModule:true,default:({src,priority,...props})=>{void priority;return React.createElement("img",{...props,src:typeof src==="string"?src:src.src});}};
       if(name.endsWith(".svg"))return {__esModule:true,default:{src:"/test-icon.svg",width:20,height:20}};
       if(name.startsWith("@/"))return load(name.slice(2));
       if(name.startsWith("."))return load(path.resolve(path.dirname(full),name));
@@ -60,7 +62,7 @@ test("approved sample reviews retain mobile swipe and the existing desktop card"
   assert.ok(desktop.props.className.includes("lg:flex"));
   const html=renderToStaticMarkup(tree);
   assert.ok(html.includes("محمدرضا احمدزاده"));
-  assert.ok(html.includes("شرکت آریا تجارت"));
+  assert.ok(!html.includes("شرکت آریا تجارت"));
   assert.ok(!html.includes("در حال حاضر در دسترس نیستند"));
 });
 
@@ -82,14 +84,15 @@ test("missing expert photos use a neutral icon instead of another person's photo
   assert.ok(withPhoto.includes("https://example.com/real.jpg"));
 });
 
-test("mobile footer includes the centered brand, contact link, social row and two license slots",()=>{
+test("mobile footer includes the centered brand, contact link, social row and the official Enamad seal",()=>{
   const Mobile=harness().load("features/landing/components/Footer/FooterMobile").FooterMobile;
   const html=renderToStaticMarkup(React.createElement(Mobile));
   assert.ok(html.includes("کارگو واردات از چین و امارات"));
   assert.ok(html.includes('href="/contact-us"'));
   assert.ok(html.includes("تماس با ما"));
   assert.ok(html.includes("lg:hidden"));
-  assert.equal((html.match(/h-\[120px\]/g)||[]).length,2);
+  assert.equal((html.match(/h-\[120px\]/g)||[]).length,1);
+  assert.ok(html.includes("trustseal.enamad.ir/logo.aspx?id=7502693"));
   assert.ok(html.includes("footer-mobile-licenses-title"));
   assert.ok(!html.includes("خیابان شریف واقفی"));
 });

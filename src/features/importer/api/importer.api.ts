@@ -18,6 +18,8 @@ export const importerApi = {
       signal,
     }),
   importImage: (payload: ImportImagePayload, signal?: AbortSignal) => {
+    if ("image_url" in payload)
+      return httpPost<unknown>("/api/products/import/image/", payload, { timeout: 60_000, signal });
     const form = new FormData();
     form.append("image", payload.image);
     return httpPost<unknown>("/api/products/import/image/", form, {

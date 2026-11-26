@@ -12,7 +12,11 @@ export function mapImportedProduct(
     p.best_offer && typeof p.best_offer === "object"
       ? (p.best_offer as Record<string, unknown>)
       : null;
-  const priceToman = number(p.price_toman);
+  const priceToman = number(p.price_in_china_toman) ?? number(p.price_toman);
+  const badges: NonNullable<NonNullable<Product["seller"]>["badges"]> = [
+    ...(p.alibaba_verified === true || offer?.verified === true ? ["verified" as const] : []),
+    ...(p.iranmobix_verified === true ? ["trusted" as const] : []),
+  ];
   return {
     id: p.id,
     slug: p.slug,
@@ -39,6 +43,7 @@ export function mapImportedProduct(
         : priceToman === null
           ? null
           : priceToman * 10,
+      finalPriceIranToman: number(p.final_price_iran),
       hasDiscount: false,
       originalAmount: null,
       discountAmount: null,
@@ -57,10 +62,10 @@ export function mapImportedProduct(
       ? {
           id: typeof offer.id === "number" ? offer.id : 0,
           name: offer.supplier_name,
-          badges: offer.verified === true ? ["verified"] : null,
+          badges: badges.length ? badges : null,
         }
       : typeof p.seller_name === "string"
-        ? { id: 0, name: p.seller_name, badges: null }
+        ? { id: 0, name: p.seller_name, badges: badges.length ? badges : null }
         : null,
     guarantee: null,
     inIranMobixInventory: false,

@@ -12,7 +12,6 @@ import type {
   RequestOtpResponse,
   VerifyOtpResult,
 } from "../types/auth.api.types";
-import type { User } from "../types/user.types";
 
 export async function requestOtp(
   payload: RequestOtpPayload,

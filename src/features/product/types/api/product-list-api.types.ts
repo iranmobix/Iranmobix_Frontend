@@ -38,6 +38,7 @@ export interface ProductListItemApi {
   source: ProductSourceApi;
   colors: ProductColorApi[];
   price: ProductPriceApi;
+  final_price_iran?: string | null;
   brand: ProductBrandApi | null;
   seller: ProductSellerApi | null;
   guarantee: ProductGuaranteeApi | null;

@@ -73,7 +73,7 @@ export const parseProductQuery = (
 
     max_price: searchParams.get("max_price") ?? undefined,
 
-    brands: parseNumberArray(searchParams.get("brands")),
+    brands: parseStringArray(searchParams.get("brands")),
 
     seller_types: parseStringArray(searchParams.get("seller_types")) as
       ProductSellerTypeApi[] | undefined,

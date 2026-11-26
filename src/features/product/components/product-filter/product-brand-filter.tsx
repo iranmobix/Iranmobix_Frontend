@@ -10,8 +10,8 @@ import { toggleFilterValue } from "../../utils";
 
 type ProductBrandFilterProps = {
   brands: ProductBrandFilterOption[];
-  value: number[];
-  onChange: (brands: number[]) => void;
+  value: (string | number)[];
+  onChange: (brands: (string | number)[]) => void;
   isOpen: boolean;
   onToggle: () => void;
 };
@@ -44,8 +44,8 @@ const ProductBrandFilter = ({
     );
   }, [brands, search]);
 
-  const handleChange = (brandId: number) => {
-    onChange(toggleFilterValue(value, brandId));
+  const handleChange = (brandId: string | number) => {
+    onChange(toggleFilterValue(value.map(String), String(brandId)));
   };
 
   return (
@@ -89,7 +89,7 @@ const ProductBrandFilter = ({
 
           <div aria-live="polite">
             {filteredBrands.map((brand) => {
-              const isSelected = value.includes(brand.id);
+              const isSelected = value.some((selected) => String(selected) === String(brand.id));
 
               return (
                 <label

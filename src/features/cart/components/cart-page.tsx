@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useCallback } from "react";
 import { useAccessToken } from "@/features/auth/hooks/use-access-token";
 import CartSteps from "./cart-steps";
@@ -7,7 +8,8 @@ import { useCartItemActions } from "../hooks/use-cart-actions";
 import { useCart } from "../hooks/use-cart";
 import CartEmpty from "./cart-empty";
 import CartList from "./cart-list";
-import CartSummary from "./cart-summary";
+import CartSummary, { type CartSummaryProps } from "./cart-summary";
+import CartMobilePayment from "./cart-mobile-payment";
 import { useCartSubmitOrder } from "../hooks/use-cart-submit-order";
 import CartOrderSubmitted from "./cart-order-submitted";
 import { getCartFieldNote } from "../utils/cart-data-issues";
@@ -35,6 +37,17 @@ export default function CartPage() {
     showMock,
     cartQuery.isFetching || cartQuery.isError,
   );
+  const summaryProps: CartSummaryProps | null = cart ? {
+    items: cart.items,
+    paymentDetails: cart.paymentDetails,
+    dataIssues: cart.dataIssues,
+    currency: cart.currency,
+    totals: { quantity: cart.totalQuantity, originalSubtotal: cart.subtotal, discount: cart.discountTotal, shipping: null, total: cart.finalTotal },
+    onContinue: submitOrder.submit,
+    disabled: submitOrder.disabled,
+    isSubmitting: submitOrder.isPending,
+    unavailableReason: submitOrder.unavailableReason ?? undefined,
+  } : null;
   if (submitOrder.accepted)
     return (
       <main dir="rtl" className="min-h-screen bg-neutral-50 px-4 py-8 lg:px-9">
@@ -53,17 +66,7 @@ export default function CartPage() {
       <div className="mx-auto max-w-[1440px] space-y-3 sm:space-y-5">
         <CartSteps currentStep={accessToken ? "cart" : "account"} />
         {cartQuery.isPending && !cart && (
-          <div role="status" className="rounded-lg bg-white p-8">
-            <span className="sr-only">در حال دریافت سبد خرید</span>
-            <div
-              aria-hidden="true"
-              className="space-y-5 motion-safe:animate-pulse"
-            >
-              {[1, 2, 3].map((item) => (
-                <div key={item} className="h-28 rounded bg-neutral-100" />
-              ))}
-            </div>
-          </div>
+          <PageLoading title="در حال دریافت سبد خرید" description="کالاها و مبلغ سبد خرید شما در حال دریافت هستند؛ لطفاً کمی صبر کنید." className="min-h-[50vh] rounded-lg bg-white" />
         )}
         {cartQuery.isError && <CartUnavailable />}
         {!showMock && actions.isError && (
@@ -79,7 +82,7 @@ export default function CartPage() {
             در حال به‌روزرسانی سبد خرید…
           </p>
         )}
-        {cart && !cartQuery.isError && (
+        {cart && summaryProps && !cartQuery.isError && (
           <>
             {cart.issues.length > 0 && (
               <ul
@@ -102,6 +105,8 @@ export default function CartPage() {
                 <div className="min-w-0 space-y-2 sm:space-y-3">
                   <CartList
                     items={cart.items}
+                    shippingMethods={cart.shippingMethods}
+                    onShippingMethodChange={showMock ? undefined : actions.changeShippingMethod}
                     disabled={
                       actions.isBusy ||
                       cartQuery.isFetching ||
@@ -115,33 +120,16 @@ export default function CartPage() {
                 </div>
                 <div
                   ref={paymentSidebarRef}
-                  className="min-w-0 space-y-3 lg:sticky lg:top-[calc(var(--cart-header-height,157px)+16px)] lg:self-start"
+                  className="hidden min-w-0 space-y-3 lg:block lg:sticky lg:top-[calc(var(--cart-header-height,157px)+16px)] lg:self-start"
                 >
-                  <CartSummary
-                    items={cart.items}
-                    paymentDetails={cart.paymentDetails}
-                    dataIssues={cart.dataIssues}
-                    currency={cart.currency}
-                    totals={{
-                      quantity: cart.totalQuantity,
-                      originalSubtotal: cart.subtotal,
-                      discount: cart.discountTotal,
-                      shipping: null,
-                      total: cart.finalTotal,
-                    }}
-                    onContinue={submitOrder.submit}
-                    disabled={submitOrder.disabled}
-                    isSubmitting={submitOrder.isPending}
-                    unavailableReason={
-                      submitOrder.unavailableReason ?? undefined
-                    }
-                  />
+                  <CartSummary {...summaryProps} />
                   {submitOrder.error && (
                     <p role="alert" className="text-error text-xs leading-6">
                       {submitOrder.error}
                     </p>
                   )}
                 </div>
+                <CartMobilePayment {...summaryProps} error={submitOrder.error} />
               </div>
             )}
           </>

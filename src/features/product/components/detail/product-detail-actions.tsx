@@ -2,24 +2,29 @@
 
 import { useState } from "react";
 import { Heart, Share2 } from "lucide-react";
+import likeIcon from "../../assets/like.svg";
+import shareIcon from "../../assets/share.svg";
 import { usePanelFavorites } from "@/features/user-panel/hooks/use-panel-favorites";
 
 export default function ProductDetailActions({
   slug,
   title,
+  glass = false,
 }: {
   slug?: string;
   title?: string;
+  glass?: boolean;
 }) {
   const favorites = usePanelFavorites();
   const [notice, setNotice] = useState("");
   const isFavorite = Boolean(
     slug && (favorites.data ?? []).some((item) => item.slug === slug),
   );
-  const iconClass =
-    "flex size-8 items-center justify-center rounded text-primary-500 transition-colors hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-40";
+  const iconClass = glass
+    ? "flex size-8 items-center justify-center rounded-lg border border-white/80 bg-white/40 text-neutral-1000 shadow-sm backdrop-blur-[20px] transition-colors hover:bg-white/60 disabled:cursor-not-allowed disabled:opacity-40"
+    : "flex size-8 items-center justify-center rounded text-primary-500 transition-colors hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-40";
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div dir={glass ? "ltr" : undefined} className={`flex shrink-0 items-center ${glass ? "gap-2" : "gap-1"}`}>
       <button
         type="button"
         aria-label={
@@ -47,11 +52,12 @@ export default function ProductDetailActions({
             );
         }}
       >
-        <Heart
-          size={18}
-          className={isFavorite ? "fill-primary-100" : undefined}
-          aria-hidden="true"
-        />
+        {glass ? (
+          <span aria-hidden="true" className={`size-6 bg-current [mask-repeat:no-repeat] [mask-position:center] [mask-size:contain] ${isFavorite ? "text-primary-600" : ""}`}
+            style={{ maskImage: `url("${likeIcon.src}")`, WebkitMaskImage: `url("${likeIcon.src}")` }} />
+        ) : (
+          <Heart size={18} className={isFavorite ? "fill-primary-100" : undefined} aria-hidden="true" />
+        )}
       </button>
       <button
         type="button"
@@ -75,7 +81,10 @@ export default function ProductDetailActions({
           })();
         }}
       >
-        <Share2 size={18} aria-hidden="true" />
+        {glass ? (
+          <span aria-hidden="true" className="size-6 bg-current [mask-repeat:no-repeat] [mask-position:center] [mask-size:contain]"
+            style={{ maskImage: `url("${shareIcon.src}")`, WebkitMaskImage: `url("${shareIcon.src}")` }} />
+        ) : <Share2 size={18} aria-hidden="true" />}
       </button>
       <p role="status" aria-live="polite" className="sr-only">
         {notice}

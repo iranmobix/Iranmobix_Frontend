@@ -1,5 +1,10 @@
 "use client";
 
+import Image from "next/image";
+import chinaFlag from "../../assets/china.svg";
+import iranFlag from "../../assets/iran.svg";
+import { getCommercialAirCost } from "../../utils/product-commercial-air-cost";
+
 import {
   buildProductInquiryMessage,
   buildExpertChatLink,
@@ -125,10 +130,7 @@ export default function ProductPurchasePanel({
   const expert = shipping?.air?.express
     ? shipping.air.express.assigned_sales_expert
     : shipping?.air?.assigned_sales_expert;
-  const chinaToman =
-    shipping?.land?.china_total_toman ?? shipping?.sea?.china_total_toman;
-  const chinaYuan =
-    shipping?.land?.china_total_yuan ?? shipping?.sea?.china_total_yuan;
+  const { chinaToman, chinaYuan, total: commercialTotal } = getCommercialAirCost(shipping);
   const phone = expert?.mobile?.replace(/[\s()-]/g, "");
   const message = buildProductInquiryMessage(inquiry);
   const callablePhone = phone && /^\+?\d{7,15}$/.test(phone) ? phone : null;
@@ -266,7 +268,7 @@ export default function ProductPurchasePanel({
             <div className="col-start-1 row-start-1 min-w-0">
               <label
                 id={`${methodGroupId}-commercial-label`}
-                className="flex cursor-pointer items-center gap-1 text-[10px] leading-5 text-neutral-800"
+                className={`flex cursor-pointer items-center gap-1 text-[10px] leading-5 text-neutral-800 lg:gap-1.5 lg:border lg:px-3 lg:py-3 lg:text-desktop-label-m lg:text-neutral-900 ${currentAirMode === "commercial" ? "lg:rounded-t-lg lg:border-b-0 lg:border-primary-500" : "lg:rounded-lg lg:border-primary-50"}`}
               >
                 <input
                   type="radio"
@@ -275,7 +277,7 @@ export default function ProductPurchasePanel({
                   checked={currentAirMode === "commercial"}
                   onChange={() => chooseAirMode("commercial")}
                   aria-controls={`${methodGroupId}-commercial`}
-                  className="accent-primary-500 focus-visible:outline-primary-500 size-2.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
+                  className="accent-primary-500 focus-visible:outline-primary-500 size-2.5 lg:size-3.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
                 />
                 ارسال هوایی تجاری
               </label>
@@ -284,13 +286,14 @@ export default function ProductPurchasePanel({
                 hidden={currentAirMode !== "commercial"}
                 role="region"
                 aria-labelledby={`${methodGroupId}-commercial-label`}
+                className="lg:rounded-b-lg lg:border lg:border-t-0 lg:border-primary-500 lg:px-3 lg:pb-3"
               >
                 <dl
                   aria-busy={isLoading}
-                  className="lg:text-desktop-body-s flex flex-col gap-4 py-2 text-[11px] leading-6 text-neutral-600 lg:text-neutral-800"
+                  className="lg:text-desktop-body-s flex flex-col gap-4 py-2 lg:py-0 text-[11px] leading-6 text-neutral-600 lg:text-neutral-800"
                 >
                   <div className="flex flex-wrap items-baseline gap-1">
-                    <dt>قیمت در چین:</dt>
+                    <dt className="inline-flex items-center gap-1.5"><Image src={chinaFlag} alt="" width={20} height={20} className="hidden size-5 shrink-0 lg:block" aria-hidden="true" />قیمت در چین:</dt>
                     <dd className="lg:text-desktop-label-m text-neutral-900 lg:text-neutral-800">
                       <ShippingAmount
                         amount={chinaToman}
@@ -299,25 +302,26 @@ export default function ProductPurchasePanel({
                       />
                     </dd>
                   </div>
-                  <div className="flex flex-wrap items-baseline gap-1 pt-4">
-                    <dt className="lg:text-desktop-body-m lg:text-neutral-900">
+                  <div className="flex flex-wrap items-baseline gap-1 pt-4 lg:pt-0">
+                    <dt className="lg:text-desktop-body-m lg:text-neutral-900 inline-flex items-center gap-1.5">
+                      <Image src={iranFlag} alt="" width={20} height={20} className="hidden size-5 shrink-0 lg:block" aria-hidden="true" />
                       قیمت تحویل در ایران:
                     </dt>
                     <dd className="lg:text-desktop-label-l font-medium text-neutral-900">
                       <ShippingAmount
-                        amount={shipping?.air?.commercial?.total_toman}
+                        amount={commercialTotal}
                         placeholder={pricePlaceholder}
                       />
                     </dd>
                   </div>
                 </dl>
-                <div className="mt-1">{quantity}</div>
+                <div className="mt-1 lg:mt-4 lg:[&_input]:text-right lg:[&_input]:text-desktop-label-m lg:[&_input]:text-neutral-800 lg:[&_input]:placeholder:text-neutral-600">{quantity}</div>
                 {notice}
               </div>
-              <div className="mt-2">
+              <div className={`mt-2 lg:mt-4 lg:rounded-lg lg:border lg:p-3 ${currentAirMode === "express" ? "lg:border-primary-500" : "lg:border-primary-50"}`}>
                 <label
                   id={`${methodGroupId}-express-label`}
-                  className="flex cursor-pointer items-center gap-1 text-[10px] leading-5 text-neutral-800"
+                  className="flex cursor-pointer items-center gap-1 text-[10px] leading-5 text-neutral-800 lg:gap-1.5 lg:text-desktop-label-m lg:text-neutral-900"
                 >
                   <input
                     type="radio"
@@ -326,7 +330,7 @@ export default function ProductPurchasePanel({
                     checked={currentAirMode === "express"}
                     onChange={() => chooseAirMode("express")}
                     aria-controls={`${methodGroupId}-express`}
-                    className="accent-primary-500 focus-visible:outline-primary-500 size-2.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className="accent-primary-500 focus-visible:outline-primary-500 size-2.5 lg:size-3.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
                   />
                   ارسال هوایی اکسپرس
                 </label>

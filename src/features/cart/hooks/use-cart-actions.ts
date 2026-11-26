@@ -5,7 +5,7 @@ import {
   useQueryClient,
   useIsMutating,
 } from "@tanstack/react-query";
-import type { AddToCartInput } from "../types/api/cart-payload.types";
+import type { AddToCartInput, AddToCartShippingMethod } from "../types/api/cart-payload.types";
 import { cartService } from "../services/cart.service";
 import {
   CART_QUERY_KEY,
@@ -66,6 +66,7 @@ export function useMergeGuestCart() {
 
 type CartEditInput =
   | { type: "quantity"; itemId: string; quantity: number }
+  | { type: "shipping"; itemId: string; shippingMethod: AddToCartShippingMethod; quantity: number }
   | { type: "remove"; itemId: string };
 
 export function useCartItemActions() {
@@ -81,7 +82,9 @@ export function useCartItemActions() {
             itemId: input.itemId,
             payload: { quantity: input.quantity },
           })
-        : cartService.removeItem({ itemId: input.itemId }),
+        : input.type === "shipping"
+          ? cartService.updateItem({ itemId: input.itemId, payload: { quantity: input.quantity, shipping_method: input.shippingMethod } })
+          : cartService.removeItem({ itemId: input.itemId }),
     onMutate: () => queryClient.cancelQueries({ queryKey: CART_QUERY_KEY }),
     // A failed response can still follow a successful write. Reconcile either way; never replay.
     onSettled: () =>
@@ -105,6 +108,8 @@ export function useCartItemActions() {
     isBusy: busy,
     changeQuantity: (itemId: string, quantity: number) =>
       void execute({ type: "quantity", itemId, quantity }),
+    changeShippingMethod: (itemId: string, shippingMethod: AddToCartShippingMethod, quantity: number) =>
+      void execute({ type: "shipping", itemId, shippingMethod, quantity }),
     removeItem: (itemId: string) => void execute({ type: "remove", itemId }),
   };
 }

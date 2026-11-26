@@ -21,7 +21,7 @@ export function HeaderBottom() {
           درباره ما
         </p>
       </div>
-      <div className="col-start-3 flex min-w-0 items-center justify-between gap-2 pl-[3px] whitespace-nowrap xl:gap-3">
+      <div className="col-start-3 flex w-full max-w-[clamp(296px,calc(10vw_+_194px),336px)] min-w-0 items-center justify-between gap-2 whitespace-nowrap xl:gap-3">
         <HeaderSupplierButton />
         <HeaderSupportButton />
       </div>

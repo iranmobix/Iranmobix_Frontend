@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useState, type FormEvent } from "react";
 import axios from "axios";
 import { Dialog } from "radix-ui";
@@ -113,10 +114,7 @@ export default function PanelWallet() {
         کیف پول
       </h1>
       {query.isPending ? (
-        <div role="status" className="space-y-4 py-12">
-          <span className="sr-only">در حال دریافت اطلاعات کیف پول…</span>
-          <div className="mx-auto h-16 w-48 rounded bg-neutral-50 motion-safe:animate-pulse" />
-        </div>
+        <PageLoading title="در حال دریافت اطلاعات کیف پول" description="موجودی و تراکنش‌های کیف پول شما در حال دریافت هستند." />
       ) : query.isError || !wallet ? (
         <div
           role="alert"

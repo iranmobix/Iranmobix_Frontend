@@ -59,6 +59,7 @@ export interface ProductPrice {
   amount: number | null;
   currency: string;
   amountIrr: number | null;
+  finalPriceIranToman?: number | null;
 
   hasDiscount: boolean;
 

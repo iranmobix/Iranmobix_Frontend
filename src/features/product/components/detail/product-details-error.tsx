@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 type ProductDetailsErrorProps = {
   message: string;
   title?: string;
+  label?: string;
   onRetry?: () => void;
   onBack: () => void;
   isRetrying: boolean;
@@ -13,6 +14,7 @@ type ProductDetailsErrorProps = {
 export default function ProductDetailsError({
   message,
   title = "آماده‌سازی جزئیات موفق نبود",
+  label = "جزئیات محصول",
   onRetry,
   onBack,
   isRetrying,
@@ -36,7 +38,7 @@ export default function ProductDetailsError({
         />
         <div className="relative flex flex-col items-center">
           <span className="border-primary-100 bg-primary-50 text-primary-600 rounded-full border px-3 py-1 text-[11px]">
-            جزئیات محصول
+            {label}
           </span>
           <div className="my-6"><ProductSearchFailureAnimation /></div>
           <h1

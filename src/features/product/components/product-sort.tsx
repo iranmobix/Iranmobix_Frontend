@@ -1,4 +1,5 @@
 "use client";
+import { productCurrencyOptions } from "../utils/product-display-price";
 
 import { ChevronDown } from "lucide-react";
 import type { ProductMobileCurrency } from "./product-card/product-mobile-card";
@@ -11,7 +12,6 @@ type ProductSortProps = {
   onChange: (value: ProductSortApi) => void;
   count: number;
   mobileCurrency: ProductMobileCurrency;
-  sourceCurrencyLabel: string;
   onCurrencyChange: (value: ProductMobileCurrency) => void;
   onOpenFilters: () => void;
   discovery?: boolean;
@@ -35,7 +35,6 @@ const ProductSort = ({
   onChange,
   count,
   mobileCurrency,
-  sourceCurrencyLabel,
   onCurrencyChange,
   onOpenFilters,
   discovery = false,
@@ -47,9 +46,9 @@ const ProductSort = ({
     : sortOptions;
   return (
     <>
-      <div className="mb-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-1.5 lg:hidden">
+      <div className="mb-4 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-1.5 lg:hidden">
         <label className="text-mobile-caption min-w-0 text-neutral-900">
-          <span className="mb-1 block">مرتب‌سازی براساس:</span>
+          <span className="mb-2 block">مرتب‌سازی براساس:</span>
           <span className="relative block">
             <select
               value={discovery && isRelevanceSort ? "relevance" : value}
@@ -58,7 +57,7 @@ const ProductSort = ({
                   ? onRelevanceSort?.()
                   : onChange(event.target.value as ProductSortApi)
               }
-              className="h-7 w-full appearance-none rounded-md border border-primary-300 bg-transparent text-mobile-label-m pr-2 pl-5 text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+              className="h-9 w-full appearance-none rounded-md border border-primary-300 bg-transparent text-mobile-label-m pr-2 pl-5 text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
             >
               {discovery && <option value="relevance">مرتبط‌ترین</option>}
               {options.map((option) => (
@@ -69,34 +68,34 @@ const ProductSort = ({
             </select>
             <ChevronDown
               size={12}
-              className="pointer-events-none absolute top-2 left-1.5"
+              className="pointer-events-none absolute top-1/2 left-1.5 -translate-y-1/2"
             />
           </span>
         </label>
         <label className="text-mobile-caption min-w-0 text-neutral-900">
-          <span className="mb-1 block">واحد پول:</span>
+          <span className="mb-2 block">واحد پول:</span>
           <span className="relative block">
             <select
               value={mobileCurrency}
               onChange={(event) =>
                 onCurrencyChange(event.target.value as ProductMobileCurrency)
               }
-              className="h-7 w-full appearance-none rounded-md border border-primary-300 bg-transparent text-mobile-label-m pr-2 pl-5 text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+              className="h-9 w-full appearance-none rounded-md border border-primary-300 bg-transparent text-mobile-label-m pr-2 pl-5 text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
             >
-              <option value="source">{sourceCurrencyLabel}</option>
-              <option value="IRT">تومان</option>
-              <option value="IRR">ریال</option>
+              {productCurrencyOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
             <ChevronDown
               size={12}
-              className="pointer-events-none absolute top-2 left-1.5"
+              className="pointer-events-none absolute top-1/2 left-1.5 -translate-y-1/2"
             />
           </span>
         </label>
         <button
           type="button"
           onClick={onOpenFilters}
-          className="text-mobile-label-m h-7 rounded-md bg-primary-700 px-2 text-white focus-visible:ring-2 focus-visible:ring-primary-300"
+          className="text-mobile-label-m h-9 rounded-md bg-primary-700 px-2 text-white focus-visible:ring-2 focus-visible:ring-primary-300"
         >
           فیلترها
         </button>

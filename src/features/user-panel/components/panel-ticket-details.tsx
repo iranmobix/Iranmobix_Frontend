@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useState } from "react";
 import { ArrowRight, Headset, UserRound } from "lucide-react";
 import type {
@@ -68,9 +69,7 @@ export default function PanelTicketDetails({
         </p>
       </div>
       {detailPending && (
-        <p role="status" className="py-3 text-xs text-neutral-600">
-          در حال دریافت گفت‌وگوی تیکت…
-        </p>
+        <PageLoading title="در حال دریافت گفت‌وگوی تیکت…" description="پیام‌های این درخواست در حال دریافت هستند." />
       )}
       {detailError && (
         <div role="alert" className="flex items-center justify-between gap-3 py-3 text-xs">

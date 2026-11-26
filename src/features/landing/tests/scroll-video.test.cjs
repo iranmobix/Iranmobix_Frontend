@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-this-alias -- Preserve observer instances in the DOM test harness. */
 /* eslint-disable @typescript-eslint/no-require-imports -- Run the scroll controller against deterministic browser/media boundaries. */
 const {test}=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),ts=require("typescript");
 function setup({readyState=2,reduced=false,sources=[],touch=false,play,initialSrc}={}) {

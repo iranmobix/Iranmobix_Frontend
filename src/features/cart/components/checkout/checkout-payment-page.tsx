@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import CheckoutDialog from "./checkout-dialog";
 import { checkoutPaymentApi } from "../../api/checkout-payment.api";
 import { tokenStorage } from "@/features/auth/utils/token-storage";
@@ -265,11 +266,7 @@ export default function CheckoutPaymentPage({
             )}
           </div>
         ) : query.isPending ? (
-          <div role="status" className="space-y-4 rounded-lg bg-white p-6">
-            <span className="sr-only">در حال دریافت اطلاعات پرداخت</span>
-            <div className="h-32 rounded bg-neutral-100 motion-safe:animate-pulse" />
-            <div className="h-60 rounded bg-neutral-100 motion-safe:animate-pulse" />
-          </div>
+          <PageLoading title="در حال دریافت اطلاعات پرداخت" description="اطلاعات نهایی سفارش و روش‌های پرداخت در حال دریافت هستند؛ لطفاً کمی صبر کنید." className="min-h-[50vh] rounded-lg bg-white" />
         ) : (
           <>
             {online.pendingPayment && (

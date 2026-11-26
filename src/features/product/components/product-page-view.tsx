@@ -1,3 +1,5 @@
+import { ChevronDown } from "lucide-react";
+import { productCurrencyOptions } from "../utils/product-display-price";
 import type { ProductPageModel } from "../hooks/use-product-page";
 import type { ProductPageProps } from "../types/domain/product-page.types";
 import type { ProductMobileCurrency } from "./product-card/product-mobile-card";
@@ -27,7 +29,6 @@ export default function ProductPageView({
     setFiltersOpen,
     hasExplicitSort,
     setSort,
-    sourceCurrencyLabel,
     breadcrumbItems,
     filtersOpen,
   } = model;
@@ -45,7 +46,6 @@ export default function ProductPageView({
       count={productCount}
       onChange={setSort}
       mobileCurrency={mobileCurrency}
-      sourceCurrencyLabel={sourceCurrencyLabel}
       onCurrencyChange={setMobileCurrency}
       onOpenFilters={() => setFiltersOpen(true)}
       discovery={Boolean(discoveryProducts)}
@@ -65,29 +65,32 @@ export default function ProductPageView({
   return (
     <main className="w-full bg-neutral-50 px-2.5 py-4 lg:px-10 lg:py-9">
       <div className="flex items-center justify-between gap-4">
-        <div className="[&_a]:text-[10px] lg:[&_a]:text-sm [&_nav]:flex-wrap [&_nav]:gap-1 lg:[&_nav]:flex-nowrap lg:[&_nav]:gap-2 [&_span]:text-[10px] lg:[&_span]:text-sm">
+        <div className="[&_nav]:flex-wrap [&_nav]:gap-1 lg:[&_nav]:flex-nowrap lg:[&_nav]:gap-2">
           <Breadcrumb items={breadcrumbItems} />
         </div>
-        {discoveryProducts && (
-          <label className="hidden items-center gap-2 text-xs text-neutral-700 lg:flex">
+        {(
+          <label className="text-desktop-label-l hidden items-center gap-2 text-neutral-900 lg:flex">
             <span>واحد پول:</span>
-            <select
-              value={mobileCurrency}
-              onChange={(event) =>
-                setMobileCurrency(event.target.value as ProductMobileCurrency)
-              }
-              className="text-primary-700 h-8 rounded-md border border-neutral-300 bg-white px-2 text-xs"
-            >
-              <option value="source">یوان CNY</option>
-              <option value="IRT">تومان</option>
-              <option value="IRR">ریال</option>
-            </select>
+            <span className="relative inline-flex items-center">
+              <select
+                value={mobileCurrency}
+                onChange={(event) =>
+                  setMobileCurrency(event.target.value as ProductMobileCurrency)
+                }
+                className="text-mobile-label-l border-primary-100 text-primary-600 focus-visible:ring-primary-300 appearance-none rounded-md border bg-white py-2 pr-2 pl-8 focus-visible:ring-2 focus-visible:outline-none"
+              >
+                {productCurrencyOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} aria-hidden="true" className="text-primary-600 pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" />
+            </span>
           </label>
         )}
       </div>
 
       {discoveryProducts && (
-        <div className="mt-3 lg:hidden">{sortControls}</div>
+        <div className="mt-6 lg:hidden">{sortControls}</div>
       )}
 
       {discoveryProducts ? (
@@ -135,7 +138,7 @@ export default function ProductPageView({
           </section>
         </section>
       ) : (
-        <section className="flex w-full gap-4 pt-4 lg:pt-11">
+        <section className="flex w-full gap-4 pt-6 lg:pt-11">
           <div className="hidden flex-col gap-6 lg:flex">
             <p>محصولات</p>
             <ProductPageFilters model={model} />

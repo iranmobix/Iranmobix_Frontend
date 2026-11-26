@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/shared/components/page-loading";
 import { useState } from "react";
 import { Dialog } from "radix-ui";
 import { X } from "lucide-react";
@@ -28,10 +29,7 @@ export default function PanelPayments() {
         پرداخت‌ها
       </h1>
       {query.isPending ? (
-        <div role="status" className="space-y-3 py-5">
-          <span className="sr-only">در حال دریافت پرداخت‌ها…</span>
-          <div className="h-64 rounded bg-neutral-50 motion-safe:animate-pulse" />
-        </div>
+        <PageLoading title="در حال دریافت پرداخت‌ها" description="سوابق پرداخت شما در حال دریافت هستند." />
       ) : query.isError ? (
         <div
           role="alert"

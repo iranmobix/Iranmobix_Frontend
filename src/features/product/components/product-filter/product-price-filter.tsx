@@ -102,8 +102,7 @@ const ProductPriceFilter = ({
       e.currentTarget.setPointerCapture(e.pointerId);
     };
 
-  const handlePointerMove =
-    (type: "min" | "max") => (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (type: "min" | "max", e: React.PointerEvent<HTMLDivElement>) => {
       if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
       const newValue = calculateValueFromPointer(e.clientX);
 
@@ -215,7 +214,7 @@ const ProductPriceFilter = ({
                 aria-valuemin={lowerBound}
                 aria-valuemax={upperBound}
                 onPointerDown={handlePointerDown("min")}
-                onPointerMove={handlePointerMove("min")}
+                onPointerMove={(event) => handlePointerMove("min", event)}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
                 style={{ right: `${minPercent}%` }}
@@ -232,7 +231,7 @@ const ProductPriceFilter = ({
                 aria-valuemin={lowerBound}
                 aria-valuemax={upperBound}
                 onPointerDown={handlePointerDown("max")}
-                onPointerMove={handlePointerMove("max")}
+                onPointerMove={(event) => handlePointerMove("max", event)}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
                 style={{ right: `${maxPercent}%` }}

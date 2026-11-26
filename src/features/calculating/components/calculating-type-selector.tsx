@@ -19,7 +19,7 @@ export function CalculatingTypeSelector({
         </p>
       </div>
       <div
-        className="border-primary-50 relative top-[3px] flex h-10 gap-1 rounded-md border p-1 lg:top-0 lg:h-auto lg:border-secondary-200"
+        className="border-primary-50 relative top-[3px] flex h-10 gap-1 rounded-md border p-1 lg:top-0 lg:h-auto lg:border-primary-50"
         dir="ltr"
       >
         <button
@@ -36,7 +36,7 @@ export function CalculatingTypeSelector({
           onClick={() => onChange("dimensions")}
           aria-pressed={type === "dimensions"}
           className={`${buttonClass} ${
-            type === "dimensions" ? "bg-primary-50 lg:bg-secondary-200" : ""
+            type === "dimensions" ? "bg-primary-50" : ""
           }`}
         >
           ابعاد

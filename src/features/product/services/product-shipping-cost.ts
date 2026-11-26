@@ -27,6 +27,12 @@ const salesExpert = z.object({
 const shippingSchema = z.object({
   currency: z.literal("TOMAN"),
   product_type: z.string().nullish(),
+  commercial_air: breakdown.extend({
+    rate_per_kg_yuan: money,
+    billable_weight_kg: money,
+    shipping_yuan: money,
+    assigned_sales_expert: salesExpert.nullish(),
+  }).nullish(),
   land: breakdown.nullish(),
   sea: breakdown.nullish(),
   air: z

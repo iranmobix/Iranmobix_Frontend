@@ -15,6 +15,10 @@ export function mapCartForDisplay(input: unknown): ServerCart {
   const storefront = z.object({
     items: z.array(z.record(z.string(), z.unknown())),
     pay_detail: z.record(z.string(), z.unknown()),
+    shipping_methods: z.array(z.object({
+      code: z.enum(["ground", "sea", "air_express", "commercial_air"]),
+      label: z.string().trim().min(1),
+    })).optional().catch([]),
   }).safeParse(input);
   if (storefront.success) {
     const { items, pay_detail } = storefront.data;
@@ -38,6 +42,7 @@ export function mapCartForDisplay(input: unknown): ServerCart {
       })),
     });
     cart.storefront = true;
+    cart.shippingMethods = storefront.data.shipping_methods ?? [];
     const paymentAmount = (key: string) => amount.nullish().catch(null).parse(pay_detail[key]) ?? null;
     cart.paymentDetails = {
       chinaTotalCny: paymentAmount('total_price_china'),

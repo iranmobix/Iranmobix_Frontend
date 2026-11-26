@@ -88,6 +88,12 @@ export const useProductQuery = () => {
    */
   const applyQuery = useCallback(() => {
     const params = new URLSearchParams();
+    const imageJob = searchParams.get("image_job");
+    if (imageJob) params.set("image_job", imageJob);
+    const searchJob = searchParams.get("search_job");
+    if (searchJob) params.set("search_job", searchJob);
+    const searchInput = searchParams.get("search_input");
+    if (searchJob && searchInput) params.set("search_input", searchInput);
 
     Object.entries(draftQuery).forEach(([key, value]) => {
       setQueryParam(params, key, value);
@@ -102,7 +108,7 @@ export const useProductQuery = () => {
     router.replace(nextUrl, {
       scroll: false,
     });
-  }, [draftQuery, pathname, router]);
+  }, [draftQuery, pathname, router, searchParams]);
 
   /**
    * Sort
@@ -142,10 +148,17 @@ export const useProductQuery = () => {
    * Reset Applied Query
    */
   const resetQuery = useCallback(() => {
-    router.replace(pathname, {
+    const params = new URLSearchParams();
+    const imageJob = searchParams.get("image_job");
+    if (imageJob) params.set("image_job", imageJob);
+    const searchJob = searchParams.get("search_job");
+    if (searchJob) params.set("search_job", searchJob);
+    const searchInput = searchParams.get("search_input");
+    if (searchJob && searchInput) params.set("search_input", searchInput);
+    router.replace(params.size ? `${pathname}?${params.toString()}` : pathname, {
       scroll: false,
     });
-  }, [pathname, router]);
+  }, [pathname, router, searchParams]);
 
   return {
     query,

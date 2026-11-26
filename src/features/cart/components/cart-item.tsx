@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Trash2 } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
+import trash from "../assets/trash.svg";
+import styles from "./cart-item.module.css";
 import alibaba from "@/features/product/assets/alibaba.svg";
-import type { ServerCartItem } from "../types/domain/cart.types";
+import type { CartShippingOption, ServerCartItem } from "../types/domain/cart.types";
 import type { CartItem as CartItemData } from "../types/domain/cart-preview.types";
 import { formatCartMoney } from "../utils/cart.utils";
 import { getCartOptionName } from "../utils/cart-presentation.utils";
@@ -15,12 +17,15 @@ import {
 } from "../utils/cart-item-presentation";
 import { getProductDetailsHref } from "@/features/product/utils/product-path";
 import CartQuantity from "./cart-quantity";
+import CartShippingSelect from "./cart-shipping-select";
 
 type CartItemProps = {
   disabled?: boolean;
   item: CartItemData | ServerCartItem;
   onQuantityChange?: (quantity: number) => void;
   onRemove?: () => void;
+  shippingMethods?: CartShippingOption[];
+  onShippingMethodChange?: (method: CartShippingOption["code"]) => void;
 };
 
 const priceText = (value: string | number | null) =>
@@ -32,6 +37,8 @@ export default function CartItem({
   item,
   onQuantityChange,
   onRemove,
+  shippingMethods = [],
+  onShippingMethodChange,
   disabled = false,
 }: CartItemProps) {
   const serverItem = "catalogId" in item ? item : null;
@@ -65,7 +72,7 @@ export default function CartItem({
     : null;
   const deliveryToman = serverItem?.deliveryPriceToman ?? null;
   const shippingLabel = serverItem?.shippingMethod
-    ? cartShippingLabels[serverItem.shippingMethod]
+    ? shippingMethods.find((method) => method.code === serverItem.shippingMethod)?.label ?? cartShippingLabels[serverItem.shippingMethod]
     : null;
   const canEdit = Boolean(
     onQuantityChange &&
@@ -85,9 +92,9 @@ export default function CartItem({
     product.source.url || ("officialUrl" in product ? product.officialUrl : "");
 
   return (
-    <article className="grid min-w-0 gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,34%)] lg:gap-x-6 lg:py-4">
-      <div className="flex min-w-0 items-start gap-3 lg:gap-4">
-        <div className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100 lg:w-[164px]">
+    <article className={styles.item + " grid min-w-0 gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,34%)] lg:gap-x-6 lg:py-4"}>
+      <div data-cart-slot="identity" className="flex min-w-0 items-start gap-3 lg:gap-4">
+        <div data-cart-slot="image" className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100 lg:w-[164px]">
           {product.image ? (
             <Image
               src={product.image}
@@ -119,24 +126,25 @@ export default function CartItem({
             </a>
           )}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-3 pt-1 lg:min-h-[164px] lg:max-w-[360px] lg:justify-between lg:gap-3 lg:pt-0">
+        <div data-cart-slot="description" className="flex min-w-0 flex-1 flex-col gap-3 pt-1 lg:min-h-[164px] lg:max-w-[360px] lg:justify-between lg:gap-3 lg:pt-0">
           {title && product.slug ? (
             <Link
+              data-cart-slot="title"
               href={getProductDetailsHref(product.slug)}
               className="text-mobile-label-m lg:text-desktop-label-l lg:text-neutral-1000 hover:text-primary-500 text-right leading-relaxed text-neutral-900"
             >
               {title}
             </Link>
           ) : (
-            <p className="text-mobile-label-m lg:text-desktop-label-l lg:text-neutral-1000 text-right leading-relaxed text-neutral-900">
+            <p data-cart-slot="title" className="text-mobile-label-m lg:text-desktop-label-l lg:text-neutral-1000 text-right leading-relaxed text-neutral-900">
               {title || "از بک نمی‌آید"}
             </p>
           )}
-          <p className="text-mobile-body-s lg:text-desktop-body-s flex min-w-0 items-center gap-1 text-neutral-900 [&>span]:shrink-0">
+          <p data-cart-slot="seller" className="text-desktop-caption lg:text-desktop-body-s flex min-w-0 items-center gap-1 text-neutral-900 [&>span]:shrink-0">
             <span>فروشنده:</span>
             <bdi
               title={sellerName || undefined}
-              className="text-primary-500 min-w-0 truncate"
+              className="text-desktop-caption lg:text-desktop-body-s text-primary-500 min-w-0 truncate"
             >
               {sellerName || "از بک نمی‌آید"}
             </bdi>
@@ -150,14 +158,29 @@ export default function CartItem({
             )}
           </p>
           {(color || guarantee) && (
-            <p className="text-mobile-caption flex flex-wrap gap-x-3 text-neutral-800">
+            <p data-cart-slot="options" className="text-mobile-caption flex flex-wrap gap-x-3 text-neutral-800">
               {color && <span>رنگ: {color}</span>}
               {guarantee && <span>گارانتی: {guarantee}</span>}
             </p>
           )}
           {shippingLabel && (
-            <p className="text-mobile-body-s lg:text-desktop-body-s mt-auto text-neutral-800 lg:mt-0 lg:text-neutral-900">
-              روش حمل: {shippingLabel}
+            <p data-cart-slot="shipping" className="text-mobile-caption lg:text-desktop-body-s mt-auto text-neutral-800 max-lg:flex max-lg:flex-wrap max-lg:items-center max-lg:gap-2 lg:mt-0 lg:text-neutral-900">
+              <span>روش حمل:</span>{" "}
+              {shippingMethods.length > 0 && onShippingMethodChange ? (
+                <CartShippingSelect
+                  options={shippingMethods}
+                  value={serverItem?.shippingMethod ?? ""}
+                  label={shippingLabel}
+                  accessibleLabel={"روش حمل " + accessibleTitle}
+                  disabled={!canEdit || disabled}
+                  onChange={onShippingMethodChange}
+                />
+              ) : (
+                <span className="text-desktop-caption text-neutral-900 lg:text-desktop-body-s max-lg:inline-flex max-lg:items-center max-lg:gap-1.5 max-lg:rounded-lg max-lg:border max-lg:border-neutral-300 max-lg:px-2 max-lg:py-1.5">
+                  <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full bg-primary-600 lg:hidden" />
+                  {shippingLabel}
+                </span>
+              )}
             </p>
           )}
           {serverItem &&
@@ -166,15 +189,15 @@ export default function CartItem({
               "availability.is_available",
             ) &&
             !serverItem.availability.isAvailable && (
-              <p className="text-mobile-caption text-error">
+              <p data-cart-slot="availability" className="text-mobile-caption text-error">
                 این کالا در حال حاضر قابل خرید نیست.
               </p>
             )}
         </div>
       </div>
-      <div className="flex min-w-0 flex-col items-start justify-between gap-5 lg:min-h-[164px] lg:items-end lg:py-0.5">
-        <dl className={`text-mobile-body-s lg:text-desktop-body-s flex w-full flex-col gap-4 text-neutral-800 ${discount ? "lg:gap-8" : "lg:gap-12"}`}>
-          <div className="flex flex-col gap-3">
+      <div data-cart-slot="pricing" className="flex min-w-0 flex-col items-start justify-between gap-5 lg:min-h-[164px] lg:items-end lg:py-0.5">
+        <dl data-cart-slot="price-list" className={`text-mobile-caption lg:text-desktop-body-s flex w-full flex-col gap-4 text-neutral-800 ${discount ? "lg:gap-8" : "lg:gap-12"}`}>
+          <div data-cart-slot="china" className="flex flex-col gap-3">
             {discount && (
               <div dir="ltr" className="flex items-center gap-2">
                 <span className="bg-primary-100 text-neutral-1000 text-mobile-body-s lg:text-desktop-body-s shrink-0 rounded-md px-1 py-1">
@@ -192,7 +215,7 @@ export default function CartItem({
             )}
             <div className="flex flex-wrap items-baseline gap-1 lg:justify-end">
               <dt>قیمت در چین:</dt>
-              <dd className="text-mobile-label-m lg:text-desktop-label-l inline-flex flex-wrap items-baseline gap-1 text-neutral-800">
+              <dd className="text-mobile-caption lg:text-desktop-label-l inline-flex flex-wrap items-baseline gap-1 text-neutral-800">
                 {chinaToman !== null && (
                   <span>{priceText(chinaToman)} تومان</span>
                 )}
@@ -205,28 +228,29 @@ export default function CartItem({
               </dd>
             </div>
           </div>
-          <div className="flex flex-wrap items-baseline gap-1 lg:justify-end">
+          <div data-cart-slot="delivery" className="flex flex-wrap items-baseline gap-1 lg:justify-end">
             <dt>قیمت تحویل در ایران:</dt>
-            <dd className="text-mobile-label-l lg:text-desktop-h6 text-neutral-900">
+            <dd className="text-mobile-label-m lg:text-desktop-h6 text-neutral-900">
               {priceText(deliveryToman)}
               {deliveryToman !== null && " تومان"}
             </dd>
           </div>
         </dl>
-        <div className="self-end">
+        <div data-cart-slot="controls" className="self-end max-lg:[&_input]:text-mobile-label-m max-lg:[&_input]:text-neutral-900">
           <div
             dir="ltr"
             className="flex items-center gap-4 lg:gap-3 lg:[&_input]:h-[34px] lg:[&_input]:w-14"
           >
             <button
               type="button"
+              data-cart-slot="remove"
               onClick={canEdit ? onRemove : undefined}
               disabled={!canEdit || disabled}
               aria-describedby={!canEdit ? controlsNoteId : undefined}
               aria-label={"حذف " + accessibleTitle}
               className="text-error hover:bg-error/5 focus-visible:ring-error flex size-8 shrink-0 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Trash2 size={20} aria-hidden="true" />
+              <Image src={trash} alt="" width={16} height={16} className="size-4" aria-hidden="true" />
             </button>
             <CartQuantity
               value={item.quantity}
@@ -259,7 +283,7 @@ export default function CartItem({
         </div>
       </div>
       {serverItem && serverItem.issues.length > 0 && (
-        <ul className="text-mobile-caption text-error space-y-1 leading-relaxed lg:col-span-2">
+        <ul data-cart-slot="issues" className="text-mobile-caption text-error space-y-1 leading-relaxed lg:col-span-2">
           {serverItem.issues.map((issue, index) => (
             <li key={index}>{issue}</li>
           ))}

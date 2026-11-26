@@ -6,9 +6,9 @@ import type { ImportImagePayload } from "../types/importer.type";
 export function useImportImage() {
   return useMutation({
     mutationFn: ({
-      image,
       signal,
+      ...payload
     }: ImportImagePayload & { signal?: AbortSignal }) =>
-      importerService.importImage({ image }, signal),
+      importerService.importImage(payload, signal),
   });
 }

@@ -56,9 +56,9 @@ test('image validation rejects non-images, empty and oversized files before tran
  assert.equal(h.calls.length,0);
 });
 const compactStatus=(overrides={})=>({job_id:6017,status:'done',ready_for_frontend:true,redirect_ready:false,selected_product_slug:'',product_detail_url:'',next_poll_after_seconds:0,candidates:[{candidate_id:1,source_url:'https://example.com/watch',status:'importing',slug:'',detail_url:'',import_timeout:false}],...overrides});
-test('text discovery posts a trimmed query and accepts the discovery job response',async()=>{const h=harness();h.setResponse({...accepted,status:'queued',result_mode:'discovery'});const result=await h.load('services/importer.service').importerService.discover({query:' wireless headphones '});assert.equal(result.job_id,4207);assert.equal(h.calls[0].url,'/api/products/discover/');assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{query:'wireless headphones'});});
-test('URL discovery normalizes a www URL and sends only source_url',async()=>{const h=harness();h.setResponse({...accepted,result_mode:'discovery'});await h.load('services/importer.service').importerService.discover({source_url:'www.alibaba.com/product-detail/example.html'});assert.equal(h.calls[0].url,'/api/products/discover/');assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{source_url:'https://www.alibaba.com/product-detail/example.html'});});
-test('discover input sends bare domains as source_url and natural text as query',async()=>{const h=harness();const service=h.load('services/importer.service');h.setResponse({...accepted,result_mode:'discovery'});const urlPayload=service.createDiscoverPayload('alibaba.com/product-detail/watch.html');await service.importerService.discover(urlPayload);assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{source_url:'https://alibaba.com/product-detail/watch.html'});const queryPayload=service.createDiscoverPayload('wireless headphones');await service.importerService.discover(queryPayload);assert.deepEqual(JSON.parse(JSON.stringify(h.calls[1].body)),{query:'wireless headphones'});});
+test('text discovery posts a trimmed input and accepts the discovery job response',async()=>{const h=harness();h.setResponse({...accepted,status:'queued',result_mode:'discovery'});const result=await h.load('services/importer.service').importerService.discover({query:' wireless headphones '});assert.equal(result.job_id,4207);assert.equal(h.calls[0].url,'/api/products/discover/');assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{input:'wireless headphones'});});
+test('URL discovery normalizes a www URL and sends only input',async()=>{const h=harness();h.setResponse({...accepted,result_mode:'discovery'});await h.load('services/importer.service').importerService.discover({source_url:'www.alibaba.com/product-detail/example.html'});assert.equal(h.calls[0].url,'/api/products/discover/');assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{input:'https://www.alibaba.com/product-detail/example.html'});});
+test('discovery normalizes bare domains and natural text under input',async()=>{const h=harness();const service=h.load('services/importer.service');h.setResponse({...accepted,result_mode:'discovery'});const urlPayload=service.createDiscoverPayload('alibaba.com/product-detail/watch.html');await service.importerService.discover(urlPayload);assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)),{input:'https://alibaba.com/product-detail/watch.html'});const queryPayload=service.createDiscoverPayload('wireless headphones');await service.importerService.discover(queryPayload);assert.deepEqual(JSON.parse(JSON.stringify(h.calls[1].body)),{input:'wireless headphones'});});
 test('discovery rejects blank/overlong text and malformed accepted responses before use',async()=>{const h=harness();const service=h.load('services/importer.service').importerService;await assert.rejects(service.discover({query:'  '}));await assert.rejects(service.discover({query:'x'.repeat(301)}));assert.equal(h.calls.length,0);h.setResponse({job_id:3});await assert.rejects(service.discover({query:'headphones'}));});
 test('invalid single-product links fail before transport and malformed job responses are rejected', async () => {
  const h=harness();const service=h.load('services/single-product-import');
@@ -487,13 +487,282 @@ test('main import specifications prioritize weight, use only key attributes and 
  const attributes=Object.fromEntries(Array.from({length:8},(_,i)=>['Attribute '+i,'Value '+i]));
  const response={job_id:1,status:'processing',next_poll_after_seconds:2,product:{weight_kg:'1.05',key_attributes:attributes,specifications:{Unrelated:'Full specification'}}};
  const view=map(response);const entries=Object.entries(view.mainSpecifications);
- assert.equal(entries.length,6);assert.deepEqual(entries[0],['وزن (کیلوگرم)','1.05']);assert.equal(entries[1][0],'Attribute 0');assert.equal(entries[5][0],'Attribute 4');
+ assert.equal(entries.length,6);assert.deepEqual(entries[0],['وزن','1.05 کیلوگرم']);assert.equal(entries[1][0],'Attribute 0');assert.equal(entries[5][0],'Attribute 4');
  assert.equal(view.translatedSpecifications.Unrelated,'Full specification');assert.equal(view.mainSpecifications.Unrelated,undefined);
  for(const weight of [undefined,null,'',-1,'invalid']) {
   const without=map({...response,product:{...response.product,weight_kg:weight}});
   assert.equal(Object.keys(without.mainSpecifications).length,6);assert.equal(Object.keys(without.mainSpecifications)[0],'Attribute 0');
  }
- const onlyWeight=map({...response,product:{weight_kg:0}});assert.equal(onlyWeight.mainSpecifications['وزن (کیلوگرم)'],'0');
+ const onlyWeight=map({...response,product:{weight_kg:0}});assert.equal(onlyWeight.mainSpecifications['وزن'],'0 کیلوگرم');
  const empty=map({...response,product:{key_attributes:{Blank:' ',Nested:{value:'x'},Zero:0,Material:'Ceramic'}}});
  assert.deepEqual(Object.keys(empty.mainSpecifications),['Zero','Material']);
+});
+test("image job listing contract maps complete cards without product-detail scraping", async () => {
+  const h=harness();
+  const response={id:10788,status:"done",status_label:"تکمیل شده",import_type:"image",result_mode:"list",ready_for_frontend:true,next_poll_after_seconds:0,results:[{
+    slug:"portable-neck-fan",primary_image:"https://example.com/product.jpg",source_url:"https://www.alibaba.com/product-detail/example_1600000000000.html",
+    en_title:"Portable Neck Fan",fa_title:"",seller_name:"Example Supplier Co., Ltd.",seller_url:"",alibaba_verified:true,iranmobix_verified:false,
+    price_in_china_cny:"28.07",price_in_china_toman:"1180000",final_price_iran:null
+  }]};
+  h.setResponse(response);
+  const job=await h.load("services/importer.service").importerService.getJobStatus("10788");
+  const card=h.load("mappers/map-import-job-results").mapImportJobResults(job).requested[0];
+  assert.equal(card.slug,"portable-neck-fan");
+  assert.equal(card.title,"Portable Neck Fan");
+  assert.equal(card.image,response.results[0].primary_image);
+  assert.equal(card.price.amount,28.07);
+  assert.equal(card.price.currency,"CNY");
+  assert.equal(card.price.amountIrr,11800000);
+  assert.equal(card.seller.name,"Example Supplier Co., Ltd.");
+  assert.ok(card.seller.badges.includes("verified"));
+  assert.equal(h.calls.length,1);
+  assert.equal(h.calls[0].url,"/api/products/jobs/10788/");
+  const translated={...response,results:[{...response.results[0],fa_title:"پنکه گردنی",price_in_china_cny:"0",iranmobix_verified:true}]};
+  const mapped=h.load("mappers/map-import-job-results").mapImportJobResults(h.load("schemas/importer.schema").importJobSchema.parse(translated)).requested[0];
+  assert.equal(mapped.title,"پنکه گردنی");assert.equal(mapped.price.amount,0);assert.ok(mapped.seller.badges.includes("trusted"));
+});
+
+test("image polling stops at ready_for_frontend even while processing and follows server intervals before readiness", () => {
+  let options;
+  const h=harness({"@tanstack/react-query":{useQuery:value=>{options=value;return value;}}});
+  h.load("hooks/use-import-job").useImportJob("10788");
+  const job={id:10788,import_type:"image",status:"processing",ready_for_frontend:false,next_poll_after_seconds:3};
+  const state=data=>({state:{status:"success",data}});
+  assert.equal(options.refetchInterval(state(job)),3000);
+  assert.equal(options.refetchInterval(state({...job,ready_for_frontend:true})),false);
+  assert.equal(options.staleTime(state({...job,ready_for_frontend:true})),Infinity);
+  assert.equal(options.refetchInterval(state({...job,status:"done"})),false);
+});
+
+test("image URL submission uses JSON while uploads retain multipart", async () => {
+  const h=harness();h.setResponse({...accepted,import_type:"image"});
+  await h.load("services/importer.service").importerService.importImage({image_url:"https://example.com/product.jpg"});
+  assert.equal(h.calls.length,1);
+  assert.equal(h.calls[0].url,"/api/products/import/image/");
+  assert.equal(h.calls[0].body.image_url,"https://example.com/product.jpg");
+  assert.ok(!(h.calls[0].body instanceof FormData));
+});
+
+test("ready image results paginate only on scroll, not because there is a single card", async () => {
+  let requests=0;
+  const h=harness({
+    react:{useMemo:fn=>fn(),useCallback:fn=>fn,useEffect:fn=>fn()},
+    "@tanstack/react-query":{infiniteQueryOptions:value=>value,useInfiniteQuery:()=>({fetchNextPage:async()=>{requests++;},isFetching:false,isError:false})},
+    "./use-import-job":{useImportJob:()=>({data:{status:"processing",ready_for_frontend:true,import_type:"image",discovery:{pagination:{has_more:true,next_cursor:"lens-next"}}}})},
+    "../mappers/map-import-job-results":{mapImportJobPages:()=>({requested:[{id:1}],suggested:[]})},
+    "../services/importer.service":{importerService:{}},
+  });
+  const result=h.load("hooks/use-import-results").useImportResults("10788",null);
+  assert.equal(result.hasNextPage,true);assert.equal(requests,0);
+  await result.fetchNextPage();assert.equal(requests,1);
+});
+
+test("pending image jobs with null pagination remain valid and continue polling", async () => {
+  const h=harness();
+  const response={
+    id:10789,source_url:"image-search",source:"image-search",status:"pending",
+    product:null,main_product:null,other_products:[],import_type:"image",result_mode:"list",
+    status_label:"در حال پردازش",ready_for_frontend:false,error_message:"",error_action:{},
+    next_poll_after_seconds:3,discovered_urls:[],
+    discovery:{enabled:true,enrichment_pending:false,urls:[],candidates:[],candidate_count:0,ranking_status:"pending",pagination:null},
+    results:[],selected_product_slug:"",product_detail_url:"",redirect_ready:false
+  };
+  h.setResponse(response);
+  const job=await h.load("services/importer.service").importerService.getJobStatus("10789");
+  assert.equal(job.discovery.pagination,null);
+  assert.equal(job.status,"pending");
+  const view=h.load("mappers/map-import-job-results").mapImportJobResults(job);
+  assert.equal(view.requested.length+view.suggested.length,0);
+  const polling=harness({"@tanstack/react-query":{useQuery:value=>value}}).load("hooks/use-import-job").useImportJob("10789");
+  assert.equal(polling.refetchInterval({state:{status:"success",data:job}}),3000);
+  assert.equal(polling.staleTime({state:{status:"success",data:job}}),0);
+});
+
+test("image upload navigates its preopened tab to products with image_job", async () => {
+  const h=harness();let target;
+  const order=[];
+  const {imageSearchResultsPath}=h.load("utils/image-search-navigation");
+  const tab={closed:false,opener:{},location:{replace:path=>{target=path;}},close(){this.closed=true;}};
+  await h.load("services/import-search-navigation").runImportSearch({
+    request:async()=>{order.push("upload");return {...accepted,job_id:10789,import_type:"image"};},
+    resultsPath:imageSearchResultsPath,
+    openTab:()=>{order.push("tab");return tab;},navigate:()=>assert.fail("result tab is open"),
+  });
+  assert.equal(target,"/products?image_job=10789");assert.deepEqual(order,["tab","upload"]);
+});
+
+test("image result selection imports the source URL and leaves reuse to the backend", async () => {
+  const h=harness({"@tanstack/react-query":{queryOptions:value=>value}});
+  const source="https://www.alibaba.com/product-detail/Portable-Fan_1600000000000.html?x=1&y=2";
+  const href=h.load("utils/image-search-navigation").imageSearchProductPath(source);
+  const route=new URL(href,"https://front.test");
+  assert.equal(route.pathname,"/imports/single");
+  assert.equal(route.searchParams.get("url"),source);
+  assert.equal(h.calls.length,0);
+  h.setResponse({job_id:123,status:"pending",next_poll_after_seconds:3,product:null,error:null});
+  await h.load("services/single-product-import").singleProductImportStartOptions(route.searchParams.get("url")).queryFn({});
+  assert.equal(h.calls.length,1);assert.equal(h.calls[0].url,"/api/product/import/");assert.equal(h.calls[0].body.url,source);
+  assert.equal(h.load("utils/image-search-navigation").imageSearchProductPath("javascript:alert(1)"),undefined);
+});
+
+test("compact image pending responses use the known route context and keep polling", async () => {
+  const compact={ready_for_frontend:false,status:"pending",status_label:"در حال پردازش",next_poll_after_seconds:3,error_message:"",results:[]};
+  const h=harness();
+  h.setResponse(compact);
+  const service=h.load("services/importer.service").importerService;
+  const job=await service.getJobStatus("10789",undefined,"image");
+  assert.equal(job.id,10789);assert.equal(job.import_type,"image");assert.equal(job.result_mode,"list");
+  assert.equal(job.status,"pending");assert.equal(job.ready_for_frontend,false);
+  const polling=harness({"@tanstack/react-query":{useQuery:value=>value}}).load("hooks/use-import-job").useImportJob("10789","image");
+  assert.equal(polling.refetchInterval({state:{status:"success",data:job}}),3000);
+  h.setResponse({...compact,ready_for_frontend:true,status:"done",next_poll_after_seconds:0});
+  const done=await service.getJobStatus("10789",undefined,"image");
+  assert.equal(polling.refetchInterval({state:{status:"success",data:done}}),false);
+  h.setResponse({...compact,id:999});
+  await assert.rejects(service.getJobStatus("10789",undefined,"image"));
+});
+
+test("image query forwards context without guessing backend job fields", async () => {
+  let sent;
+  const h=harness({
+    "@tanstack/react-query":{useQuery:value=>value},
+    "../services/importer.service":{importerService:{getJobStatus:(...args)=>{sent=args;}}},
+  });
+  const signal=new AbortController().signal;
+  const query=h.load("hooks/use-import-job").useImportJob("10789","image");
+  await query.queryFn({signal});
+  assert.deepEqual(sent,["10789",signal,"image"]);
+});
+
+test("compact completed image cards render from the legacy results route without explicit image context", async () => {
+  const h=harness();
+  const compact=JSON.parse(fs.readFileSync(path.join(__dirname,"fixtures/image-job-completed.json"),"utf8"));
+  h.setResponse(compact);
+  const job=await h.load("services/importer.service").importerService.getJobStatus("10789");
+  assert.equal(job.import_type,"image");assert.equal(job.id,10789);
+  const grouped=h.load("mappers/map-import-job-results").mapImportJobPages([job]);
+  const cards=[...grouped.requested,...grouped.suggested];
+  assert.equal(cards.length,19);
+  assert.equal(cards[0].title,compact.results[0].en_title);
+  assert.equal(cards[0].image,compact.results[0].primary_image);
+  assert.equal(cards[0].price.amount,229);
+  assert.ok(cards.every(card=>card.image && card.title && card.price.currency==="CNY"));
+});
+
+test("compact pending status remains pollable without an image-route hint", async () => {
+  const h=harness();
+  h.setResponse({ready_for_frontend:false,status:"pending",status_label:"processing",next_poll_after_seconds:3,error_message:"",results:[]});
+  const job=await h.load("services/importer.service").importerService.getJobStatus("10789");
+  assert.equal(job.id,10789);assert.equal(job.status,"pending");
+  const options=harness({"@tanstack/react-query":{useQuery:value=>value}}).load("hooks/use-import-job").useImportJob("10789");
+  assert.equal(options.refetchInterval({state:{status:"success",data:job}}),3000);
+});
+
+test("image results require all six fields and accept numeric zero prices", () => {
+  const h=harness();
+  const {isCompleteImageResult}=h.load("utils/image-result-validation");
+  const valid={slug:"earrings",primary_image:"https://example.com/image.jpg",source_url:"https://www.alibaba.com/product-detail/earrings.html",en_title:"Earrings",price_in_china_cny:"0",price_in_china_toman:0};
+  assert.equal(isCompleteImageResult(valid),true);
+  for(const field of ["slug","primary_image","source_url","en_title","price_in_china_cny","price_in_china_toman"]) {
+    assert.equal(isCompleteImageResult({...valid,[field]:""}),false,field);
+    assert.equal(isCompleteImageResult({...valid,[field]:null}),false,field);
+  }
+  assert.equal(isCompleteImageResult({...valid,primary_image:"javascript:alert(1)"}),false);
+  assert.equal(isCompleteImageResult({...valid,price_in_china_cny:"-1"}),false);
+});
+
+test("incomplete image cards stay hidden while complete cards remain visible", () => {
+  const h=harness();
+  const valid=JSON.parse(fs.readFileSync(path.join(__dirname,"fixtures/image-job-completed.json"),"utf8")).results[0];
+  const job={id:1,import_type:"image",status:"done",ready_for_frontend:true,next_poll_after_seconds:0,result_mode:"list",results:[{...valid,slug:"empty",primary_image:"",en_title:"",price_in_china_cny:"",price_in_china_toman:null},valid]};
+  const cards=h.load("mappers/map-import-job-results").mapImportJobResults(job);
+  assert.equal(cards.requested.length+cards.suggested.length,1);
+  assert.equal(cards.requested[0].slug,valid.slug);
+});
+
+test("incomplete completed image search reuploads the same image at most twice and polls replacement jobs", async () => {
+  const payload={image_url:"https://example.com/upload.jpg"};
+  let saved={payload,activeJobId:"10",retries:0},posts=0;
+  const gets=[];
+  const h=harness({
+    "./image-search-request.storage":{
+      readImageSearchRequest:async()=>saved,
+      saveImageSearchRequest:async(id,value)=>{assert.equal(id,"10");saved=value;},
+    },
+    "../api/importer.api":{importerApi:{
+      getJobStatus:async id=>{gets.push(id);return {id:Number(id),import_type:"image",status:"done",ready_for_frontend:true,next_poll_after_seconds:0,result_mode:"list",results:[{slug:"empty",source_url:"https://example.com/item",primary_image:"",en_title:"",price_in_china_cny:"",price_in_china_toman:null}]};},
+      importImage:async value=>{assert.equal(value,payload);posts++;return {...accepted,job_id:10+posts,import_type:"image",next_poll_after_seconds:3};},
+    }},
+  });
+  const service=h.load("services/importer.service").importerService;
+  const first=await service.getJobStatus("10",undefined,"image");
+  assert.equal(first.status,"processing");assert.equal(first.ready_for_frontend,false);
+  assert.equal(first.next_poll_after_seconds,3);
+  await service.getJobStatus("10",undefined,"image");
+  const final=await service.getJobStatus("10",undefined,"image");
+  assert.equal(final.status,"done");assert.equal(posts,2);
+  assert.deepEqual(gets,["10","11","12"]);
+});
+
+test("pending and complete valid image responses never restart the image POST", async () => {
+  const fixture=JSON.parse(fs.readFileSync(path.join(__dirname,"fixtures/image-job-completed.json"),"utf8"));
+  for(const response of [{...fixture,status:"pending",ready_for_frontend:false,next_poll_after_seconds:3,results:[{slug:"empty"}]},fixture]) {
+    const h=harness({
+      "./image-search-request.storage":{readImageSearchRequest:async()=>({payload:{image_url:"https://example.com/photo.jpg"},activeJobId:"10",retries:0})},
+      "../api/importer.api":{importerApi:{getJobStatus:async()=>response,importImage:()=>assert.fail("unexpected reupload")}},
+    });
+    await h.load("services/importer.service").importerService.getJobStatus("10",undefined,"image");
+  }
+});
+
+test("direct imports use canonical Alibaba product URLs while categories and sellers use discovery input", () => {
+  const service = harness().load("services/importer.service");
+  for (const url of [
+    "https://www.alibaba.com/product-detail/Camera_1601341914574.html?spm=tracking",
+    "https://m.alibaba.com/product-detail/Camera_1601341914574.html",
+    "alibaba.com/product-detail/watch.html",
+  ]) {
+    const payload = service.createDiscoverPayload(url);
+    assert.equal(service.isDirectProductUrl(payload.input), true);
+  }
+  for (const input of [
+    "wireless headphones", "هدفون بی سیم",
+    "https://www.alibaba.com/catalog/headphones_cid100.html",
+    "https://www.alibaba.com/showroom/headphones.html",
+    "https://www.alibaba.com/trade/search?SearchText=product-detail",
+    "https://supplier.en.alibaba.com/",
+    "https://alibaba.com.example.org/product-detail/camera.html",
+  ]) assert.equal(service.isDirectProductUrl(service.createDiscoverPayload(input).input), false, input);
+});
+
+test("discovery input posts exactly input and optional cursor without query or source_url", async () => {
+  const h = harness();
+  h.setResponse({...accepted, import_type: "search"});
+  const service = h.load("services/importer.service").importerService;
+  await service.discover({input: " هدفون بی سیم "});
+  assert.deepEqual(JSON.parse(JSON.stringify(h.calls[0].body)), {input: "هدفون بی سیم"});
+  await service.discover({input: "www.alibaba.com/catalog/headphones.html", cursor: "next"});
+  assert.deepEqual(JSON.parse(JSON.stringify(h.calls[1].body)), {input: "https://www.alibaba.com/catalog/headphones.html", cursor: "next"});
+});
+
+test("text discovery polls compact jobs then reuses storefront cards without image retry or deep scraping", async () => {
+  const h = harness({"@tanstack/react-query": {useQuery: value => value}});
+  const service = h.load("services/importer.service").importerService;
+  h.setResponse({ready_for_frontend: false, status: "pending", next_poll_after_seconds: 3, results: []});
+  const pending = await service.getJobStatus("10801", undefined, "search");
+  const options = h.load("hooks/use-import-job").useImportJob("10801", "search");
+  assert.equal(pending.import_type, "search");
+  assert.equal(options.refetchInterval({state: {status: "success", data: pending}}), 3000);
+  const card = {slug: "headphones", primary_image: "https://example.com/image.jpg", source_url: "https://www.alibaba.com/product-detail/Headphones_123.html", en_title: "Headphones", fa_title: "هدفون", seller_name: "Actual Seller", alibaba_verified: true, iranmobix_verified: false, price_in_china_cny: "28.07", price_in_china_toman: "1180000", final_price_iran: null};
+  h.setResponse({ready_for_frontend: true, status: "processing", next_poll_after_seconds: 2, results: [card]});
+  const ready = await service.getJobStatus("10801", undefined, "search");
+  assert.equal(options.refetchInterval({state: {status: "success", data: ready}}), false);
+  const mapped = h.load("mappers/map-import-job-results").mapImportJobResults(ready).requested[0];
+  assert.equal(mapped.title, "هدفون");
+  assert.equal(mapped.image, card.primary_image);
+  assert.equal(mapped.price.amount, 28.07);
+  assert.equal(mapped.price.amountIrr, 11800000);
+  assert.equal(mapped.price.finalPriceIranToman, null);
+  assert.equal(h.calls.length, 2);
+  assert.ok(h.calls.every(call => call.url === "/api/products/jobs/10801/"));
 });

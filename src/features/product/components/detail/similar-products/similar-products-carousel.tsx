@@ -39,6 +39,8 @@ const SimilarProductsCarousel = ({
   const id = useId();
   const [emblaRef, emblaApi] = useEmblaCarousel({
     direction: "rtl",
+    axis: "x",
+    watchDrag: true,
     align: "start",
     loop: false,
     dragFree: false,
@@ -118,7 +120,7 @@ const SimilarProductsCarousel = ({
               scroll(event.key === "ArrowLeft" ? "next" : "previous");
             }
           }}
-          className={`${compactMobile ? "px-0" : "px-4"} focus-visible:ring-primary-300 overflow-hidden focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset lg:px-0`}
+          className={`${compactMobile ? "px-0" : "px-4"} focus-visible:ring-primary-300 touch-pan-y touch-pinch-zoom select-none overflow-hidden [&_img]:[-webkit-user-drag:none] focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset lg:px-0`}
         >
           <div
             className={
@@ -150,6 +152,7 @@ const SimilarProductsCarousel = ({
                     detailsDisabled={detailsDisabled}
                     onDetailsClick={detailsDisabled ? () => {} : undefined}
                     compactMobile={compactMobile}
+                    sharedMobileCard={compactMobile}
                   />
                 </div>
               );
